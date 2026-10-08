@@ -11,7 +11,8 @@ from pathlib import Path
 from typing import Callable, Iterable
 
 from . import env
-from .attribute import AttributionResult, apply_changes, attribute, changes_between
+from .attribute import AttributionResult, apply_changes, attribute, attribute_iteratively, changes_between
+from .interactions import pair_scan, tau_scan
 from .judge import Judge, MetricJudge, TimingJudge
 from .measure import Measurement
 from .stats import NoiseModel, noise_model
@@ -239,6 +240,82 @@ class Runner:
             "fast": m_fast.to_dict(), "slow": m_slow.to_dict(), "culprit_state": m_culprit.to_dict() if m_culprit else None,
             "wall_s": time.time() - t0, "new_measurements": self.new_measurements, "cache_hits": self.cache_hits,
         }
+
+
+    # ---------------------------------------------------------------- iterative attribution
+    def attribute_all(self, model: str, fast_state: State, slow_state: State, *, noise: NoiseModel | None = None,
+                      noise_runs: int = 7, max_rounds: int = 6, k: float = 3.0, floor_frac: float = 0.01) -> dict:
+        """Repeat attribution until the residual difference is within noise; each round re-measures
+        the noise of its own fast state (cheap: cached after the first round for identical states)."""
+        fast_state, slow_state = frozenset(fast_state), frozenset(slow_state)
+        t0 = time.time()
+        noises: dict[frozenset, NoiseModel] = {}
+        if noise is not None:
+            noises[fast_state] = noise
+
+        def make_judge(cur: frozenset):
+            if cur not in noises:
+                noises[cur], _ = self.noise(model, cur, runs=noise_runs, k=k, floor_frac=floor_frac)
+            return self.timing_judge(model, cur, noises[cur])
+
+        res = attribute_iteratively(fast_state, slow_state, make_judge, max_rounds=max_rounds, verbose=self.cfg.verbose)
+        m_fast = self.measure(model, fast_state)
+        m_slow = self.measure(model, slow_state)
+        groups = []
+        cur = fast_state
+        for r in res.rounds:
+            if not r["culprits"]:
+                continue
+            nxt = apply_changes(cur, r["culprits"])
+            m_prev, m_next = self.measure(model, cur), self.measure(model, nxt)
+            groups.append({"round": r["round"], "culprits": r["culprits"], "kind": r["kind"],
+                           "delta_ms": m_next.median_ms - m_prev.median_ms,
+                           "delta_pct": 100.0 * (m_next.median_ms - m_prev.median_ms) / m_fast.median_ms,
+                           "kernels": (m_prev.kernel_count, m_next.kernel_count),
+                           "alloc_bytes": (m_prev.code.get("alloc_bytes"), m_next.code.get("alloc_bytes"))})
+            cur = nxt
+        return {"model": model, "env": self.env, "judge": "timing", "iterative": res.to_dict(), "groups": groups,
+                "fast_ms": m_fast.median_ms, "slow_ms": m_slow.median_ms,
+                "explained_ms": sum(g["delta_ms"] for g in groups), "total_ms": m_slow.median_ms - m_fast.median_ms,
+                "noises": {state_hash(k_): v.to_dict() for k_, v in noises.items()},
+                "wall_s": time.time() - t0, "new_measurements": self.new_measurements, "cache_hits": self.cache_hits}
+
+    # ---------------------------------------------------------------- pairwise interactions
+    def interactions(self, model: str, base: State | None = None, ids: Iterable[str] | None = None,
+                     noise: NoiseModel | None = None, max_pairs: int | None = None, only_graph_changing: bool = True) -> dict:
+        """Toggle each candidate alone and in pairs on top of ``base``; flag super-additive pairs."""
+        base = self.reg.default_state() if base is None else frozenset(base)
+        if noise is None:
+            noise, _ = self.noise(model, base)
+        if ids is None:
+            ver = self.verify_switches(model, base, include_options=True)
+            ids = [r["switch"] for r in ver["effects"] if (not only_graph_changing) or r["changes_graph"]]
+        ids = list(ids)
+
+        def measure_ms(state: frozenset) -> float:
+            m = self.measure(model, state)
+            if m.error:
+                raise RuntimeError(m.error)
+            return m.median_ms
+        res = pair_scan(base, ids, measure_ms, noise.tau, max_pairs=max_pairs, toggled=self.reg.toggled)
+        return {"model": model, "env": self.env, "base": sorted(base), "ids": ids, "noise": noise.to_dict(), **res.to_dict()}
+
+    # ---------------------------------------------------------------- threshold sensitivity
+    def tau_sensitivity(self, model: str, fast_state: State, slow_state: State, ks: Iterable[float] = (2.0, 3.0, 4.0, 6.0),
+                        noise_runs: int = 7) -> dict:
+        """Re-run the (single-round) attribution for several k; measurements are cached, so only
+        ddmin paths that visit new states cost compiles."""
+        fast_state, slow_state = frozenset(fast_state), frozenset(slow_state)
+        _, ms = self.noise(model, fast_state, runs=noise_runs)
+        medians = [m.median_ms for m in ms]
+
+        def run(k: float) -> dict:
+            nm = noise_model(medians, k=k)
+            J = self.timing_judge(model, fast_state, nm)
+            r = attribute(fast_state, slow_state, J, verbose=False)
+            return {"tau": nm.tau, "culprits": r.culprits, "kind": r.kind(), "judge_calls": J.calls, "notes": r.notes}
+        res = tau_scan(run, list(ks))
+        return {"model": model, "env": self.env, **res.to_dict()}
 
 
 def refresh_registry(path, log=print) -> Registry:

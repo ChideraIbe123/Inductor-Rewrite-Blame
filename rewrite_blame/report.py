@@ -103,3 +103,36 @@ def render_verify(v: dict) -> str:
         lines.append(f"| `{r['switch']}` | {r['kind']} | {r['direction']} | {r['status']} | {r['kernel_count'][0]}->{r['kernel_count'][1]} | "
                      f"{r['extern_call_count'][0]}->{r['extern_call_count'][1]} | {r['alloc_bytes'][0]:,}->{r['alloc_bytes'][1]:,} | {ops} |")
     return "\n".join(lines) + "\n"
+
+
+def render_iterative(a: dict) -> str:
+    it = a["iterative"]
+    lines = [f"# Iterative attribution: {a['model']}", "", f"- environment: `{a['env']}`",
+             f"- fast {a['fast_ms']:.3f} ms, slow {a['slow_ms']:.3f} ms (+{a['total_ms']:.3f} ms); "
+             f"explained by found causes: {a['explained_ms']:.3f} ms; residual within noise: {it['residual_explained']}",
+             f"- rounds: {len(it['rounds'])}; judge evaluations: {it['judge_calls']}; wall {a['wall_s']:.0f} s", ""]
+    if it["notes"]:
+        lines += [f"- note: {n}" for n in it["notes"]]
+    lines += ["| round | cause (change set) | kind | delta ms | delta % | kernels | alloc bytes |", "|---|---|---|---|---|---|---|"]
+    for g in a["groups"]:
+        lines.append(f"| {g['round']} | {', '.join('`'+c+'`' for c in g['culprits'])} | {g['kind']} | {g['delta_ms']:+.3f} | {g['delta_pct']:+.1f} | "
+                     f"{g['kernels'][0]}->{g['kernels'][1]} | {g['alloc_bytes'][0]}->{g['alloc_bytes'][1]} |")
+    return "\n".join(lines) + "\n"
+
+
+def render_interactions(a: dict) -> str:
+    lines = [f"# Pairwise interactions: {a['model']}", "", f"- environment: `{a['env']}`",
+             f"- base {a['base_ms']:.3f} ms, tau {a['tau']:.3f} ms; {len(a['ids'])} switches, {len(a['pairs'])} pairs, {a['measurements']} measurements", "",
+             "## Singles", "| switch | delta ms |", "|---|---|"]
+    for k, v in sorted(a["singles"].items(), key=lambda kv: -abs(kv[1])):
+        lines.append(f"| `{k}` | {v:+.3f} |")
+    lines += ["", f"## Super-additive pairs ({len(a['superadditive'])})", "| a | b | pair delta ms | a alone | b alone | interaction ms |", "|---|---|---|---|---|---|"]
+    for r in a["superadditive"]:
+        lines.append(f"| `{r['a']}` | `{r['b']}` | {r['delta_ms']:+.3f} | {r['delta_a']:+.3f} | {r['delta_b']:+.3f} | {r['interaction_ms']:+.3f} |")
+    lines += ["", f"## Masking pairs ({len(a['masking'])})", "| a | b | pair delta ms | a alone | b alone | interaction ms |", "|---|---|---|---|---|---|"]
+    for r in a["masking"]:
+        lines.append(f"| `{r['a']}` | `{r['b']}` | {r['delta_ms']:+.3f} | {r['delta_a']:+.3f} | {r['delta_b']:+.3f} | {r['interaction_ms']:+.3f} |")
+    lines += ["", "## All pairs (by |interaction|)", "| a | b | pair delta ms | interaction ms |", "|---|---|---|---|"]
+    for r in a["pairs"][:40]:
+        lines.append(f"| `{r['a']}` | `{r['b']}` | {r['delta_ms']:+.3f} | {r['interaction_ms']:+.3f} |")
+    return "\n".join(lines) + "\n"

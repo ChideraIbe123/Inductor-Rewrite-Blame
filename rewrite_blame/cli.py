@@ -96,6 +96,41 @@ def cmd_attribute(a):
     _write(a, res, render_attribution(res), default_name=f"attribution_{a.model}")
 
 
+def cmd_attribute_all(a):
+    from .report import render_iterative
+    from .stats import NoiseModel
+    r = _runner(a)
+    fast = parse_state_spec(r.reg, a.fast)
+    slow = parse_state_spec(r.reg, a.slow)
+    noise = NoiseModel.from_dict(json.loads(Path(a.noise_file).read_text())["noise"]) if a.noise_file else None
+    res = r.attribute_all(a.model, fast, slow, noise=noise, noise_runs=a.runs, max_rounds=a.max_rounds)
+    _write(a, res, render_iterative(res), default_name=f"attribution_all_{a.model}")
+
+
+def cmd_interactions(a):
+    from .report import render_interactions
+    from .stats import NoiseModel
+    r = _runner(a)
+    base = parse_state_spec(r.reg, a.state)
+    noise = NoiseModel.from_dict(json.loads(Path(a.noise_file).read_text())["noise"]) if a.noise_file else None
+    ids = [parse_state_spec(r.reg, "none+" + t) for t in a.ids.split(",")] if a.ids else None
+    if ids is not None:
+        ids = [next(iter(st)) for st in ids]
+    res = r.interactions(a.model, base, ids=ids, noise=noise, max_pairs=a.max_pairs, only_graph_changing=not a.all_switches)
+    _write(a, res, render_interactions(res), default_name=f"interactions_{a.model}")
+
+
+def cmd_tau_scan(a):
+    r = _runner(a)
+    fast = parse_state_spec(r.reg, a.fast)
+    slow = parse_state_spec(r.reg, a.slow)
+    res = r.tau_sensitivity(a.model, fast, slow, ks=[float(x) for x in a.ks.split(",")], noise_runs=a.runs)
+    for row in res["rows"]:
+        print(f"k={row['k']:<4} tau={row['tau']:.3f} ms  verdict={row['kind']:<12} culprits={row['culprits']}  calls={row['judge_calls']}")
+    print("stable across k:", res["stable"])
+    _write(a, res, default_name=f"tau_scan_{a.model}")
+
+
 def cmd_show(a):
     from .store import Store
     st = Store(a.store)
@@ -144,6 +179,18 @@ def main(argv=None) -> int:
     p.add_argument("--model", required=True); p.add_argument("--fast", required=True); p.add_argument("--slow", required=True)
     p.add_argument("--judge", choices=["timing", "metric"], default="timing"); p.add_argument("--metric", default="kernel_count")
     p.add_argument("--noise-file"); p.add_argument("--runs", type=int, default=7); p.add_argument("--out")
+
+    p = sub.add_parser("attribute-all", help="iterate attribution until the residual is within noise"); p.set_defaults(fn=cmd_attribute_all)
+    p.add_argument("--model", required=True); p.add_argument("--fast", required=True); p.add_argument("--slow", required=True)
+    p.add_argument("--noise-file"); p.add_argument("--runs", type=int, default=7); p.add_argument("--max-rounds", type=int, default=6); p.add_argument("--out")
+
+    p = sub.add_parser("interactions", help="toggle switches alone and in pairs; flag super-additive pairs"); p.set_defaults(fn=cmd_interactions)
+    p.add_argument("--model", required=True); p.add_argument("--state", default="default"); p.add_argument("--ids", help="comma-separated switch ids (default: graph-changing ones)")
+    p.add_argument("--all-switches", action="store_true"); p.add_argument("--max-pairs", type=int); p.add_argument("--noise-file"); p.add_argument("--out")
+
+    p = sub.add_parser("tau-scan", help="re-run attribution for several noise multipliers k"); p.set_defaults(fn=cmd_tau_scan)
+    p.add_argument("--model", required=True); p.add_argument("--fast", required=True); p.add_argument("--slow", required=True)
+    p.add_argument("--ks", default="2,3,4,6"); p.add_argument("--runs", type=int, default=7); p.add_argument("--out")
 
     p = sub.add_parser("show"); p.set_defaults(fn=cmd_show)
     p.add_argument("--model", default=""); p.add_argument("-n", type=int, default=40)

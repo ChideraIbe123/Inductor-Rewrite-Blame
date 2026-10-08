@@ -160,3 +160,58 @@ def attribute(fast_state: Iterable[str], slow_state: Iterable[str], judge: Judge
         singles[culprits[0]] = Verdict.SLOW.value
     trace = [asdict(r) | {"verdict": r.verdict.value} for r in judge.trace]
     return AttributionResult(sorted(F), sorted(S), D, culprits, singles, interaction, judge.calls, trace, notes)
+
+
+# ----------------------------------------------------------------------------------------
+# Iterative attribution: find every independent cause, not just one 1-minimal set.
+# ----------------------------------------------------------------------------------------
+
+@dataclass
+class IterativeResult:
+    fast_state: list[str]
+    slow_state: list[str]
+    rounds: list[dict]              # one entry per ddmin round: culprits, kind, judge_calls, residual info
+    all_culprits: list[str]         # union of culprits over rounds, in discovery order
+    residual_explained: bool        # True iff fast + all culprits is judged as slow as the slow state
+    judge_calls: int
+    notes: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+def attribute_iteratively(fast_state: Iterable[str], slow_state: Iterable[str], make_judge: Callable[[frozenset], Judge], *,
+                          max_rounds: int = 6, verbose: bool = False) -> IterativeResult:
+    """Repeat ddmin, moving each round's culprits into the fast state, until the remaining
+    difference no longer reproduces a slowdown.
+
+    ``make_judge(fast_state)`` must return a Judge whose ``judge(c)`` evaluates
+    ``apply_changes(fast_state, c)`` *relative to that fast_state* (i.e. the reference is
+    re-measured for the new fast state each round). Rounds stop when the full remaining change
+    set is judged FAST, when no candidates remain, or after ``max_rounds``.
+    """
+    F, S = frozenset(fast_state), frozenset(slow_state)
+    rounds: list[dict] = []
+    found: list[str] = []
+    calls = 0
+    notes: list[str] = []
+    cur = F
+    explained = False
+    for r in range(1, max_rounds + 1):
+        if cur == S:
+            explained = True
+            break
+        judge = make_judge(cur)
+        res = attribute(cur, S, judge, verbose=verbose)
+        calls += judge.calls
+        rounds.append({"round": r, "fast_state_size": len(cur), "candidates": len(res.candidates), "culprits": res.culprits,
+                       "kind": res.kind(), "interaction": res.interaction, "judge_calls": judge.calls, "notes": res.notes})
+        if not res.culprits:
+            # either the residual is within noise (explained) or the reference itself is slow (mis-specified)
+            explained = any("not reproduced" in n for n in res.notes)
+            break
+        found.extend(res.culprits)
+        cur = apply_changes(cur, res.culprits)
+    else:
+        notes.append(f"stopped after {max_rounds} rounds with residual still slow")
+    return IterativeResult(sorted(F), sorted(S), rounds, found, explained, calls, notes)
