@@ -202,6 +202,10 @@ class Runner:
     # ---------------------------------------------------------------- attribution
     def timing_judge(self, model: str, fast_state: State, noise: NoiseModel) -> TimingJudge:
         def measure_ms(changes: frozenset, rep: int = 0) -> float:
+            if not changes:
+                # the empty change set *is* the reference: its value is the noise-model centre
+                # (7 independent runs), not one more noisy measurement
+                return noise.center
             st = apply_changes(fast_state, changes)
             m = self.measure(model, st, rep=rep)
             if m.error:
@@ -304,8 +308,10 @@ class Runner:
             ids = [r["switch"] for r in ver["effects"] if (not only_graph_changing) or r["changes_graph"]]
         ids = list(ids)
 
-        def measure_ms(state: frozenset) -> float:
-            m = self.measure(model, state)
+        def measure_ms(state: frozenset, rep: int = 0) -> float:
+            if state == base and rep == 0:
+                return noise.center
+            m = self.measure(model, state, rep=rep)
             if m.error:
                 raise RuntimeError(m.error)
             return m.median_ms

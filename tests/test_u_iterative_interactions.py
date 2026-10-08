@@ -75,7 +75,7 @@ def test_pair_scan_flags_superadditive_and_masking():
         v += sum(val for k, val in pairs.items() if k <= state)
         return v
     res = pair_scan(frozenset(), ["a", "b", "c", "d"], measure, tau=1.0)
-    assert res.measurements == 1 + 4 + 6
+    assert res.measurements == 1 + 4 + 6 + 2  # two flagged pairs were confirmed by a second measurement
     assert res.singles == {"a": 2.0, "b": 0.0, "c": 3.0, "d": 0.0}
     assert [(r["a"], r["b"]) for r in res.superadditive] == [("a", "b")]
     assert res.superadditive[0]["interaction_ms"] == pytest.approx(5.0)
@@ -104,3 +104,19 @@ def test_tau_scan_reports_stability():
     def run2(k):
         return {"tau": k, "culprits": ["+r2"] if k < 3 else ["+r2", "+r5"], "kind": "x", "judge_calls": 1}
     assert not tau_scan(run2, [2, 4]).stable
+
+
+def test_pair_scan_confirmation_removes_a_fluke():
+    seen = {}
+
+    def measure(state, rep=0):
+        key = (frozenset(state), rep)
+        seen[key] = seen.get(key, 0) + 1
+        if frozenset(state) == frozenset({"a", "b"}):
+            return 12.0 if rep == 0 else 10.0   # first measurement is a fluke
+        return 10.0
+    res = pair_scan(frozenset(), ["a", "b"], measure, tau=1.0)
+    assert res.superadditive == []            # mean 11 -> extra 1.0, not beyond tau
+    assert (frozenset({'a', 'b'}), 2) in seen
+    res2 = pair_scan(frozenset(), ['a', 'b'], measure, tau=1.0, confirm=False)
+    assert len(res2.superadditive) == 1
