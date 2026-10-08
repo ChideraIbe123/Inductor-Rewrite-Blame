@@ -37,10 +37,19 @@ def setup_threads(threads: int) -> None:
     torch.set_num_threads(threads)
 
 
+def machine_id() -> str:
+    """Stable machine name: CPU model + architecture (hostnames change with VPN/DHCP on laptops)."""
+    env = os.environ.get("REWRITE_BLAME_MACHINE")
+    if env:
+        return env
+    brand = cpu_brand().replace("|", "/")
+    brand = " ".join(brand.replace("(R)", "").replace("(TM)", "").replace("CPU", "").split())
+    return f"{brand} {platform.machine()}"
+
+
 def fingerprint(threads: int) -> str:
     import torch
-    host = socket.gethostname().split(".")[0]
-    return f"{host}|{platform.machine()}|torch{torch.__version__}|T{threads}"
+    return f"{machine_id()}|torch{torch.__version__}|T{threads}"
 
 
 def describe(threads: int) -> dict:
