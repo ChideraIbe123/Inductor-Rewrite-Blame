@@ -33,6 +33,12 @@ machines used. The main findings so far:
   recovers planted culprits in all tests, including a genuine \textbf{pair interaction} that exists
   in Inductor today: attention-fusion rules 11 and 12 match the same graph, so disabling either one
   alone changes nothing, and only disabling both changes the compiled program (Section~\ref{sec:attr}).
+\item The same rewrite can have the opposite sign on different hardware: Inductor's
+  attention fusion is a 36\% win on the Apple M4 Pro and an 8\% \emph{loss} on the 4-core Xeon
+  VM, and the tool blames the right rule in both directions (Section~\ref{sec:attr}). On the
+  decode-shaped MLP the opt-in \code{decompose\_mm\_pass} is a 15\% loss, blamed alone among 16
+  passes switched on together; on ResNet-18 a lost layout optimisation (11\%) is blamed alone
+  among six changed flags. Each attribution took 5--16 judge evaluations and under three minutes.
 \item On the models measured so far, most individual rewrites do not change the generated program
   at all (Section~\ref{sec:results}); the ones that do are the pattern rules that actually fire,
   the master pass switches, freezing, and a handful of scheduler knobs. This is useful: the
@@ -177,10 +183,66 @@ rule that fired, every config flag, every opt-in option) and classifies the effe
 \input{tables/verify_table.tex}
 
 \subsection{Leave-one-out timing sweeps}
+For every graph-changing switch of Table~\ref{tab:verify}, the model is re-timed with that one
+switch toggled and compared with the baseline against $\tau$. The per-model tables and figures
+below are generated from the stored measurements; three observations stand out.
+\begin{itemize}
+\item \textbf{A rewrite that hurts on its own.} On the single-token MLP (\code{decode\_mlp}, the
+  shape an LLM decode step produces), turning on Inductor's opt-in \code{decompose\_mm\_pass}, which
+  rewrites a skinny $1\times K$ matmul into a broadcast multiply and a sum, makes the step
+  \textbf{15\% slower} on the M4 Pro even though it removes two \code{mm} calls: the fused
+  pointwise kernel reads the whole weight matrix with worse arithmetic intensity than the BLAS
+  call it replaced. This is exactly the ``looks like a win locally, loses globally'' pattern the
+  project is about, and it is a candidate guard target for the stretch goal.
+\item \textbf{Rewrites whose loss hurts.} Disabling the attention fusion rules on the attention
+  block costs 33\%; disabling channels-last layout optimisation on ResNet-18 costs 11\%;
+  disabling in-place buffer reuse on the layer-norm MLP costs 4\%; disabling uniform-value constant
+  folding costs 2.6\%. These are the rewrites an engineer would want named when an upgrade
+  silently stops applying them.
+\item \textbf{Most switches are no-ops for a given model.} Of the roughly 45 candidate switches per
+  model, only 4--8 change the compiled program at all (Table~\ref{tab:verify}), and only a subset
+  of those move the time beyond $\tau$. The attribution search benefits twice: candidates are few,
+  and the no-op ones are eliminated in the first ddmin halvings.
+\end{itemize}
 \input{tables/sweeps_section.tex}%
 
 \section{Attribution case studies}\label{sec:attr}
+Each case study feeds the tool a fast state and a slow state that differ in many switches, most
+of them irrelevant, and asks it to name the culprits with the timing judge and the measured
+$\tau$. The attention-block case is the headline result: the slow state turns off all 63
+inference-time attention-fusion rules; the tool reports that exactly two of them,
+\code{\_sfdp\_pattern\_11\_inference} and \code{\_sfdp\_pattern\_12\_inference}, are responsible,
+\emph{and that neither matters alone} (rule 12 matches the same graph when 11 is disabled, so a
+leave-one-out sweep would have blamed nothing). The kernel-level diff shows why the loss costs
+36\%: one fused kernel plus one flash-attention call become four fused kernels and two
+\code{bmm} calls, and intermediate traffic grows from 4.2\,MB to 11.6\,MB per step.
 \input{tables/attribution_section.tex}%
+
+\subsection*{What ddmin does and does not promise}
+The layer-norm MLP case is instructive. Its sweep shows two independent causes (in-place buffer
+reuse, 4.3\%; constant folding, 2.6\%), but the attribution over eight changed flags returned
+only \code{-joint/constant\_folding}. That is correct behaviour: ddmin returns a \emph{1-minimal}
+set, one whose every element is necessary to cross $\tau$, and constant folding alone already
+crosses it. It does not promise to list every independent cause. The practical answer, planned for
+item~5, is to iterate: re-run with the found culprits moved into the fast state, until the
+remaining difference is within noise. The sweep table already gives the full picture for
+single switches, and the ddmin result adds what the sweep cannot: the interactions.
+
+\subsection*{The same rewrite, two machines, opposite sign}
+The attention block was attributed on both machines with the roles of ``fast'' and ``slow''
+chosen by measurement. On the Apple M4 Pro the fused CPU flash-attention kernel that the
+\code{\_sfdp} rules produce is a 36\% win, so losing the rules is the slowdown and the tool blames
+the \{11,\,12\} pair. On the 4-core Xeon the fused kernel is \textbf{8\% slower} than the
+unfused path (two \code{bmm} calls plus a fused softmax kernel), so there the rewrite itself is the
+slowdown, and the tool blames \code{+\_sfdp\_pattern\_11\_inference} as a single culprit (rule 12 is
+redundant once 11 is on, so turning 11 on alone already reproduces the loss). This is the
+clearest evidence so far for the proposal's thesis: the rewrite is locally sensible, its value
+depends on what the kernel generator and the hardware do with the result, and nothing in Inductor
+checks. It is also the natural first target for a learned guard (stretch item~7), since the
+decision depends on a few cheap features (sequence length, head size, thread count, ISA).
+The VM is a shared host and shows occasional outlier runs (one identical-run pair differed by
+1.7~ms against a MAD of 0.05~ms); the MAD-based $\tau$ is robust to such outliers, and every
+``slow'' verdict in the trace was reproduced by at least three independent measurements.
 
 \section{Status against the proposal and plan to the final report}
 \begin{table}[h]\centering\small

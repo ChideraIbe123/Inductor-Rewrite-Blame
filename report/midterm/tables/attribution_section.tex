@@ -18,4 +18,92 @@ median ms & 0.919 $\rightarrow$ 1.244 \\
 \bottomrule\end{tabular}
 \caption{Attribution summary, attention\_block.}
 \end{table}
+\IfFileExists{figures/trace_attention_block.pdf}{\begin{figure}[h]\centering\includegraphics[width=0.7\linewidth]{figures/trace_attention_block.pdf}\caption{ddmin search trace for attention\_block: each point is one judge evaluation.}\end{figure}}{}
+
+\subsection*{decode\_mlp on the Mac (M4 Pro, 8 threads): verdict \emph{single}}
+The slow state differs from the fast state in 16 switches. Fast 0.195~ms vs.\ slow 0.222~ms (+14.1\%); $\tau$ = 0.011~ms. ddmin needed 7 judge evaluations (versus 16 for leave-one-out, 120 for all pairs) and returned the culprit set \code{+optimus/decompose\_mm\_pass}. A single change reproduces the whole slowdown. \textbf{Kernel-level explanation.} fused kernels 1 $\rightarrow$ 1, extern calls 3 $\rightarrow$ 0, intermediate bytes 20,480 $\rightarrow$ 20,480. Kernels lost: \code{cpp\_fused\_mul\_silu}. Kernels gained: \code{cpp\_fused\_mm\_mul\_silu\_t}. Extern calls lost: \code{extern\_kernels.mm}, \code{extern\_kernels.mm}, \code{extern\_kernels.mm}; gained: none. 
+\begin{table}[h]\centering\small
+\begin{tabular}{lp{0.62\linewidth}}\toprule
+field & value \\\midrule
+\textbf{model} & decode\_mlp (Chideras-MacBook-Pro-2) \\
+judge & timing (median\_ms) \\
+fast reference & 0.194 ms, $\tau$ = 0.011 ms (5.5\%) \\
+slow state & 0.222 ms \\
+candidate changes & 16 \\
+judge evaluations & 7 \\
+verdict & single \\
+culprits & \texttt{+optimus/decompose\_mm\_pass} \\
+kernels fast $\rightarrow$ culprits & 1 $\rightarrow$ 1 \\
+extern calls & 3 $\rightarrow$ 0 \\
+intermediate bytes & 20,480 $\rightarrow$ 20,480 \\
+median ms & 0.195 $\rightarrow$ 0.223 \\
+\bottomrule\end{tabular}
+\caption{Attribution summary, decode\_mlp.}
+\end{table}
+\IfFileExists{figures/trace_decode_mlp.pdf}{\begin{figure}[h]\centering\includegraphics[width=0.7\linewidth]{figures/trace_decode_mlp.pdf}\caption{ddmin search trace for decode\_mlp: each point is one judge evaluation.}\end{figure}}{}
+
+\subsection*{norm\_mlp on the Mac (M4 Pro, 8 threads): verdict \emph{single}}
+The slow state differs from the fast state in 8 switches. Fast 1.061~ms vs.\ slow 1.099~ms (+3.6\%); $\tau$ = 0.018~ms. ddmin needed 8 judge evaluations (versus 8 for leave-one-out, 28 for all pairs) and returned the culprit set \code{-joint/constant\_folding}. A single change reproduces the whole slowdown. \textbf{Kernel-level explanation.} fused kernels 3 $\rightarrow$ 3, extern calls 2 $\rightarrow$ 2, intermediate bytes 1,573,376 $\rightarrow$ 1,573,376. Kernels lost: \code{cpp\_fused\_add\_gelu\_mean\_mul\_pow}. Kernels gained: \code{cpp\_fused\_add\_gelu\_mean\_mul\_pow\_reciprocal}. 
+\begin{table}[h]\centering\small
+\begin{tabular}{lp{0.62\linewidth}}\toprule
+field & value \\\midrule
+\textbf{model} & norm\_mlp (Chideras-MacBook-Pro-2) \\
+judge & timing (median\_ms) \\
+fast reference & 1.058 ms, $\tau$ = 0.018 ms (1.7\%) \\
+slow state & 1.099 ms \\
+candidate changes & 8 \\
+judge evaluations & 8 \\
+verdict & single \\
+culprits & \texttt{-joint/constant\_folding} \\
+kernels fast $\rightarrow$ culprits & 3 $\rightarrow$ 3 \\
+extern calls & 2 $\rightarrow$ 2 \\
+intermediate bytes & 1,573,376 $\rightarrow$ 1,573,376 \\
+median ms & 1.061 $\rightarrow$ 1.085 \\
+\bottomrule\end{tabular}
+\caption{Attribution summary, norm\_mlp.}
+\end{table}
+\IfFileExists{figures/trace_norm_mlp.pdf}{\begin{figure}[h]\centering\includegraphics[width=0.7\linewidth]{figures/trace_norm_mlp.pdf}\caption{ddmin search trace for norm\_mlp: each point is one judge evaluation.}\end{figure}}{}
+
+\subsection*{resnet18 on the Mac (M4 Pro, 8 threads): verdict \emph{single}}
+The slow state differs from the fast state in 6 switches. Fast 26.205~ms vs.\ slow 29.119~ms (+11.1\%); $\tau$ = 0.576~ms. ddmin needed 5 judge evaluations (versus 6 for leave-one-out, 15 for all pairs) and returned the culprit set \code{-lowering/layout\_optimization}. A single change reproduces the whole slowdown. \textbf{Kernel-level explanation.} fused kernels 14 $\rightarrow$ 12, extern calls 21 $\rightarrow$ 21, intermediate bytes 30,052,352 $\rightarrow$ 6,470,912. Kernels lost: \code{cpp\_fused\_\_native\_batch\_norm\_legit\_no\_training\_add\_convolution\_relu}, \code{cpp\_fused\_\_native\_batch\_norm\_legit\_no\_training\_add\_convolution\_relu}, \code{cpp\_fused\_\_native\_batch\_norm\_legit\_no\_training\_add\_convolution\_relu}, \code{cpp\_fused\_\_native\_batch\_norm\_legit\_no\_training\_add\_convolution\_relu}, \code{cpp\_fused\_\_native\_batch\_norm\_legit\_no\_training\_add\_convolution\_relu}, \code{cpp\_fused\_\_native\_batch\_norm\_legit\_no\_training\_add\_convolution\_relu}, \code{cpp\_fused\_\_native\_batch\_norm\_legit\_no\_training\_add\_convolution\_relu}, \code{cpp\_fused\_\_native\_batch\_norm\_legit\_no\_training\_convolution\_max\_pool2d\_with\_indices\_relu}, \code{cpp\_fused\_convolution}. Kernels gained: \code{cpp\_fused\_\_native\_batch\_norm\_legit\_no\_training\_add\_relu}, \code{cpp\_fused\_\_native\_batch\_norm\_legit\_no\_training\_add\_relu}, \code{cpp\_fused\_\_native\_batch\_norm\_legit\_no\_training\_add\_relu}, \code{cpp\_fused\_\_native\_batch\_norm\_legit\_no\_training\_add\_relu}, \code{cpp\_fused\_\_native\_batch\_norm\_legit\_no\_training\_add\_relu}, \code{cpp\_fused\_\_native\_batch\_norm\_legit\_no\_training\_add\_relu}, \code{cpp\_fused\_\_native\_batch\_norm\_legit\_no\_training\_max\_pool2d\_with\_indices\_relu}. 
+\begin{table}[h]\centering\small
+\begin{tabular}{lp{0.62\linewidth}}\toprule
+field & value \\\midrule
+\textbf{model} & resnet18 (Chideras-MacBook-Pro-2) \\
+judge & timing (median\_ms) \\
+fast reference & 26.118 ms, $\tau$ = 0.576 ms (2.2\%) \\
+slow state & 29.119 ms \\
+candidate changes & 6 \\
+judge evaluations & 5 \\
+verdict & single \\
+culprits & \texttt{-lowering/layout\_optimization} \\
+kernels fast $\rightarrow$ culprits & 14 $\rightarrow$ 12 \\
+extern calls & 21 $\rightarrow$ 21 \\
+intermediate bytes & 30,052,352 $\rightarrow$ 6,470,912 \\
+median ms & 26.205 $\rightarrow$ 29.007 \\
+\bottomrule\end{tabular}
+\caption{Attribution summary, resnet18.}
+\end{table}
+\IfFileExists{figures/trace_resnet18.pdf}{\begin{figure}[h]\centering\includegraphics[width=0.7\linewidth]{figures/trace_resnet18.pdf}\caption{ddmin search trace for resnet18: each point is one judge evaluation.}\end{figure}}{}
+
+\subsection*{attention\_block on the VM (Xeon, 4 threads): verdict \emph{single}}
+The slow state differs from the fast state in 63 switches. Fast 7.621~ms vs.\ slow 8.265~ms (+8.4\%); $\tau$ = 0.162~ms. ddmin needed 8 judge evaluations (versus 63 for leave-one-out, 1953 for all pairs) and returned the culprit set \code{+joint/joint\_graph.patterns/\_sfdp\_pattern\_11\_inference}. A single change reproduces the whole slowdown. \textbf{Kernel-level explanation.} fused kernels 4 $\rightarrow$ 1, extern calls 4 $\rightarrow$ 3, intermediate bytes 11,591,680 $\rightarrow$ 4,198,400. Kernels lost: \code{cpp\_fused\_\_softmax\_abs\_all\_amax\_div\_eq\_mul\_ne\_sub\_view}, \code{cpp\_fused\_clone\_split\_transpose\_view}, \code{cpp\_fused\_clone\_transpose\_view}. Extern calls lost: \code{extern\_kernels.bmm}, \code{extern\_kernels.bmm}; gained: \code{torch.ops.aten.\_scaled\_dot\_product\_flash\_attention\_for\_cpu}. 
+\begin{table}[h]\centering\small
+\begin{tabular}{lp{0.62\linewidth}}\toprule
+field & value \\\midrule
+\textbf{model} & attention\_block (fa26-cs598a-010) \\
+judge & timing (median\_ms) \\
+fast reference & 7.650 ms, $\tau$ = 0.162 ms (2.1\%) \\
+slow state & 8.265 ms \\
+candidate changes & 63 \\
+judge evaluations & 8 \\
+verdict & single \\
+culprits & \texttt{\_sfdp\_pattern\_11\_inference} \\
+kernels fast $\rightarrow$ culprits & 4 $\rightarrow$ 1 \\
+extern calls & 4 $\rightarrow$ 3 \\
+intermediate bytes & 11,591,680 $\rightarrow$ 4,198,400 \\
+median ms & 7.621 $\rightarrow$ 8.326 \\
+\bottomrule\end{tabular}
+\caption{Attribution summary, attention\_block.}
+\end{table}
 \IfFileExists{figures/trace_attention_block.pdf}{\begin{figure}[h]\centering\includegraphics[width=0.7\linewidth]{figures/trace_attention_block.pdf}\caption{ddmin search trace for attention\_block: each point is one judge evaluation.}\end{figure}}{}%

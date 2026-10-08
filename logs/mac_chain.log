@@ -89,3 +89,28 @@ Culprit change(s):
 | `master/post_grad_passes` | off | 26.099 | -0.019 | -0.1 |  | 14 | True |
 
 === Wed Oct  7 23:11:36 CDT 2026 noise bert_base_eagerattn
+ "pairwise_p90": 1.6326245000000057,
+ "pairwise_max": 1.7075829999999996
+}
+=== Wed Oct  7 23:13:11 CDT 2026 verify bert_base_eagerattn
+| `optimus/batch_aten_add` | option | on | no_effect | 5->5 | 84->84 | 383,885,312->383,885,312 |  |
+| `optimus/batch_linear_post_grad` | option | on | no_effect | 5->5 | 84->84 | 383,885,312->383,885,312 |  |
+
+=== Wed Oct  7 23:19:15 CDT 2026 sweep bert_base_eagerattn
+| `lowering/freezing` | on | 84.159 | -0.204 | -0.2 |  | 5 | True |
+| `sched/inplace_buffers` | off | 84.197 | -0.166 | -0.2 |  | 5 | True |
+
+=== Wed Oct  7 23:20:23 CDT 2026 noise gpt2_prefill
+ "pairwise_p90": 0.9994174999999998,
+ "pairwise_max": 1.1245829999999941
+}
+=== Wed Oct  7 23:21:56 CDT 2026 verify gpt2_prefill
+| `optimus/batch_aten_add` | option | on | no_effect | 10->10 | 61->61 | 118,659,072->118,659,072 |  |
+| `optimus/batch_linear_post_grad` | option | on | no_effect | 10->10 | 61->61 | 118,659,072->118,659,072 |  |
+
+=== Wed Oct  7 23:28:41 CDT 2026 sweep gpt2_prefill
+| `joint/constant_folding` | off | 62.683 | +0.235 | +0.4 |  | 10 | True |
+| `joint/joint_graph.early_patterns/pointless_view` | off | 62.559 | +0.112 | +0.2 |  | 10 | True |
+
+=== Wed Oct  7 23:30:13 CDT 2026 chain done
+=== Wed Oct  7 23:30:13 CDT 2026 mac chain done

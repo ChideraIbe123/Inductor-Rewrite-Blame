@@ -1,4 +1,4 @@
-=== Wed Oct  7 23:31:21 CDT 2026 attribute resnet18: default vs four changed flags
+# Attribution report: resnet18
 
 - environment: `Chideras-MacBook-Pro-2|arm64|torch2.14.1|T8`
 - judge: timing (median_ms)
@@ -28,5 +28,3 @@ Culprit change(s):
 | 3 | -cpp/tiling_heuristics, -joint/joint_graph.early_patterns/pointless_view, -lowering/layout_optimization | slow | 27.499 | 26.118 |  |
 | 2 | -cpp/tiling_heuristics, -joint/joint_graph.early_patterns/pointless_view | fast | 26.11 | 26.118 |  |
 | 1 | -lowering/layout_optimization | slow | 29.007 | 26.118 |  |
-
-=== Wed Oct  7 23:31:51 CDT 2026 mac chain3 done
