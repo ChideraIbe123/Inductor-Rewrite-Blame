@@ -10,3 +10,6 @@ report/midterm/*.aux
 report/midterm/*.log
 report/midterm/*.out
 .DS_Store
+logs/
+results/**/*.sqlite
+results/vm/vm/
