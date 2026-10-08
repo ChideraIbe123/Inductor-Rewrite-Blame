@@ -11,6 +11,7 @@ from dataclasses import dataclass, field, asdict
 from typing import Iterable
 
 from .stats import median, noise_model
+from .switches import diff_key, state_diff
 
 
 def session_of(row: dict) -> str:
@@ -36,17 +37,46 @@ class RepeatReport:
         return asdict(self)
 
 
-def repeatability(rows: Iterable[dict], model: str, base_state_hash: str, toggles: dict[str, str],
+def backfill_diffs(rows: Iterable[dict], registries) -> None:
+    """Give rows without a ``diff`` one, using the registry whose universe contains the row's ON set
+    and yields the smallest difference (rows measured under a smaller universe match the smaller
+    registry)."""
+    regs = list(registries)
+    for r in rows:
+        if r.get("diff") or not r.get("state"):
+            continue
+        st = set(r["state"])
+        best = None
+        for reg in regs:
+            ids = set(reg.ids())
+            if not st <= ids:
+                continue
+            d = state_diff(reg, st)
+            size = len(d["on_extra"]) + len(d["off_defaults"])
+            if best is None or size < best[0]:
+                best = (size, d)
+        if best is not None:
+            r["diff"] = best[1]
+
+
+def repeatability(rows: Iterable[dict], model: str, base_state_hash, toggles,
                   k: float = 3.0, floor_frac: float = 0.01) -> RepeatReport:
-    """``toggles`` maps a switch id to the state hash of "base with that switch toggled"."""
+    """``base_state_hash`` is the hash of the base state, ``toggles`` maps switch id -> hash of
+    "base with that switch toggled". Because machines can have different switch universes (and
+    hence different hashes for the same named state), both may also be given per environment:
+    ``{env: hash}`` and ``{env: {sid: hash}}``."""
     rows = [r for r in rows if r.get("model") == model and r.get("timing") and not r.get("error")]
+    envs = sorted({r["env"] for r in rows})
+    base_by_env = base_state_hash if isinstance(base_state_hash, dict) else {e: base_state_hash for e in envs}
+    tog_by_env = toggles if toggles and isinstance(next(iter(toggles.values())), dict) else {e: toggles for e in envs}
+    all_sids = sorted({sid for d in tog_by_env.values() for sid in d})
     # group medians by (env, session, state_hash)
     groups: dict[tuple, list[float]] = defaultdict(list)
     for r in rows:
         groups[(r["env"], session_of(r), r["state_hash"])].append(r["timing"]["median"])
     baselines, noise_by = [], {}
     for (env, sess, sh), meds in sorted(groups.items()):
-        if sh != base_state_hash:
+        if sh != base_by_env.get(env):
             continue
         if len(meds) >= 2:
             nm = noise_model(meds, k=k, floor_frac=floor_frac)
@@ -58,10 +88,11 @@ def repeatability(rows: Iterable[dict], model: str, base_state_hash: str, toggle
                           "tau_pct": 100 * tau / centre})
     switches = []
     agree_same_machine = disagree_same_machine = agree_cross = disagree_cross = 0
-    for sid, sh in sorted(toggles.items()):
+    for sid in all_sids:
         cells = []
         for (env, sess), (centre, tau) in sorted(noise_by.items()):
-            meds = groups.get((env, sess, sh))
+            sh = tog_by_env.get(env, {}).get(sid)
+            meds = groups.get((env, sess, sh)) if sh else None
             if not meds:
                 continue
             d = median(meds) - centre
@@ -90,6 +121,24 @@ def repeatability(rows: Iterable[dict], model: str, base_state_hash: str, toggle
     agreement = {"same_machine": {"agree": agree_same_machine, "disagree": disagree_same_machine},
                  "cross_machine": {"agree": agree_cross, "disagree": disagree_cross}}
     return RepeatReport(model, baselines, switches, agreement)
+
+
+def repeatability_by_diff(rows: Iterable[dict], model: str, k: float = 3.0, floor_frac: float = 0.01) -> RepeatReport:
+    """Like ``repeatability`` but identifies states by their difference from default (``row["diff"]``),
+    so rows from machines with different switch universes line up. Base = empty diff; switches =
+    every single-switch diff seen in a timed row."""
+    rows = [r for r in rows if r.get("model") == model and r.get("timing") and not r.get("error") and r.get("diff") is not None]
+    for r in rows:
+        r["_dk"] = diff_key(r["diff"])
+    base_key = diff_key({"on_extra": [], "off_defaults": []})
+    toggles = {}
+    for r in rows:
+        d = r["diff"]
+        if len(d["on_extra"]) + len(d["off_defaults"]) == 1:
+            sid = (d["on_extra"] or d["off_defaults"])[0]
+            toggles[sid] = r["_dk"]
+    rows2 = [dict(r, state_hash=r["_dk"]) for r in rows]
+    return repeatability(rows2, model, base_key, toggles, k=k, floor_frac=floor_frac)
 
 
 def render_repeat(rep: RepeatReport) -> str:

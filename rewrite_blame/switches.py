@@ -67,6 +67,21 @@ class Switch:
 State = frozenset  # frozenset[str] of switch ids that are ON
 
 
+def state_diff(reg: "Registry", state: Iterable[str]) -> dict:
+    """Describe ``state`` relative to the registry's default: which default-off switches are ON and
+    which default-on switches are OFF. Unlike the raw ON-set this does not change when the switch
+    universe grows (e.g. oneDNN rules that exist only on x86), so it can be compared across
+    registries and machines."""
+    st = set(state)
+    default = reg.default_state()
+    return {"on_extra": sorted(st - default), "off_defaults": sorted(default - st)}
+
+
+def diff_key(diff: dict) -> str:
+    payload = "on:" + ",".join(sorted(diff.get("on_extra", []))) + "|off:" + ",".join(sorted(diff.get("off_defaults", [])))
+    return hashlib.sha256(payload.encode()).hexdigest()[:16]
+
+
 def state_hash(state: Iterable[str]) -> str:
     """Stable short hash of a state (order independent)."""
     payload = "\n".join(sorted(state)).encode()

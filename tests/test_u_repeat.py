@@ -41,3 +41,24 @@ def test_single_run_baseline_uses_floor_tau():
     rep = repeatability(rows, "m", "base", {"sw": "sw"})
     assert rep.baselines[0]["tau_ms"] == 0.1
     assert rep.switches[0]["cells"][0]["verdict"] == "same"
+
+
+def test_repeatability_by_diff_matches_across_universes():
+    from rewrite_blame.repeat import backfill_diffs, repeatability_by_diff
+    from rewrite_blame.switches import Registry, Switch
+    small = Registry([Switch(id="a", kind="pattern", family="f"), Switch(id="b", kind="pattern", family="f")])
+    big = Registry([Switch(id="a", kind="pattern", family="f"), Switch(id="b", kind="pattern", family="f"),
+                    Switch(id="x86_only", kind="pattern", family="f")])
+    rows = []
+    for env, reg in (("A", small), ("B", big)):
+        d = reg.default_state()
+        for x in (0.0, 0.01, -0.01):
+            rows.append({"model": "m", "env": env, "session": "s", "state": sorted(d), "state_hash": "h", "timing": {"median": 10 + x}})
+        rows.append({"model": "m", "env": env, "session": "s", "state": sorted(d - {"a"}), "state_hash": "h2", "timing": {"median": 12.0}})
+    backfill_diffs(rows, [small, big])
+    assert all(r["diff"] is not None for r in rows)
+    assert rows[0]["diff"] == {"on_extra": [], "off_defaults": []} and rows[3]["diff"]["off_defaults"] == ["a"]
+    rep = repeatability_by_diff(rows, "m")
+    assert len(rep.baselines) == 2
+    sw = rep.switches[0]
+    assert sw["switch"] == "a" and len(sw["cells"]) == 2 and sw["cross_machine_agree"] is True

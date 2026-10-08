@@ -10,7 +10,7 @@ from typing import Any, Iterable
 import torch
 
 from . import apply, codegen_stats, env
-from .switches import Registry, state_hash
+from .switches import Registry, state_diff, state_hash
 from .stats import summarize
 
 
@@ -30,6 +30,7 @@ class Measurement:
     fired: dict = field(default_factory=dict)         # pattern switch id -> fire count
     suppressed: dict = field(default_factory=dict)    # disabled pattern switch id -> would-have-fired count
     graph_ops: dict = field(default_factory=dict)     # post-grad op histogram
+    diff: dict = field(default_factory=dict)          # state relative to default: on_extra / off_defaults
     timing: dict = field(default_factory=dict)        # summarize(samples) + samples
     eager_timing: dict = field(default_factory=dict)
     correct: bool | None = None
@@ -99,7 +100,8 @@ def measure(reg: Registry, model_name: str, state: Iterable[str], *, threads: in
     st = reg.validate_state(state)
     m = Measurement(model=model_name, state=sorted(st), state_hash=state_hash(st), env=env.fingerprint(threads),
                     threads=threads, torch_version=torch.__version__, timestamp=time.time(),
-                    protocol={"warmup": warmup, "rounds": rounds, "iters": iters, "seed": seed, "dynamic": dynamic})
+                    protocol={"warmup": warmup, "rounds": rounds, "iters": iters, "seed": seed, "dynamic": dynamic},
+                    diff=state_diff(reg, st))
     try:
         model, inputs = models.build(model_name, seed=seed)
         with torch.no_grad():

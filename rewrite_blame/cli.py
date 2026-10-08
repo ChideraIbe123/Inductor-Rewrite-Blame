@@ -133,25 +133,25 @@ def cmd_tau_scan(a):
 
 
 def cmd_repeat(a):
-    """Compare baseline speed and per-switch verdicts across sessions and machines (from the store)."""
-    from .repeat import repeatability, render_repeat
-    from .switches import state_hash
+    """Compare baseline speed and per-switch verdicts across sessions and machines (from the stores)."""
+    from .repeat import backfill_diffs, render_repeat, repeatability_by_diff
     from .store import Store
+    from .switches import Registry
     r = _runner(a)
-    base = parse_state_spec(r.reg, a.state)
     rows = r.store.all(model=a.model)
+    regs = [r.reg]
     for extra in a.extra_store or []:
         if Path(extra).exists():
             with Store(extra) as st:
                 rows += st.all(model=a.model)
-    # candidate switches: everything that was ever toggled from base in a timed row, on any machine
-    toggles = {}
-    bh = state_hash(base)
-    for sid in r.reg.ids():
-        sh = state_hash(r.reg.toggled(base, sid))
-        if any(row.get("state_hash") == sh and row.get("timing") for row in rows):
-            toggles[sid] = sh
-    rep = repeatability(rows, a.model, bh, toggles)
+            reg_path = Path(extra).with_name("switches.json")
+            if reg_path.exists():
+                regs.append(Registry.load(reg_path))
+    for extra_reg in a.extra_registry or []:
+        if Path(extra_reg).exists():
+            regs.append(Registry.load(extra_reg))
+    backfill_diffs(rows, regs)
+    rep = repeatability_by_diff(rows, a.model)
     _write(a, rep.to_dict(), render_repeat(rep), default_name=f"repeat_{a.model}")
 
 
@@ -221,6 +221,7 @@ def main(argv=None) -> int:
     p = sub.add_parser("repeat", help="repeatability of verdicts across sessions/machines from the store"); p.set_defaults(fn=cmd_repeat)
     p.add_argument("--model", required=True); p.add_argument("--state", default="default"); p.add_argument("--out")
     p.add_argument("--extra-store", action="append", help="additional measurement stores (e.g. pulled from another machine)")
+    p.add_argument("--extra-registry", action="append", help="additional switch registries used to interpret old rows")
 
     p = sub.add_parser("show"); p.set_defaults(fn=cmd_show)
     p.add_argument("--model", default=""); p.add_argument("-n", type=int, default=40)
