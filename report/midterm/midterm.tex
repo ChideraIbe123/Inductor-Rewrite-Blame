@@ -88,7 +88,7 @@ allocator state never leak between configurations. The worker compiles the model
 \item \textbf{generated-code statistics}: number of fused kernels (\code{cpp\_fused\_*} or
   \code{triton\_*}), per-kernel input/output/in-place pointer counts, static load and store sites,
   vectorisation, kernel category (pointwise/reduction), extern and fallback calls
-  (\code{extern\_kernels.mm}, \code{aten.\_scaled\_dot\_product\_flash\_attention\_for\_cpu}, oneDNN
+  (\code{extern\_kernels.mm}, the CPU flash-attention kernel, oneDNN
   fused convolutions), and the bytes of intermediate buffers allocated in the wrapper
   (the ``extra tensor written to memory'' the proposal worries about);
 \item \textbf{Inductor's own metrics} (bytes accessed, IR nodes before fusion, loop reorderings) and
@@ -129,6 +129,7 @@ graphs that each plant one rewrite family, six torchvision models, and twelve Hu
 configurations including LLM prefill and single-token (decode) shapes. Models are built from fixed
 configs with random weights, so nothing is downloaded and timings do not depend on weights. Decode
 graphs are single-token forwards without a KV cache for now.
+\input{tables/corpus_table.tex}
 
 \section{Testing (item 3)}
 Tests are split into \emph{unit} tests (no compilation; \code{tests/test\_u\_*.py}) and
@@ -157,24 +158,12 @@ counts them. Highlights:
   switch-effect classification, and determinism of the switch registry across processes.
 \end{itemize}
 
-\begin{table}[h]\centering\small
-\begin{tabular}{lr}\toprule test file & tests \\\midrule
-\input{tables/tests.tex}
-\bottomrule\end{tabular}
-\caption{Automated tests (unit tests run in well under a second; Inductor tests compile toy graphs).}\label{tab:tests}
-\end{table}
+\input{tables/tests_table.tex}
 
 \section{Results so far (item 4)}\label{sec:results}
 
 \subsection{Noise}
-\begin{table}[h]\centering\small
-\begin{tabular}{llrrrrrr}\toprule
-model & machine & runs & centre (ms) & MAD (ms) & $\tau$ (ms) & $\tau$ (\%) & max $|\Delta|$ identical (ms) \\\midrule
-\input{tables/noise.tex}
-\bottomrule\end{tabular}
-\caption{Baseline noise from repeated identical runs in separate processes. ``mac'' is the Apple M4
-Pro (8 threads), ``fa26'' the course VM (4-core Xeon Silver 4216).}\label{tab:noise}
-\end{table}
+\input{tables/noise_table.tex}
 \begin{figure}[h]\centering
 \IfFileExists{figures/noise.pdf}{\includegraphics[width=0.85\linewidth]{figures/noise.pdf}}{\fbox{noise.pdf pending}}
 \caption{Per-run medians of identical baseline runs, as deviation from the centre; the grey band is $\tau$.}
@@ -185,20 +174,13 @@ For each model the harness compiles the default state, then toggles every candid
 rule that fired, every config flag, every opt-in option) and classifies the effect:
 \emph{changes graph} (different kernels, extern calls, allocation or post-grad ops),
 \emph{fires only} (a different rule fired but the program is the same), or \emph{no effect}.
-\begin{table}[h]\centering\small
-\begin{tabular}{lrrlrrrr}\toprule
-model & kernels & rules fired & candidates (pat/cfg/opt) & changes graph & fires only & no effect & errors \\\midrule
-\input{tables/verify_summary.tex}
-\bottomrule\end{tabular}
-\caption{Switch verification. A pattern rule that never fired cannot change anything when turned
-off, so only fired rules are candidates.}\label{tab:verify}
-\end{table}
+\input{tables/verify_table.tex}
 
 \subsection{Leave-one-out timing sweeps}
-\input{tables/sweeps_section.tex}
+\input{tables/sweeps_section.tex}%
 
 \section{Attribution case studies}\label{sec:attr}
-\input{tables/attribution_section.tex}
+\input{tables/attribution_section.tex}%
 
 \section{Status against the proposal and plan to the final report}
 \begin{table}[h]\centering\small

@@ -1,0 +1,30 @@
+\begin{table}[h]\centering\scriptsize
+\begin{tabular}{lllp{0.5\linewidth}}\toprule
+model & family & size & description \\\midrule
+attention\_block & toy & tiny & manual attention (B=4,T=128,C=512,H=8) \\
+conv\_bn\_relu\_stack & toy & tiny & 3x conv3x3-bn-relu on 8x32x56x56 \\
+split\_cat\_mlp & toy & tiny & split->4 linears->cat->linear \\
+norm\_mlp & toy & tiny & layernorm/gelu MLP with pointless convert/view and 1/sqrt \\
+decode\_mlp & toy & tiny & M=1 gated MLP (LLM decode shape) \\
+cat\_slice\_cat & toy & tiny & cat/slice/split\_with\_sizes/cat chains \\
+resnet18 & vision & small & torchvision resnet18, batch 8, 224x224 \\
+resnet50 & vision & medium & torchvision resnet50, batch 4, 224x224 \\
+mobilenet\_v3\_small & vision & small & torchvision mobilenet\_v3\_small, batch 8, 224x224 \\
+efficientnet\_b0 & vision & medium & torchvision efficientnet\_b0, batch 4, 224x224 \\
+convnext\_tiny & vision & medium & torchvision convnext\_tiny, batch 4, 224x224 \\
+vit\_b\_16 & vision & large & torchvision vit\_b\_16, batch 4, 224x224 \\
+bert\_base & hf & medium & BERT-base encoder, batch 8, seq 128, attn=default \\
+bert\_base\_eagerattn & hf & medium & BERT-base encoder, batch 8, seq 128, attn=eager \\
+distilbert & hf & small & DistilBERT encoder, batch 8, seq 128, attn=default \\
+gpt2\_prefill & hf & medium & GPT-2 small prefill, batch 4, seq 128, attn=default \\
+gpt2\_prefill\_eagerattn & hf & medium & GPT-2 small prefill, batch 4, seq 128, attn=eager \\
+gpt2\_decode & hf & small & GPT-2 small single-token step (no KV cache), batch 4, seq 1, attn=default \\
+t5\_small\_encoder & hf & small & T5-small encoder, batch 8, seq 128, attn=default \\
+smollm\_135m\_prefill & hf & medium & SmolLM-135M (LLaMA arch) prefill, batch 1, seq 128, attn=default \\
+smollm\_135m\_prefill\_eagerattn & hf & medium & SmolLM-135M (LLaMA arch) prefill, batch 1, seq 128, attn=eager \\
+smollm\_135m\_decode & hf & small & SmolLM-135M single-token step (no KV cache), batch 1, seq 1, attn=default \\
+qwen2\_0\_5b\_prefill & hf & large & Qwen2.5-0.5B prefill, batch 1, seq 128, attn=default \\
+qwen2\_0\_5b\_decode & hf & medium & Qwen2.5-0.5B single-token step (no KV cache), batch 1, seq 1, attn=default \\
+\bottomrule\end{tabular}
+\caption{Model corpus (random-init from fixed configs).}\label{tab:corpus}
+\end{table}%

@@ -1,0 +1,60 @@
+\subsubsection*{attention\_block on the Mac (M4 Pro, 8 threads)}
+Baseline 0.926~ms, $\tau$ = 0.017~ms (1.8\%). 5 graph-changing switches were toggled one at a time: 2 made the model slower than $\tau$, 0 made it faster, 3 stayed within noise. Slower: \code{master/pattern\_matcher} (off, +33.1\%); \code{master/post\_grad\_passes} (off, +3.2\%). 
+\begin{table}[h]\centering\scriptsize
+\begin{tabular}{llrrrl}\toprule
+switch & toggled & median (ms) & $\Delta$ (\%) & kernels & vs.\ $\tau$ \\\midrule
+master/pattern\_matcher & off & 1.232 & +33.1 & 4 & \textbf{slower} \\
+master/post\_grad\_passes & off & 0.955 & +3.2 & 2 & \textbf{slower} \\
+optimus/normalization\_pass & on & 0.916 & -1.1 & 1 &  \\
+sched/inplace\_buffers & off & 0.928 & +0.3 & 1 &  \\
+lowering/freezing & on & 0.925 & -0.0 & 1 &  \\
+\bottomrule\end{tabular}
+\caption{Leave-one-out sweep, attention\_block, Mac (M4 Pro, 8 threads).}
+\end{table}
+\IfFileExists{figures/sweep_attention_block.pdf}{\begin{figure}[h]\centering\includegraphics[width=0.9\linewidth]{figures/sweep_attention_block.pdf}\end{figure}}{}
+
+\subsubsection*{decode\_mlp on the Mac (M4 Pro, 8 threads)}
+Baseline 0.194~ms, $\tau$ = 0.011~ms (5.5\%). 4 graph-changing switches were toggled one at a time: 1 made the model slower than $\tau$, 0 made it faster, 3 stayed within noise. Slower: \code{optimus/decompose\_mm\_pass} (on, +15.0\%). 
+\begin{table}[h]\centering\scriptsize
+\begin{tabular}{llrrrl}\toprule
+switch & toggled & median (ms) & $\Delta$ (\%) & kernels & vs.\ $\tau$ \\\midrule
+optimus/decompose\_mm\_pass & on & 0.223 & +15.0 & 1 & \textbf{slower} \\
+master/post\_grad\_passes & off & 0.191 & -1.6 & 1 &  \\
+lowering/freezing & on & 0.191 & -1.4 & 1 &  \\
+sched/inplace\_buffers & off & 0.191 & -1.1 & 1 &  \\
+\bottomrule\end{tabular}
+\caption{Leave-one-out sweep, decode\_mlp, Mac (M4 Pro, 8 threads).}
+\end{table}
+\IfFileExists{figures/sweep_decode_mlp.pdf}{\begin{figure}[h]\centering\includegraphics[width=0.9\linewidth]{figures/sweep_decode_mlp.pdf}\end{figure}}{}
+
+\subsubsection*{norm\_mlp on the Mac (M4 Pro, 8 threads)}
+Baseline 1.058~ms, $\tau$ = 0.018~ms (1.7\%). 8 graph-changing switches were toggled one at a time: 2 made the model slower than $\tau$, 0 made it faster, 6 stayed within noise. Slower: \code{sched/inplace\_buffers} (off, +4.3\%); \code{joint/constant\_folding} (off, +2.6\%). 
+\begin{table}[h]\centering\scriptsize
+\begin{tabular}{llrrrl}\toprule
+switch & toggled & median (ms) & $\Delta$ (\%) & kernels & vs.\ $\tau$ \\\midrule
+sched/inplace\_buffers & off & 1.103 & +4.3 & 3 & \textbf{slower} \\
+joint/constant\_folding & off & 1.085 & +2.6 & 3 & \textbf{slower} \\
+master/post\_grad\_passes & off & 1.067 & +0.9 & 3 &  \\
+pointless\_view\_pair & off & 1.065 & +0.7 & 3 &  \\
+lowering/freezing & on & 1.052 & -0.5 & 3 &  \\
+master/pattern\_matcher & off & 1.062 & +0.4 & 3 &  \\
+pointless\_convert & off & 1.059 & +0.2 & 3 &  \\
+reciprocal\_sqrt\_to\_rsqrt & off & 1.058 & +0.0 & 3 &  \\
+\bottomrule\end{tabular}
+\caption{Leave-one-out sweep, norm\_mlp, Mac (M4 Pro, 8 threads).}
+\end{table}
+\IfFileExists{figures/sweep_norm_mlp.pdf}{\begin{figure}[h]\centering\includegraphics[width=0.9\linewidth]{figures/sweep_norm_mlp.pdf}\end{figure}}{}
+
+\subsubsection*{resnet18 on the Mac (M4 Pro, 8 threads)}
+Baseline 26.118~ms, $\tau$ = 0.576~ms (2.2\%). 4 graph-changing switches were toggled one at a time: 1 made the model slower than $\tau$, 0 made it faster, 3 stayed within noise. Slower: \code{lowering/layout\_optimization} (off, +11.1\%). 
+\begin{table}[h]\centering\scriptsize
+\begin{tabular}{llrrrl}\toprule
+switch & toggled & median (ms) & $\Delta$ (\%) & kernels & vs.\ $\tau$ \\\midrule
+lowering/layout\_optimization & off & 29.007 & +11.1 & 12 & \textbf{slower} \\
+lowering/freezing & on & 25.827 & -1.1 & 11 &  \\
+sched/inplace\_buffers & off & 26.239 & +0.5 & 14 &  \\
+master/post\_grad\_passes & off & 26.099 & -0.1 & 14 &  \\
+\bottomrule\end{tabular}
+\caption{Leave-one-out sweep, resnet18, Mac (M4 Pro, 8 threads).}
+\end{table}
+\IfFileExists{figures/sweep_resnet18.pdf}{\begin{figure}[h]\centering\includegraphics[width=0.9\linewidth]{figures/sweep_resnet18.pdf}\end{figure}}{}%

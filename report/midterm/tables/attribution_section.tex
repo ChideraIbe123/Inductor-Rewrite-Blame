@@ -1,0 +1,21 @@
+\subsection*{attention\_block on the Mac (M4 Pro, 8 threads): verdict \emph{interaction}}
+The slow state differs from the fast state in 63 switches. Fast 0.919~ms vs.\ slow 1.250~ms (+36.1\%); $\tau$ = 0.017~ms. ddmin needed 16 judge evaluations (versus 63 for leave-one-out, 1953 for all pairs) and returned the culprit set \code{-joint/joint\_graph.patterns/\_sfdp\_pattern\_11\_inference}, \code{-joint/joint\_graph.patterns/\_sfdp\_pattern\_12\_inference}. Each culprit alone was judged \emph{fast}: the slowdown needs all of them together. \textbf{Kernel-level explanation.} fused kernels 1 $\rightarrow$ 4, extern calls 3 $\rightarrow$ 4, intermediate bytes 4,198,400 $\rightarrow$ 11,591,680. Kernels gained: \code{cpp\_fused\_\_softmax\_abs\_all\_amax\_div\_eq\_mul\_ne\_sub\_view}, \code{cpp\_fused\_clone\_split\_transpose\_view}, \code{cpp\_fused\_clone\_transpose\_view}. Extern calls lost: \code{torch.ops.aten.\_scaled\_dot\_product\_flash\_attention\_for\_cpu}; gained: \code{extern\_kernels.bmm}, \code{extern\_kernels.bmm}. Rules suppressed in the culprit state: \code{\_sfdp\_pattern\_11\_inference}, \code{\_sfdp\_pattern\_12\_inference}. 
+\begin{table}[h]\centering\small
+\begin{tabular}{lp{0.62\linewidth}}\toprule
+field & value \\\midrule
+\textbf{model} & attention\_block (Chideras-MacBook-Pro-2) \\
+judge & timing (median\_ms) \\
+fast reference & 0.926 ms, $\tau$ = 0.017 ms (1.8\%) \\
+slow state & 1.250 ms \\
+candidate changes & 63 \\
+judge evaluations & 16 \\
+verdict & interaction \\
+culprits & \texttt{\_sfdp\_pattern\_11\_inference}, \texttt{\_sfdp\_pattern\_12\_inference} \\
+kernels fast $\rightarrow$ culprits & 1 $\rightarrow$ 4 \\
+extern calls & 3 $\rightarrow$ 4 \\
+intermediate bytes & 4,198,400 $\rightarrow$ 11,591,680 \\
+median ms & 0.919 $\rightarrow$ 1.244 \\
+\bottomrule\end{tabular}
+\caption{Attribution summary, attention\_block.}
+\end{table}
+\IfFileExists{figures/trace_attention_block.pdf}{\begin{figure}[h]\centering\includegraphics[width=0.7\linewidth]{figures/trace_attention_block.pdf}\caption{ddmin search trace for attention\_block: each point is one judge evaluation.}\end{figure}}{}%

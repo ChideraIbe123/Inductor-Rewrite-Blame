@@ -87,8 +87,12 @@ def run(model: str, state: Iterable[str], registry_path: str | Path, *, threads:
         d = json.loads(payload)
         drift = d.pop("registry_drift", None)
         m = Measurement.from_dict(d)
-        if drift and (drift["missing_in_process"] or drift["extra_in_process"]):
-            m.error = (m.error or "") + f"\nregistry drift: {drift}"
+        if drift and drift["missing_in_process"]:
+            m.error = (m.error or "") + f"\nregistry names switches this process does not have: {drift['missing_in_process'][:5]}"
+        elif drift and drift["extra_in_process"]:
+            # the process knows more rules than the saved registry (e.g. platform-specific oneDNN
+            # patterns): not fatal, but the universe used by the parent is incomplete -> recorded
+            m.protocol["registry_drift_extra"] = drift["extra_in_process"]
         return m
     from . import env as _env
     import time

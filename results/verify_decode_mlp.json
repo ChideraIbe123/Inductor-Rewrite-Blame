@@ -1,5 +1,5 @@
 {
- "model": "norm_mlp",
+ "model": "decode_mlp",
  "base": [
   "cpp/horizontal_fusion",
   "cpp/loop_tail_vec",
@@ -250,12 +250,7 @@
   "sched/unroll_reductions"
  ],
  "universe": {
-  "pattern": [
-   "joint/joint_graph.early_patterns/pointless_view",
-   "joint/joint_graph.early_patterns/pointless_view_pair",
-   "joint/joint_graph.patterns/pointless_convert",
-   "post_grad/post_grad.pass_patterns[1]/reciprocal_sqrt_to_rsqrt"
-  ],
+  "pattern": [],
   "config": [
    "master/pattern_matcher",
    "master/pre_grad_passes",
@@ -305,251 +300,28 @@
  },
  "effects": [
   {
-   "switch": "joint/joint_graph.early_patterns/pointless_view",
-   "kind": "pattern",
-   "family": "joint",
-   "direction": "off",
-   "status": "fires_only",
-   "changes_graph": false,
-   "ops_changed": {},
-   "fired_changed": {
-    "joint/joint_graph.early_patterns/pointless_view": [
-     1,
-     0
-    ]
-   },
-   "kernel_count": [
-    3,
-    3
-   ],
-   "alloc_bytes": [
-    1573376,
-    1573376
-   ],
-   "extern_call_count": [
-    2,
-    2
-   ],
-   "kernels_only_in_base": [],
-   "kernels_only_in_toggled": [],
-   "externs_only_in_base": [],
-   "externs_only_in_toggled": [],
-   "suppressed": {
-    "joint/joint_graph.early_patterns/pointless_view": 1
-   },
-   "correct": true
-  },
-  {
-   "switch": "joint/joint_graph.early_patterns/pointless_view_pair",
-   "kind": "pattern",
-   "family": "joint",
-   "direction": "off",
-   "status": "changes_graph",
-   "changes_graph": true,
-   "ops_changed": {
-    "aten.reshape.default": [
-     0,
-     2
-    ]
-   },
-   "fired_changed": {
-    "joint/joint_graph.early_patterns/pointless_view_pair": [
-     1,
-     0
-    ],
-    "joint/joint_graph.early_patterns/pointless_view": [
-     1,
-     2
-    ]
-   },
-   "kernel_count": [
-    3,
-    3
-   ],
-   "alloc_bytes": [
-    1573376,
-    1573376
-   ],
-   "extern_call_count": [
-    2,
-    2
-   ],
-   "kernels_only_in_base": [
-    "cpp_fused_add_gelu_mean_mul_pow"
-   ],
-   "kernels_only_in_toggled": [
-    "cpp_fused_add_gelu_mean_mul_pow_view"
-   ],
-   "externs_only_in_base": [],
-   "externs_only_in_toggled": [],
-   "suppressed": {
-    "joint/joint_graph.early_patterns/pointless_view_pair": 1
-   },
-   "correct": true
-  },
-  {
-   "switch": "joint/joint_graph.patterns/pointless_convert",
-   "kind": "pattern",
-   "family": "joint",
-   "direction": "off",
-   "status": "changes_graph",
-   "changes_graph": true,
-   "ops_changed": {
-    "prims.convert_element_type.default": [
-     0,
-     2
-    ]
-   },
-   "fired_changed": {
-    "joint/joint_graph.patterns/pointless_convert": [
-     1,
-     0
-    ]
-   },
-   "kernel_count": [
-    3,
-    3
-   ],
-   "alloc_bytes": [
-    1573376,
-    1573376
-   ],
-   "extern_call_count": [
-    2,
-    2
-   ],
-   "kernels_only_in_base": [
-    "cpp_fused_native_layer_norm"
-   ],
-   "kernels_only_in_toggled": [
-    "cpp_fused__to_copy_native_layer_norm"
-   ],
-   "externs_only_in_base": [],
-   "externs_only_in_toggled": [],
-   "suppressed": {
-    "joint/joint_graph.patterns/pointless_convert": 1
-   },
-   "correct": true
-  },
-  {
-   "switch": "post_grad/post_grad.pass_patterns[1]/reciprocal_sqrt_to_rsqrt",
-   "kind": "pattern",
-   "family": "post_grad",
-   "direction": "off",
-   "status": "changes_graph",
-   "changes_graph": true,
-   "ops_changed": {
-    "aten.rsqrt.default": [
-     2,
-     1
-    ],
-    "aten.reciprocal.default": [
-     0,
-     1
-    ],
-    "aten.sqrt.default": [
-     0,
-     1
-    ]
-   },
-   "fired_changed": {
-    "post_grad/post_grad.pass_patterns[1]/reciprocal_sqrt_to_rsqrt": [
-     1,
-     0
-    ]
-   },
-   "kernel_count": [
-    3,
-    3
-   ],
-   "alloc_bytes": [
-    1573376,
-    1573376
-   ],
-   "extern_call_count": [
-    2,
-    2
-   ],
-   "kernels_only_in_base": [
-    "cpp_fused_add_gelu_mean_mul_pow"
-   ],
-   "kernels_only_in_toggled": [
-    "cpp_fused_add_gelu_mean_mul_pow_sqrt"
-   ],
-   "externs_only_in_base": [],
-   "externs_only_in_toggled": [],
-   "suppressed": {
-    "post_grad/post_grad.pass_patterns[1]/reciprocal_sqrt_to_rsqrt": 1
-   },
-   "correct": true
-  },
-  {
    "switch": "master/pattern_matcher",
    "kind": "config",
    "family": "master",
    "direction": "off",
-   "status": "changes_graph",
-   "changes_graph": true,
-   "ops_changed": {
-    "prims.convert_element_type.default": [
-     0,
-     2
-    ],
-    "aten.reshape.default": [
-     0,
-     2
-    ],
-    "aten.rsqrt.default": [
-     2,
-     1
-    ],
-    "aten.reciprocal.default": [
-     0,
-     1
-    ],
-    "aten.sqrt.default": [
-     0,
-     1
-    ]
-   },
-   "fired_changed": {
-    "joint/joint_graph.early_patterns/pointless_view_pair": [
-     1,
-     0
-    ],
-    "joint/joint_graph.early_patterns/pointless_view": [
-     1,
-     0
-    ],
-    "joint/joint_graph.patterns/pointless_convert": [
-     1,
-     0
-    ],
-    "post_grad/post_grad.pass_patterns[1]/reciprocal_sqrt_to_rsqrt": [
-     1,
-     0
-    ]
-   },
+   "status": "no_effect",
+   "changes_graph": false,
+   "ops_changed": {},
+   "fired_changed": {},
    "kernel_count": [
+    1,
+    1
+   ],
+   "alloc_bytes": [
+    20480,
+    20480
+   ],
+   "extern_call_count": [
     3,
     3
    ],
-   "alloc_bytes": [
-    1573376,
-    1573376
-   ],
-   "extern_call_count": [
-    2,
-    2
-   ],
-   "kernels_only_in_base": [
-    "cpp_fused_add_gelu_mean_mul_pow",
-    "cpp_fused_native_layer_norm"
-   ],
-   "kernels_only_in_toggled": [
-    "cpp_fused__to_copy_native_layer_norm",
-    "cpp_fused_add_gelu_mean_mul_pow_sqrt_view"
-   ],
+   "kernels_only_in_base": [],
+   "kernels_only_in_toggled": [],
    "externs_only_in_base": [],
    "externs_only_in_toggled": [],
    "suppressed": {},
@@ -565,16 +337,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -591,77 +363,50 @@
    "status": "changes_graph",
    "changes_graph": true,
    "ops_changed": {
-    "aten.pow.Tensor_Scalar": [
+    "aten.mm.default": [
+     3,
+     0
+    ],
+    "aten.div.Tensor": [
      1,
      0
     ],
-    "aten.addmm.default": [
-     2,
+    "aten.neg.default": [
+     1,
      0
     ],
     "aten.mul.Tensor": [
-     6,
-     0
-    ],
-    "aten.var_mean.correction": [
-     1,
-     0
-    ],
-    "aten.mean.dim": [
-     1,
-     0
-    ],
-    "aten.erf.default": [
-     1,
-     0
-    ],
-    "aten.add.Tensor": [
-     5,
-     0
-    ],
-    "aten.sub.Tensor": [
      1,
      0
     ],
     "aten.permute.default": [
-     2,
+     3,
      0
     ],
-    "aten.rsqrt.default": [
-     2,
+    "aten.add.Tensor": [
+     1,
      0
     ],
-    "<built-in function getitem>": [
-     2,
-     0
-    ]
-   },
-   "fired_changed": {
-    "post_grad/post_grad.pass_patterns[1]/reciprocal_sqrt_to_rsqrt": [
+    "aten.exp.default": [
      1,
      0
     ]
    },
+   "fired_changed": {},
    "kernel_count": [
+    1,
+    1
+   ],
+   "alloc_bytes": [
+    20480,
+    20480
+   ],
+   "extern_call_count": [
     3,
     3
    ],
-   "alloc_bytes": [
-    1573376,
-    1573376
-   ],
-   "extern_call_count": [
-    2,
-    2
-   ],
-   "kernels_only_in_base": [
-    "cpp_fused_add_gelu_mean_mul_pow",
-    "cpp_fused_native_layer_norm"
-   ],
-   "kernels_only_in_toggled": [
-    "cpp_fused__to_copy_native_layer_norm",
-    "cpp_fused_add_gelu_mean_mul_pow_sqrt"
-   ],
+   "kernels_only_in_base": [],
+   "kernels_only_in_toggled": [],
    "externs_only_in_base": [],
    "externs_only_in_toggled": [],
    "suppressed": {},
@@ -672,33 +417,24 @@
    "kind": "config",
    "family": "joint",
    "direction": "off",
-   "status": "changes_graph",
-   "changes_graph": true,
-   "ops_changed": {
-    "aten.mul.Tensor": [
-     6,
-     7
-    ]
-   },
+   "status": "no_effect",
+   "changes_graph": false,
+   "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
+    1,
+    1
+   ],
+   "alloc_bytes": [
+    20480,
+    20480
+   ],
+   "extern_call_count": [
     3,
     3
    ],
-   "alloc_bytes": [
-    1573376,
-    1573376
-   ],
-   "extern_call_count": [
-    2,
-    2
-   ],
-   "kernels_only_in_base": [
-    "cpp_fused_add_gelu_mean_mul_pow"
-   ],
-   "kernels_only_in_toggled": [
-    "cpp_fused_add_gelu_mean_mul_pow_reciprocal"
-   ],
+   "kernels_only_in_base": [],
+   "kernels_only_in_toggled": [],
    "externs_only_in_base": [],
    "externs_only_in_toggled": [],
    "suppressed": {},
@@ -714,16 +450,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -742,16 +478,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -770,16 +506,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -798,16 +534,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -826,16 +562,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -853,27 +589,22 @@
    "changes_graph": true,
    "ops_changed": {
     "aten.permute.default": [
-     2,
+     3,
      0
     ]
    },
-   "fired_changed": {
-    "freezing/freezing_patterns.pass_patterns[0]/unnecessary_dtype_convert": [
-     0,
-     1
-    ]
-   },
+   "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -892,16 +623,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -920,16 +651,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -948,16 +679,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -976,16 +707,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1004,16 +735,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1032,16 +763,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    2884352
+    20480,
+    28672
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1060,16 +791,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1088,16 +819,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1116,16 +847,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1144,16 +875,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1172,16 +903,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1200,16 +931,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1228,16 +959,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1256,16 +987,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1284,16 +1015,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1312,16 +1043,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1335,30 +1066,55 @@
    "kind": "option",
    "family": "optimus",
    "direction": "on",
-   "status": "fires_only",
-   "changes_graph": false,
-   "ops_changed": {},
-   "fired_changed": {
-    "post_grad/post_grad.POST_GRAD_PATTERNS[decompose_mm_pass]/decompose_addmm": [
+   "status": "changes_graph",
+   "changes_graph": true,
+   "ops_changed": {
+    "aten.mul.Tensor": [
+     1,
+     4
+    ],
+    "aten.sum.dim_IntList": [
      0,
-     2
+     3
+    ],
+    "aten.mm.default": [
+     3,
+     0
+    ],
+    "aten.unsqueeze.default": [
+     0,
+     6
+    ]
+   },
+   "fired_changed": {
+    "post_grad/post_grad.POST_GRAD_PATTERNS[decompose_mm_pass]/decompose_mm": [
+     0,
+     3
     ]
    },
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    0
    ],
-   "kernels_only_in_base": [],
-   "kernels_only_in_toggled": [],
-   "externs_only_in_base": [],
+   "kernels_only_in_base": [
+    "cpp_fused_mul_silu"
+   ],
+   "kernels_only_in_toggled": [
+    "cpp_fused_mm_mul_silu_t"
+   ],
+   "externs_only_in_base": [
+    "extern_kernels.mm",
+    "extern_kernels.mm",
+    "extern_kernels.mm"
+   ],
    "externs_only_in_toggled": [],
    "suppressed": {},
    "correct": true
@@ -1373,16 +1129,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1401,16 +1157,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1429,16 +1185,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1457,16 +1213,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1485,16 +1241,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1513,16 +1269,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1541,16 +1297,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1569,16 +1325,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1597,16 +1353,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1625,16 +1381,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1653,16 +1409,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1681,16 +1437,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1709,16 +1465,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1737,16 +1493,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1765,16 +1521,16 @@
    "ops_changed": {},
    "fired_changed": {},
    "kernel_count": [
-    3,
-    3
+    1,
+    1
    ],
    "alloc_bytes": [
-    1573376,
-    1573376
+    20480,
+    20480
    ],
    "extern_call_count": [
-    2,
-    2
+    3,
+    3
    ],
    "kernels_only_in_base": [],
    "kernels_only_in_toggled": [],
@@ -1785,15 +1541,10 @@
   }
  ],
  "baseline": {
-  "kernel_count": 3,
-  "fired": {
-   "joint/joint_graph.early_patterns/pointless_view": 1,
-   "joint/joint_graph.early_patterns/pointless_view_pair": 1,
-   "joint/joint_graph.patterns/pointless_convert": 1,
-   "post_grad/post_grad.pass_patterns[1]/reciprocal_sqrt_to_rsqrt": 1
-  },
+  "kernel_count": 1,
+  "fired": {},
   "externs": {
-   "extern_kernels.addmm": 2
+   "extern_kernels.mm": 3
   }
  }
 }

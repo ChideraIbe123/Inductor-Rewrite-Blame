@@ -1,41 +1,10 @@
-=== Wed Oct  7 22:57:09 CDT 2026 noise attention_block
- "pairwise_p90": 0.021083500000000033,
- "pairwise_max": 0.029125500000000026
-}
-=== Wed Oct  7 22:57:31 CDT 2026 verify attention_block
-| `optimus/batch_aten_add` | option | on | no_effect | 1->1 | 3->3 | 4,198,400->4,198,400 |  |
-| `optimus/batch_linear_post_grad` | option | on | no_effect | 1->1 | 3->3 | 4,198,400->4,198,400 |  |
+# Attribution report: attention_block
 
-=== Wed Oct  7 22:59:55 CDT 2026 sweep attention_block
-| `sched/inplace_buffers` | off | 0.928 | +0.003 | +0.3 |  | 1 | True |
-| `lowering/freezing` | on | 0.925 | -0.000 | -0.0 |  | 1 | True |
-
-=== Wed Oct  7 23:00:12 CDT 2026 noise norm_mlp
- "pairwise_p90": 0.0428955000000002,
- "pairwise_max": 0.04670850000000004
-}
-=== Wed Oct  7 23:00:35 CDT 2026 verify norm_mlp
-| `optimus/batch_aten_add` | option | on | no_effect | 3->3 | 2->2 | 1,573,376->1,573,376 |  |
-| `optimus/batch_linear_post_grad` | option | on | no_effect | 3->3 | 2->2 | 1,573,376->1,573,376 |  |
-
-=== Wed Oct  7 23:02:58 CDT 2026 sweep norm_mlp
-| `joint/joint_graph.patterns/pointless_convert` | off | 1.059 | +0.002 | +0.2 |  | 3 | True |
-| `post_grad/post_grad.pass_patterns[1]/reciprocal_sqrt_to_rsqrt` | off | 1.058 | +0.000 | +0.0 |  | 3 | True |
-
-=== Wed Oct  7 23:03:23 CDT 2026 noise decode_mlp
- "pairwise_p90": 0.044625,
- "pairwise_max": 0.046062500000000006
-}
-=== Wed Oct  7 23:03:44 CDT 2026 verify decode_mlp
-| `optimus/batch_aten_add` | option | on | no_effect | 1->1 | 3->3 | 20,480->20,480 |  |
-| `optimus/batch_linear_post_grad` | option | on | no_effect | 1->1 | 3->3 | 20,480->20,480 |  |
-
-=== Wed Oct  7 23:05:49 CDT 2026 sweep decode_mlp
-| `lowering/freezing` | on | 0.191 | -0.003 | -1.4 |  | 1 | True |
-| `sched/inplace_buffers` | off | 0.191 | -0.002 | -1.1 |  | 1 | True |
-
-=== Wed Oct  7 23:06:02 CDT 2026 chain done
-=== Wed Oct  7 23:06:02 CDT 2026 attribute attention_block (timing)
+- environment: `Chideras-MacBook-Pro-2|arm64|torch2.14.1|T8`
+- judge: timing (median_ms)
+- reference (fast) median: 0.926 ms from 7 repeated runs; MAD 0.006 ms; threshold tau = 0.017 ms (k=3.0, floor 1%); max |diff| between identical runs 0.029 ms
+- fast state: 0.919 ms, slow state: 1.250 ms (+0.331 ms)
+- candidate changes: 63; judge evaluations: 16; wall 49 s; new measurements 16, cache hits 4
 
 ## Verdict: interaction
 - note: 2 rewrites only hurt together (no single one reproduces)
@@ -75,17 +44,3 @@ Culprit change(s):
 | 3 | -joint/joint_graph.patterns/_sfdp_pattern_11_inference, -joint/joint_graph.patterns/_sfdp_pattern_12_inference, -joint/j | slow | 1.237 | 0.926 |  |
 | 2 | -joint/joint_graph.patterns/_sfdp_pattern_11_inference, -joint/joint_graph.patterns/_sfdp_pattern_13_half_inference | fast | 0.922 | 0.926 |  |
 | 2 | -joint/joint_graph.patterns/_sfdp_pattern_11_inference, -joint/joint_graph.patterns/_sfdp_pattern_12_inference | slow | 1.244 | 0.926 |  |
-
-=== Wed Oct  7 23:06:52 CDT 2026 noise resnet18
- "pairwise_p90": 0.34316699999999756,
- "pairwise_max": 0.4513544999999972
-}
-=== Wed Oct  7 23:07:40 CDT 2026 verify resnet18
-| `optimus/batch_aten_add` | option | on | no_effect | 14->14 | 21->21 | 30,052,352->30,052,352 |  |
-| `optimus/batch_linear_post_grad` | option | on | no_effect | 14->14 | 21->21 | 30,052,352->30,052,352 |  |
-
-=== Wed Oct  7 23:11:08 CDT 2026 sweep resnet18
-| `sched/inplace_buffers` | off | 26.239 | +0.121 | +0.5 |  | 14 | True |
-| `master/post_grad_passes` | off | 26.099 | -0.019 | -0.1 |  | 14 | True |
-
-=== Wed Oct  7 23:11:36 CDT 2026 noise bert_base_eagerattn

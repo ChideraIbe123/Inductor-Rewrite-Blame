@@ -74,7 +74,7 @@ class RunnerConfig:
 class Runner:
     def __init__(self, cfg: RunnerConfig, reg: Registry | None = None) -> None:
         self.cfg = cfg
-        self.reg = reg or Registry.load(cfg.registry_path)
+        self.reg = reg if reg is not None else refresh_registry(cfg.registry_path, log=self.log)
         self.store = Store(cfg.store_path)
         self.threads = cfg.threads or env.default_threads()
         self.env = env.fingerprint(self.threads)
@@ -239,6 +239,36 @@ class Runner:
             "fast": m_fast.to_dict(), "slow": m_slow.to_dict(), "culprit_state": m_culprit.to_dict() if m_culprit else None,
             "wall_s": time.time() - t0, "new_measurements": self.new_measurements, "cache_hits": self.cache_hits,
         }
+
+
+def refresh_registry(path, log=print) -> Registry:
+    """Discover the switch universe of *this* machine in a subprocess and merge it into ``path``.
+
+    Pattern universes differ by platform (e.g. oneDNN rules only exist on x86 builds), so a
+    registry copied from another machine would silently shrink the universe. Existing ids are kept
+    so stored measurements stay valid; new switches are appended."""
+    import subprocess, tempfile
+    path = Path(path)
+    with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
+        tmp = f.name
+    r = subprocess.run([sys.executable, "-m", "rewrite_blame", "--registry", tmp, "discover"], capture_output=True, text=True)
+    if r.returncode != 0:
+        raise RuntimeError(f"discovery failed:\n{r.stderr[-2000:]}")
+    fresh = Registry.load(tmp)
+    if path.exists():
+        saved = Registry.load(path)
+        new = [sw for sw in fresh if sw.id not in saved]
+        missing = [i for i in saved.ids() if i not in fresh]
+        if new or missing:
+            log(f"registry refresh: +{len(new)} new switches, {len(missing)} saved switches not present on this machine")
+            for sw in new:
+                saved.add(sw)
+            saved.save(path)
+        return saved
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fresh.save(path)
+    log(f"registry written to {path} ({len(fresh)} switches)")
+    return fresh
 
 
 def switch_effect(reg: Registry, sid: str, direction: str, m0: Measurement, m: Measurement) -> dict:
