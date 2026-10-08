@@ -4,7 +4,7 @@ cd "$(dirname "$0")/.."
 export REWRITE_BLAME_THREADS=8
 PY=.venv/bin/python
 F='^DEBUG\|^INFO\|Graph Metrics'
-while ! grep -q "item5 done" logs/mac_item5.log 2>/dev/null; do sleep 20; done
+true
 echo "=== $(date) tau-scan attention_block (with slow-verdict confirmation)"
 $PY -m rewrite_blame --quiet tau-scan --model attention_block --fast default --slow "default-*_sfdp_pattern_*_inference" \
   --out results/tau_scan_attention_block.json 2>&1 | grep -v "$F" | tail -8

@@ -136,9 +136,14 @@ def cmd_repeat(a):
     """Compare baseline speed and per-switch verdicts across sessions and machines (from the store)."""
     from .repeat import repeatability, render_repeat
     from .switches import state_hash
+    from .store import Store
     r = _runner(a)
     base = parse_state_spec(r.reg, a.state)
     rows = r.store.all(model=a.model)
+    for extra in a.extra_store or []:
+        if Path(extra).exists():
+            with Store(extra) as st:
+                rows += st.all(model=a.model)
     # candidate switches: everything that was ever toggled from base in a timed row, on any machine
     toggles = {}
     bh = state_hash(base)
@@ -215,6 +220,7 @@ def main(argv=None) -> int:
 
     p = sub.add_parser("repeat", help="repeatability of verdicts across sessions/machines from the store"); p.set_defaults(fn=cmd_repeat)
     p.add_argument("--model", required=True); p.add_argument("--state", default="default"); p.add_argument("--out")
+    p.add_argument("--extra-store", action="append", help="additional measurement stores (e.g. pulled from another machine)")
 
     p = sub.add_parser("show"); p.set_defaults(fn=cmd_show)
     p.add_argument("--model", default=""); p.add_argument("-n", type=int, default=40)
