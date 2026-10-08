@@ -116,7 +116,7 @@ def test_pair_scan_confirmation_removes_a_fluke():
             return 12.0 if rep == 0 else 10.0   # first measurement is a fluke
         return 10.0
     res = pair_scan(frozenset(), ["a", "b"], measure, tau=1.0)
-    assert res.superadditive == []            # mean 11 -> extra 1.0, not beyond tau
+    assert res.superadditive == []            # second run disagrees -> flag dropped
     assert (frozenset({'a', 'b'}), 2) in seen
     res2 = pair_scan(frozenset(), ['a', 'b'], measure, tau=1.0, confirm=False)
     assert len(res2.superadditive) == 1

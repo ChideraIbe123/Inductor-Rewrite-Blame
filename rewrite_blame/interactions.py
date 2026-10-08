@@ -32,8 +32,8 @@ def pair_scan(base_state: Iterable[str], ids: Iterable[str], measure_ms: Callabl
     ``toggled(state, sid)`` flips one switch (default: set symmetric difference). A pair is
     *superadditive* when its extra cost beyond the sum of its singles exceeds ``tau``; it is
     *masking* when the pair is faster than the slower single by more than ``tau``. With
-    ``confirm``, a pair that would be flagged is measured a second time (``rep=2``) and the mean
-    of the two decides, so one noisy measurement cannot create an interaction.
+    ``confirm``, a pair that would be flagged is measured a second time (``rep=2``) and keeps the
+    flag only if both runs agree (AND rule), so one noisy process cannot create an interaction.
     ``measure_ms(state, rep=0)``; functions without a ``rep`` parameter are accepted.
     """
     base = frozenset(base_state)
@@ -61,8 +61,20 @@ def pair_scan(base_state: Iterable[str], ids: Iterable[str], measure_ms: Callabl
         d = meas(st) - base_ms; n += 1
         extra = d - singles[a] - singles[b]
         if confirm and (extra > tau or d < max(singles[a], singles[b]) - tau):
-            d = 0.5 * (d + (meas(st, 2) - base_ms)); n += 1
-            extra = d - singles[a] - singles[b]
+            # AND rule: a flagged pair keeps its flag only if an independent second run agrees
+            d2 = meas(st, 2) - base_ms; n += 1
+            extra2 = d2 - singles[a] - singles[b]
+            agree = (extra > tau and extra2 > tau) or (d < max(singles[a], singles[b]) - tau and d2 < max(singles[a], singles[b]) - tau)
+            if agree:
+                d = 0.5 * (d + d2)                 # report the mean of the two agreeing runs
+                extra = d - singles[a] - singles[b]
+            else:
+                d = max(d, d2) if d2 < d else min(d, d2)   # keep the run closer to "no interaction"
+                extra = d - singles[a] - singles[b]
+                if extra > tau:                    # still flagged by arithmetic: force unflag (runs disagreed)
+                    extra = tau
+                if d < max(singles[a], singles[b]) - tau:
+                    d = max(singles[a], singles[b]) - tau
         row = {"a": a, "b": b, "delta_ms": d, "delta_a": singles[a], "delta_b": singles[b], "interaction_ms": extra,
                "superadditive": extra > tau, "masking": d < max(singles[a], singles[b]) - tau,
                "pair_slow": d > tau}

@@ -25,7 +25,7 @@ def test_quantile_edges():
 
 def test_summarize_keys():
     s = summarize([1.0, 2.0, 3.0])
-    assert s["n"] == 3 and s["median"] == 2.0 and s["min"] == 1.0 and set(s) >= {"p10", "p90", "mad"}
+    assert s["n"] == 3 and s["median"] == 2.0 and s["min"] == 1.0 and set(s) >= {"p10", "p90", "mad", "steady_start"}
 
 
 def test_noise_model_threshold_uses_mad_with_floor():
@@ -60,29 +60,43 @@ def test_metric_judge_higher_is_slow_and_delta():
     assert j2({"x"}) == Verdict.SLOW
 
 
-def test_timing_judge_remeasures_near_threshold_and_confirms_slow():
+def test_timing_judge_and_rule_two_runs():
     calls = []
-    seq = {frozenset({"far"}): [20.0, 20.5], frozenset({"near"}): [11.4, 10.2], frozenset({"ok"}): [10.0],
-           frozenset({"fluke"}): [12.5, 9.0]}
+    seq = {frozenset({"far"}): [20.0, 20.5], frozenset({"ok"}): [10.0], frozenset({"fluke"}): [15.0, 10.1],
+           frozenset({"near"}): [11.05, 11.2]}
     def measure(c, rep=0):
         calls.append((c, rep))
         return seq[c].pop(0)
-    j = TimingJudge(measure, reference_ms=10.0, tau=1.0, band=0.5)
-    assert j({"far"}) == Verdict.SLOW            # confirmed by a second measurement (rep 2)
-    assert j({"ok"}) == Verdict.FAST             # no re-measure
-    assert j({"near"}) == Verdict.FAST           # 1.4 within the band -> mean 10.8 -> FAST
-    assert j({"fluke"}) == Verdict.FAST          # 12.5 then 9.0 -> mean 10.75 -> FAST (a fluke caught)
+    j = TimingJudge(measure, reference_ms=10.0, tau=1.0)
+    assert j({"far"}) == Verdict.SLOW            # both runs exceed tau
+    assert j({"ok"}) == Verdict.FAST             # first run within tau: no second run
+    assert j({"fluke"}) == Verdict.FAST          # 15.0 then 10.1: runs disagree -> FAST
+    assert j({"near"}) == Verdict.SLOW           # 11.05 and 11.2 both exceed 11.0
     assert j.remeasured == 3
-    assert (frozenset({"far"}), 2) in calls and (frozenset({"ok"}), 0) in calls
-    assert sum(1 for c, _ in calls if c == frozenset({"ok"})) == 1
-    assert "confirmed" in j.trace[0].note and "near threshold" in j.trace[2].note
+    assert (frozenset({"far"}), 2) in calls and sum(1 for c, _ in calls if c == frozenset({"ok"})) == 1
+    assert "all exceed" in j.trace[0].note and "not all exceed" in j.trace[2].note
 
 
-def test_timing_judge_without_slow_confirmation():
-    j = TimingJudge(lambda c, rep=0: 20.0, reference_ms=10.0, tau=1.0, confirm_slow=False)
-    assert j({"x"}) == Verdict.SLOW and j.remeasured == 0
+def test_timing_judge_three_confirmations_and_single():
+    vals = iter([20.0, 20.0, 10.0])
+    j = TimingJudge(lambda c, rep=0: next(vals), reference_ms=10.0, tau=1.0, confirmations=3)
+    assert j({"x"}) == Verdict.FAST and j.remeasured == 2       # third run disagreed
+    j1 = TimingJudge(lambda c, rep=0: 20.0, reference_ms=10.0, tau=1.0, confirmations=1)
+    assert j1({"x"}) == Verdict.SLOW and j1.remeasured == 0
 
 
 def test_timing_judge_accepts_measure_without_rep_argument():
     j = TimingJudge(lambda c: 20.0, reference_ms=10.0, tau=1.0)
     assert j({"x"}) == Verdict.SLOW and j.remeasured == 1
+
+
+def test_steady_state_start_trims_only_a_leaked_warmup():
+    from rewrite_blame.stats import steady_state_start
+    flat = [10.0, 10.1, 9.9, 10.0, 10.1, 10.0, 9.9, 10.0, 10.1, 10.0, 10.0, 10.1]
+    assert steady_state_start(flat) == 0
+    leaked = [14.0, 13.0, 12.0, 11.5] + flat
+    assert 2 <= steady_state_start(leaked) <= 4   # window median tolerates a couple of high calls
+    assert steady_state_start([1.0, 2.0, 3.0]) == 0      # too short: untouched
+    s = summarize(leaked)
+    assert s["steady_start"] >= 2 and s["median"] == pytest.approx(10.0, abs=0.15) and s["median_raw"] >= s["median"]
+    assert "iqr_rel" in s and s["n"] == len(leaked)

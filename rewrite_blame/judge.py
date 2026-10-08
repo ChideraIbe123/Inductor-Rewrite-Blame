@@ -105,28 +105,27 @@ class MetricJudge(Judge):
 
 
 class TimingJudge(Judge):
-    """SLOW iff median_ms(candidate) - reference_ms > tau.
+    """SLOW iff ``confirmations`` independent runs of the candidate each exceed the reference by
+    more than tau (AND rule); default two runs.
 
-    Two guards against single noisy measurements:
-    * a candidate whose difference lands in the band ``(tau*(1-band), tau*(1+band))`` is measured
-      again and the mean of the two medians decides;
-    * when ``confirm_slow`` is set, every SLOW verdict is confirmed by an independent second
-      measurement (``rep=2``) and the mean decides. ddmin issues only O(log n) SLOW verdicts, so
-      this costs little, while a false SLOW would send the search down the wrong branch.
+    Evidence (scripts/noise_study_replication.py, null = identical configurations): one run
+    exceeding tau is wrong 8.9% of the time; two independent runs both exceeding tau, 1.5%; three,
+    0.9%. Averaging the runs instead does *not* help (one 20% outlier process dominates the mean).
+    A FAST verdict needs only the first run (a false FAST is far cheaper for ddmin than a false
+    SLOW, which sends the search down the wrong branch), so the extra cost is one run per SLOW
+    verdict, of which ddmin issues O(log n).
 
-    ``measure_ms(changes, rep)`` must return the median for the candidate configuration; ``rep``
-    distinguishes independent repeated measurements of the same configuration.
+    ``measure_ms(changes, rep)`` returns the steady-state median of one process; ``rep``
+    distinguishes independent repeats of the same configuration.
     """
 
     def __init__(self, measure_ms: Callable[..., float], reference_ms: float, tau: float,
-                 band: float = 0.5, confirm: bool = True, confirm_slow: bool = True) -> None:
+                 confirmations: int = 2, **_ignored) -> None:
         super().__init__()
         self.measure_ms = measure_ms
         self.reference_ms = reference_ms
         self.tau = tau
-        self.band = band
-        self.confirm = confirm
-        self.confirm_slow = confirm_slow
+        self.confirmations = max(1, int(confirmations))
         self.remeasured = 0
 
     def _measure(self, candidate: frozenset, rep: int) -> float:
@@ -136,15 +135,19 @@ class TimingJudge(Judge):
             return self.measure_ms(candidate)
 
     def evaluate(self, candidate: frozenset) -> JudgeRecord:
-        v = self._measure(candidate, 0)
-        d = v - self.reference_ms
+        values = []
+        for i in range(self.confirmations):
+            rep = 0 if i == 0 else i + 1          # rep 0, then 2, 3, ... (rep 1 is reserved for noise runs)
+            v = self._measure(candidate, rep)
+            values.append(v)
+            if i > 0:
+                self.remeasured += 1
+            if v - self.reference_ms <= self.tau:
+                break                              # one run within tau -> FAST, no more runs needed
+        slow = len(values) == self.confirmations and all(v - self.reference_ms > self.tau for v in values)
         note = ""
-        near = self.confirm and abs(d - self.tau) < self.band * self.tau
-        if near or (self.confirm_slow and d > self.tau):
-            v2 = self._measure(candidate, 2)
-            self.remeasured += 1
-            v = 0.5 * (v + v2)
-            d = v - self.reference_ms
-            note = ("re-measured near threshold" if near else "slow verdict confirmed by a second measurement") + f" (second median {v2:.3f})"
-        return JudgeRecord(tuple(sorted(candidate)), Verdict.SLOW if d > self.tau else Verdict.FAST,
-                           v, self.reference_ms, self.tau, note)
+        if len(values) > 1:
+            note = (f"{len(values)} independent runs: " + ", ".join(f"{v:.3f}" for v in values)
+                    + (" (all exceed tau)" if slow else " (not all exceed tau)"))
+        return JudgeRecord(tuple(sorted(candidate)), Verdict.SLOW if slow else Verdict.FAST,
+                           min(values) if slow else values[-1], self.reference_ms, self.tau, note)

@@ -36,15 +36,44 @@ def quantile(xs: Sequence[float], q: float) -> float:
     return s[lo] + (s[hi] - s[lo]) * (pos - lo)
 
 
+def steady_state_start(samples: Sequence[float], window: int = 5) -> int:
+    """Index where the timed calls reach steady state.
+
+    Conservative rule validated on ~480 stored runs (scripts/noise_study_*.py): the first index k
+    such that the median of ``samples[k:k+window]`` is within one IQR of the median of the second
+    half of the run. For most runs this is 0 (the warm-up calls were enough); it trims only runs
+    whose warm-up leaked into the timed window. More aggressive rules (kneedle elbow, discarding
+    half) threw away good samples and *increased* between-run spread.
+    """
+    n = len(samples)
+    if n < 2 * window:
+        return 0
+    tail = list(samples[n // 2:])
+    m = median(tail)
+    q1, q3 = quantile(tail, 0.25), quantile(tail, 0.75)
+    band = max(q3 - q1, 1e-12)
+    for k in range(0, n - window + 1):
+        if median(list(samples[k:k + window])) <= m + band:
+            return k
+    return n - window
+
+
 def summarize(samples_ms: Sequence[float]) -> dict:
+    xs = list(samples_ms)
+    k = steady_state_start(xs)
+    steady = xs[k:]
+    q1, q3 = quantile(steady, 0.25), quantile(steady, 0.75)
     return {
-        "n": len(samples_ms),
-        "median": median(samples_ms),
-        "mad": mad(samples_ms),
-        "min": min(samples_ms),
-        "p10": quantile(samples_ms, 0.10),
-        "p90": quantile(samples_ms, 0.90),
-        "mean": sum(samples_ms) / len(samples_ms),
+        "n": len(xs),
+        "steady_start": k,
+        "median": median(steady),          # the run's statistic: median over steady-state calls
+        "median_raw": median(xs),
+        "mad": mad(steady),
+        "iqr_rel": (q3 - q1) / median(steady) if median(steady) else 0.0,
+        "min": min(xs),
+        "p10": quantile(steady, 0.10),
+        "p90": quantile(steady, 0.90),
+        "mean": sum(steady) / len(steady),
     }
 
 
@@ -57,6 +86,14 @@ class NoiseModel:
     spread estimate with a floor so that a very quiet machine does not produce a zero threshold.
     ``pairwise_abs_diff`` quantiles tell how big a difference two *identical* configurations can
     show, which is the empirical false-positive scale the threshold must exceed.
+
+    Why this and not something else (null calibration on 180 leave-one-out trials over identical
+    runs on two machines, scripts/noise_study_methods.py): MAD k=3 gives 8.9% false positives for
+    a *single* candidate run; IQR-, SD-, Mann-Whitney-, bootstrap- and Wasserstein-based rules all
+    land between 6% and 16%, because the between-process noise has a fat right tail (whole
+    processes that run 2-22% slow). No threshold fixes that; replication does: requiring two
+    independent candidate runs to each exceed tau brings false positives to 1.5% (0.9% with
+    three) while keeping every effect above 6% detectable. That AND rule lives in TimingJudge.
     """
 
     medians: list[float]
