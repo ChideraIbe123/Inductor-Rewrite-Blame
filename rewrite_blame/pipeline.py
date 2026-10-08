@@ -66,10 +66,21 @@ class RunnerConfig:
     iters: int = 10
     timeout_s: int = 3600
     verbose: bool = True
+    # Timed measurements are only comparable within one session (machine speed drifts between
+    # days, thermal states, VPN/background load). Default: today's date. Compile-only results
+    # are deterministic and shared across sessions.
+    session: str | None = None
 
     @property
     def protocol(self) -> str:
         return f"w{self.warmup}r{self.rounds}i{self.iters}"
+
+    @property
+    def session_tag(self) -> str:
+        if self.session:
+            return self.session
+        import datetime
+        return datetime.date.today().isoformat()
 
 
 class Runner:
@@ -90,7 +101,7 @@ class Runner:
     def measure(self, model: str, state: Iterable[str], *, time_it: bool = True, rep: int = 0,
                 force: bool = False, check_correct: bool = True) -> Measurement:
         st = self.reg.validate_state(state)
-        proto = (self.cfg.protocol if time_it else "compile_only") + (f"/rep{rep}" if rep else "")
+        proto = (f"{self.cfg.protocol}@{self.cfg.session_tag}" if time_it else "compile_only") + (f"/rep{rep}" if rep else "")
         if not force:
             cached = self.store.get(model, self.env, state_hash(st), proto)
             if cached is not None and not cached.get("error"):
@@ -104,6 +115,7 @@ class Runner:
         d = m.to_dict()
         d["protocol_key"] = proto
         d["rep"] = rep
+        d["session"] = self.cfg.session_tag if time_it else None
         self.store.put(model, self.env, state_hash(st), d, proto)
         if m.error:
             self.log(f"  ! {model} {state_hash(st)} failed: {m.error.splitlines()[0][:200]}")

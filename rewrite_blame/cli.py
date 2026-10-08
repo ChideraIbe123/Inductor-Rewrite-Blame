@@ -12,7 +12,8 @@ from .pipeline import Runner, RunnerConfig, parse_state_spec
 
 def _runner(a) -> Runner:
     cfg = RunnerConfig(registry_path=Path(a.registry), store_path=Path(a.store), threads=a.threads,
-                       warmup=a.warmup, rounds=a.rounds, iters=a.iters, timeout_s=a.timeout, verbose=not a.quiet)
+                       warmup=a.warmup, rounds=a.rounds, iters=a.iters, timeout_s=a.timeout, verbose=not a.quiet,
+                       session=a.session)
     return Runner(cfg)
 
 
@@ -152,6 +153,8 @@ def main(argv=None) -> int:
     ap.add_argument("--iters", type=int, default=10)
     ap.add_argument("--timeout", type=int, default=3600)
     ap.add_argument("--quiet", action="store_true")
+    ap.add_argument("--session", default=None, help="tag for timed measurements (default: today's date); "
+                    "timings are only reused within the same session")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("list-models").set_defaults(fn=cmd_list_models)
