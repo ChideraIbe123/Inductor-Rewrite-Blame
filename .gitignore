@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+torch_compile_debug/
+.inductor_cache/
+results/*.sqlite
+results/*.sqlite-journal
+report/midterm/*.aux
+report/midterm/*.log
+report/midterm/*.out
+.DS_Store

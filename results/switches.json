@@ -1,0 +1,4585 @@
+[
+ {
+  "id": "master/pattern_matcher",
+  "kind": "config",
+  "family": "master",
+  "description": "All PatternMatcherPass-based rewrites (joint, post-grad, pre-grad)",
+  "default_on": true,
+  "config_path": "pattern_matcher",
+  "on_value": true,
+  "off_value": false,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "master/pre_grad_passes",
+  "kind": "config",
+  "family": "master",
+  "description": "Run pre-grad FX passes at all",
+  "default_on": true,
+  "config_path": "use_pre_grad_passes",
+  "on_value": true,
+  "off_value": false,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "master/post_grad_passes",
+  "kind": "config",
+  "family": "master",
+  "description": "Run post-grad FX passes at all",
+  "default_on": true,
+  "config_path": "use_post_grad_passes",
+  "on_value": true,
+  "off_value": false,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "joint/constant_folding",
+  "kind": "config",
+  "family": "joint",
+  "description": "Fold tensors with a uniform value into aten.full",
+  "default_on": true,
+  "config_path": "joint_graph_constant_folding",
+  "on_value": true,
+  "off_value": false,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "joint/scatter_upon_const_tensor",
+  "kind": "config",
+  "family": "joint",
+  "description": "Rewrite scatter onto a constant tensor as a where()",
+  "default_on": true,
+  "config_path": "optimize_scatter_upon_const_tensor",
+  "on_value": true,
+  "off_value": false,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "post_grad/reorder_for_locality",
+  "kind": "config",
+  "family": "post_grad",
+  "description": "Topologically reorder nodes so producers sit next to consumers",
+  "default_on": true,
+  "config_path": "reorder_for_locality",
+  "on_value": true,
+  "off_value": false,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "post_grad/linear_binary_folding",
+  "kind": "config",
+  "family": "post_grad",
+  "description": "Fold linear followed by binary op into the linear (freezing)",
+  "default_on": false,
+  "config_path": "enable_linear_binary_folding",
+  "on_value": true,
+  "off_value": false,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "lowering/conv_1x1_as_mm",
+  "kind": "config",
+  "family": "lowering",
+  "description": "Lower 1x1 convolutions as matrix multiplies",
+  "default_on": false,
+  "config_path": "conv_1x1_as_mm",
+  "on_value": true,
+  "off_value": false,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "lowering/layout_optimization",
+  "kind": "config",
+  "family": "lowering",
+  "description": "Channels-last layout optimisation for convolutions",
+  "default_on": true,
+  "config_path": "layout_optimization",
+  "on_value": true,
+  "off_value": false,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "lowering/freezing",
+  "kind": "config",
+  "family": "freezing",
+  "description": "Constant-fold parameters and enable mkldnn conv/linear fusion + weight prepacking",
+  "default_on": false,
+  "config_path": "freezing",
+  "on_value": true,
+  "off_value": false,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "freezing/weight_prepack",
+  "kind": "config",
+  "family": "freezing",
+  "description": "Pre-pack conv/linear weights into mkldnn layout (only under freezing)",
+  "default_on": true,
+  "config_path": "cpp.weight_prepack",
+  "on_value": true,
+  "off_value": false,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "sched/epilogue_fusion",
+  "kind": "config",
+  "family": "scheduler",
+  "description": "Fuse pointwise epilogues into templates/reductions",
+  "default_on": true,
+  "config_path": "epilogue_fusion",
+  "on_value": true,
+  "off_value": false,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "sched/prologue_fusion",
+  "kind": "config",
+  "family": "scheduler",
+  "description": "Fuse pointwise prologues into templates",
+  "default_on": true,
+  "config_path": "prologue_fusion",
+  "on_value": true,
+  "off_value": false,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "sched/aggressive_fusion",
+  "kind": "config",
+  "family": "scheduler",
+  "description": "Fuse even when no memory traffic is saved",
+  "default_on": false,
+  "config_path": "aggressive_fusion",
+  "on_value": true,
+  "off_value": false,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "sched/loop_ordering_after_fusion",
+  "kind": "config",
+  "family": "scheduler",
+  "description": "Reorder loops after fusion to enable more fusion",
+  "default_on": true,
+  "config_path": "loop_ordering_after_fusion",
+  "on_value": true,
+  "off_value": false,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "sched/inplace_buffers",
+  "kind": "config",
+  "family": "scheduler",
+  "description": "Reuse input buffers for outputs in place",
+  "default_on": true,
+  "config_path": "inplace_buffers",
+  "on_value": true,
+  "off_value": false,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "sched/split_reductions",
+  "kind": "config",
+  "family": "scheduler",
+  "description": "Split large reductions into two stages",
+  "default_on": true,
+  "config_path": "split_reductions",
+  "on_value": true,
+  "off_value": false,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "sched/reorder_for_peak_memory",
+  "kind": "config",
+  "family": "scheduler",
+  "description": "Reorder nodes to reduce peak memory",
+  "default_on": true,
+  "config_path": "reorder_for_peak_memory",
+  "on_value": true,
+  "off_value": false,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "sched/loop_index_inversion",
+  "kind": "config",
+  "family": "scheduler",
+  "description": "Invert loop indices to make more fusions legal",
+  "default_on": true,
+  "config_path": "loop_index_inversion_in_fusion",
+  "on_value": true,
+  "off_value": false,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "sched/max_fusion_size",
+  "kind": "config",
+  "family": "scheduler",
+  "description": "Maximum nodes per fused kernel (off = 1, i.e. no horizontal/vertical growth)",
+  "default_on": true,
+  "config_path": "max_fusion_size",
+  "on_value": 64,
+  "off_value": 1,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "sched/unroll_reductions",
+  "kind": "config",
+  "family": "scheduler",
+  "description": "Unroll reductions with few elements (off = 0)",
+  "default_on": true,
+  "config_path": "unroll_reductions_threshold",
+  "on_value": 8,
+  "off_value": 0,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "cpp/tiling_heuristics",
+  "kind": "config",
+  "family": "cpp",
+  "description": "Tiling heuristics in the C++ backend",
+  "default_on": true,
+  "config_path": "cpp.enable_tiling_heuristics",
+  "on_value": true,
+  "off_value": false,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "cpp/loop_tail_vec",
+  "kind": "config",
+  "family": "cpp",
+  "description": "Vectorise loop tails",
+  "default_on": true,
+  "config_path": "cpp.enable_loop_tail_vec",
+  "on_value": true,
+  "off_value": false,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "cpp/horizontal_fusion",
+  "kind": "config",
+  "family": "cpp",
+  "description": "Max kernels merged horizontally in C++ (off = 1)",
+  "default_on": true,
+  "config_path": "cpp.max_horizontal_fusion_size",
+  "on_value": 16,
+  "off_value": 1,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "cpp/decompose_tanh",
+  "kind": "config",
+  "family": "cpp",
+  "description": "Decompose tanh into exp-based formula",
+  "default_on": false,
+  "config_path": "cpp.use_decompose_tanh",
+  "on_value": true,
+  "off_value": false,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "cpp/concat_linear",
+  "kind": "config",
+  "family": "cpp",
+  "description": "Concatenate linears sharing an input into one GEMM",
+  "default_on": false,
+  "config_path": "cpp.enable_concat_linear",
+  "on_value": true,
+  "off_value": false,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "optimus/decompose_mm_pass",
+  "kind": "option",
+  "family": "optimus",
+  "description": "Decompose skinny mm/bmm/addmm into pointwise mul + sum",
+  "default_on": false,
+  "config_path": "post_grad_fusion_options",
+  "on_value": null,
+  "off_value": null,
+  "option_key": "decompose_mm_pass",
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "optimus/normalization_pass",
+  "kind": "option",
+  "family": "optimus",
+  "description": "Normalise split/cat/stack call forms (prerequisite of other split/cat passes)",
+  "default_on": false,
+  "config_path": "pre_grad_fusion_options",
+  "on_value": null,
+  "off_value": null,
+  "option_key": "normalization_pass",
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "optimus/remove_split_with_size_one_pass",
+  "kind": "option",
+  "family": "optimus",
+  "description": "Drop splits that produce one chunk",
+  "default_on": false,
+  "config_path": "pre_grad_fusion_options",
+  "on_value": null,
+  "off_value": null,
+  "option_key": "remove_split_with_size_one_pass",
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "optimus/merge_splits_pass",
+  "kind": "option",
+  "family": "optimus",
+  "description": "Merge consecutive splits",
+  "default_on": false,
+  "config_path": "pre_grad_fusion_options",
+  "on_value": null,
+  "off_value": null,
+  "option_key": "merge_splits_pass",
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "optimus/merge_getitem_cat_pass",
+  "kind": "option",
+  "family": "optimus",
+  "description": "Merge getitem+cat chains",
+  "default_on": false,
+  "config_path": "pre_grad_fusion_options",
+  "on_value": null,
+  "off_value": null,
+  "option_key": "merge_getitem_cat_pass",
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "optimus/split_cat_pass",
+  "kind": "option",
+  "family": "optimus",
+  "description": "Cancel split followed by cat",
+  "default_on": false,
+  "config_path": "pre_grad_fusion_options",
+  "on_value": null,
+  "off_value": null,
+  "option_key": "split_cat_pass",
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "optimus/unbind_stack_pass",
+  "kind": "option",
+  "family": "optimus",
+  "description": "Cancel unbind followed by stack",
+  "default_on": false,
+  "config_path": "pre_grad_fusion_options",
+  "on_value": null,
+  "off_value": null,
+  "option_key": "unbind_stack_pass",
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "optimus/mutate_cat_pass",
+  "kind": "option",
+  "family": "optimus",
+  "description": "Rewrite cat of split outputs as a slice",
+  "default_on": false,
+  "config_path": "pre_grad_fusion_options",
+  "on_value": null,
+  "off_value": null,
+  "option_key": "mutate_cat_pass",
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "optimus/batch_linear",
+  "kind": "option",
+  "family": "optimus",
+  "description": "Batch independent linears into one bmm",
+  "default_on": false,
+  "config_path": "pre_grad_fusion_options",
+  "on_value": null,
+  "off_value": null,
+  "option_key": "batch_linear",
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "optimus/batch_layernorm",
+  "kind": "option",
+  "family": "optimus",
+  "description": "Batch independent layer norms",
+  "default_on": false,
+  "config_path": "pre_grad_fusion_options",
+  "on_value": null,
+  "off_value": null,
+  "option_key": "batch_layernorm",
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "optimus/batch_tanh",
+  "kind": "option",
+  "family": "optimus",
+  "description": "Batch independent tanh ops",
+  "default_on": false,
+  "config_path": "pre_grad_fusion_options",
+  "on_value": null,
+  "off_value": null,
+  "option_key": "batch_tanh",
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "optimus/batch_relu",
+  "kind": "option",
+  "family": "optimus",
+  "description": "Batch independent relu ops",
+  "default_on": false,
+  "config_path": "pre_grad_fusion_options",
+  "on_value": null,
+  "off_value": null,
+  "option_key": "batch_relu",
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "optimus/batch_sigmoid",
+  "kind": "option",
+  "family": "optimus",
+  "description": "Batch independent sigmoids",
+  "default_on": false,
+  "config_path": "pre_grad_fusion_options",
+  "on_value": null,
+  "off_value": null,
+  "option_key": "batch_sigmoid",
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "optimus/batch_aten_mul",
+  "kind": "option",
+  "family": "optimus",
+  "description": "Batch independent aten.mul ops (post-grad)",
+  "default_on": false,
+  "config_path": "post_grad_fusion_options",
+  "on_value": null,
+  "off_value": null,
+  "option_key": "batch_aten_mul",
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "optimus/batch_aten_add",
+  "kind": "option",
+  "family": "optimus",
+  "description": "Batch independent aten.add ops (post-grad)",
+  "default_on": false,
+  "config_path": "post_grad_fusion_options",
+  "on_value": null,
+  "off_value": null,
+  "option_key": "batch_aten_add",
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "optimus/batch_linear_post_grad",
+  "kind": "option",
+  "family": "optimus",
+  "description": "Batch independent addmm/mm ops (post-grad)",
+  "default_on": false,
+  "config_path": "post_grad_fusion_options",
+  "on_value": null,
+  "off_value": null,
+  "option_key": "batch_linear_post_grad",
+  "option_value": {},
+  "pass_label": null,
+  "entry_kind": null,
+  "targets": []
+ },
+ {
+  "id": "joint/joint_graph.early_patterns/pointless_view",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "GraphPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.early_patterns",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.early_patterns/pointless_view_pair",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "GraphPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.early_patterns",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.early_patterns/pointless_permute_pair",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "GraphPatternEntry on permute.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.early_patterns",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "permute.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/fix_iota_device",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "GraphPatternEntry on iota.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "iota.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/pointless_convert",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "GraphPatternEntry on convert_element_type.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "convert_element_type.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/bmm_to_mm",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "GraphPatternEntry on bmm, bmm.default, bmm.dtype, bmm.dtype_out, bmm.out",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "bmm",
+   "bmm.default",
+   "bmm.dtype",
+   "bmm.dtype_out",
+   "bmm.out"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/bmm_pattern_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on bmm.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "bmm.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/bmm_pattern_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on bmm.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "bmm.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_13_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on bmm.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "bmm.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_13_half_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on bmm.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "bmm.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/scatter_upon_const_tensor",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "GraphPatternEntry on scatter.value",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "scatter.value"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/mm_pattern_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on mm.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "mm.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/mm_pattern_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on mm.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "mm.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/addmm_pattern_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on addmm.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "addmm.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/addmm_pattern_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on addmm.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "addmm.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_1_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_1_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_2_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_2_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_3_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_3_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_4_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_5_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_5_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_6_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_7_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_7_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_8_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_9_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_9_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_10_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_11_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_11_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_12_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_12_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_14_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_14_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_15_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_16_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_16_bs1_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_16_bs1_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_18_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_18_bs1_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_19_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_20_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_21_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_21_bs1_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_22_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_22_bs1_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_23_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_23_bs1_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_24_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_25_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_25_bs1_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_26_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_26_bs1_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_27_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_27_bs1_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_28_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_28_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_29_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_29_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_29_bs1_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_29_bs1_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_30_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_30_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_30_bs1_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_30_bs1_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_1_half_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_1_half_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_2_half_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_2_half_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_3_half_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_3_half_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_4_half_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_5_half_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_5_half_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_6_half_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_7_half_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_7_half_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_8_half_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_9_half_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_9_half_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_10_half_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_11_half_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_12_half_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_12_half_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_14_half_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_14_half_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_15_half_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_16_half_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_16_half_bs1_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_16_half_bs1_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_18_half_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_18_half_bs1_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_19_half_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_20_half_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_21_half_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_21_half_bs1_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_22_half_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_22_half_bs1_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_23_half_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_23_half_bs1_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_24_half_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_25_half_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_25_half_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_25_half_bs1_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_25_half_bs1_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_26_half_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_26_half_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_26_half_bs1_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_26_half_bs1_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_27_half_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_27_half_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_27_half_bs1_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_27_half_bs1_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_28_half_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_28_half_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_29_half_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_29_half_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_29_half_bs1_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_29_half_bs1_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_30_half_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_30_half_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_30_half_bs1_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_30_half_bs1_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_16_half_mask_fp32_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_16_half_mask_fp32_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_16_half_mask_fp32_bs1_training",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/_sfdp_pattern_16_half_mask_fp32_bs1_inference",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on view.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "view.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/replacement_check_fn",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on index_put.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "index_put.default"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/replacement_check_fn#2",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on index.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "index.Tensor"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.patterns/replacement_check_fn#3",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "ReplacementPatternEntry on index.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.patterns",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "index.Tensor"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.pass_patterns[1]/mul_softmax_pattern",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "GraphPatternEntry on sub.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.pass_patterns[1]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "sub.Tensor"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.pass_patterns[1]/mul_softmax_pattern#2",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "GraphPatternEntry on sub.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.pass_patterns[1]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "sub.Tensor"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.pass_patterns[1]/mul_softmax_pattern#3",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "GraphPatternEntry on sub.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.pass_patterns[1]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "sub.Tensor"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.pass_patterns[1]/mul_softmax_pattern#4",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "GraphPatternEntry on sub.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.pass_patterns[1]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "sub.Tensor"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.pass_patterns[1]/div_softmax_pattern",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "GraphPatternEntry on sub.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.pass_patterns[1]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "sub.Tensor"
+  ]
+ },
+ {
+  "id": "joint/joint_graph.pass_patterns[1]/div_softmax_pattern#2",
+  "kind": "pattern",
+  "family": "joint",
+  "description": "GraphPatternEntry on sub.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "joint_graph.pass_patterns[1]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "sub.Tensor"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.B2B_GEMM_PASS/b2b_gemm_handler",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "GraphPatternEntry on mm, mm.default, mm.dtype, mm.dtype_out, mm.out",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.B2B_GEMM_PASS",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "mm",
+   "mm.default",
+   "mm.dtype",
+   "mm.dtype_out",
+   "mm.out"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.POST_GRAD_PATTERNS[normalization_aten_pass]/normalize_split_default_aten",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "GraphPatternEntry on split.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.POST_GRAD_PATTERNS[normalization_aten_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "split.Tensor"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.POST_GRAD_PATTERNS[normalization_aten_pass]/normalize_split_with_size_default_aten",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "GraphPatternEntry on split_with_sizes.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.POST_GRAD_PATTERNS[normalization_aten_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "split_with_sizes.default"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.POST_GRAD_PATTERNS[normalization_aten_pass]/normalize_cat_default_aten",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "GraphPatternEntry on cat.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.POST_GRAD_PATTERNS[normalization_aten_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "cat.default"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.POST_GRAD_PATTERNS[decompose_mm_pass]/decompose_bmm",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "GraphPatternEntry on bmm, bmm.default, bmm.dtype, bmm.dtype_out, bmm.out",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.POST_GRAD_PATTERNS[decompose_mm_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "bmm",
+   "bmm.default",
+   "bmm.dtype",
+   "bmm.dtype_out",
+   "bmm.out"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.POST_GRAD_PATTERNS[decompose_mm_pass]/decompose_addmm",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "GraphPatternEntry on addmm, addmm.default, addmm.dtype, addmm.dtype_out, addmm.out",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.POST_GRAD_PATTERNS[decompose_mm_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "addmm",
+   "addmm.default",
+   "addmm.dtype",
+   "addmm.dtype_out",
+   "addmm.out"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.POST_GRAD_PATTERNS[decompose_mm_pass]/decompose_mm",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "GraphPatternEntry on mm, mm.default, mm.dtype, mm.dtype_out, mm.out",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.POST_GRAD_PATTERNS[decompose_mm_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "mm",
+   "mm.default",
+   "mm.dtype",
+   "mm.dtype_out",
+   "mm.out"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.POST_GRAD_PATTERNS[unbind_stack_aten_pass]/merge_unbind_stack_aten",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "GraphPatternEntry on cat, cat.default, cat.out",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.POST_GRAD_PATTERNS[unbind_stack_aten_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "cat",
+   "cat.default",
+   "cat.out"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.POST_GRAD_PATTERNS[split_cat_aten_pass]/merge_split_cat_aten",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "GraphPatternEntry on cat.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.POST_GRAD_PATTERNS[split_cat_aten_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "cat.default"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.POST_GRAD_PATTERNS[select_cat_aten_pass]/merge_select_cat_aten",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "GraphPatternEntry on cat.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.POST_GRAD_PATTERNS[select_cat_aten_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "cat.default"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.POST_GRAD_PATTERNS[move_view_after_cat_aten_pass]/move_view_after_cat",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "GraphPatternEntry on cat.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.POST_GRAD_PATTERNS[move_view_after_cat_aten_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "cat.default"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.pass_patterns[1]/mm_plus_mm",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "LoweringPatternEntry on add, add.Scalar, add.Scalar_out, add.Tensor, add.complex, add.complex_float, add.complex_int, add.default, add.float, add.float_complex, add.float_int, add.int, add.int_complex, add.int_float, add.out, add.str, add.t",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.pass_patterns[1]",
+  "entry_kind": "LoweringPatternEntry",
+  "targets": [
+   "add",
+   "add.Scalar",
+   "add.Scalar_out",
+   "add.Tensor",
+   "add.complex",
+   "add.complex_float",
+   "add.complex_int",
+   "add.default",
+   "add.float",
+   "add.float_complex",
+   "add.float_int",
+   "add.int",
+   "add.int_complex",
+   "add.int_float",
+   "add.out",
+   "add.str",
+   "add.t"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.pass_patterns[1]/pointless_cumsum_replacement",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "GraphPatternEntry on cumsum.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.pass_patterns[1]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "cumsum.default"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.pass_patterns[1]/cat_slice_cat",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "LoweringPatternEntry on cat, cat.default, cat.out",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.pass_patterns[1]",
+  "entry_kind": "LoweringPatternEntry",
+  "targets": [
+   "cat",
+   "cat.default",
+   "cat.out"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.pass_patterns[1]/reciprocal_sqrt_to_rsqrt",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "GraphPatternEntry on reciprocal.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.pass_patterns[1]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "reciprocal.default"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.pass_patterns[1]/woq_int8",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "LoweringPatternEntry on mul.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.pass_patterns[1]",
+  "entry_kind": "LoweringPatternEntry",
+  "targets": [
+   "mul.Tensor"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.pass_patterns[1]/woq_int8#2",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "LoweringPatternEntry on mul.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.pass_patterns[1]",
+  "entry_kind": "LoweringPatternEntry",
+  "targets": [
+   "mul.Tensor"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.pass_patterns[1]/woq_int8#3",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "LoweringPatternEntry on mul.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.pass_patterns[1]",
+  "entry_kind": "LoweringPatternEntry",
+  "targets": [
+   "mul.Tensor"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.pass_patterns[1]/woq_int8#4",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "LoweringPatternEntry on mul.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.pass_patterns[1]",
+  "entry_kind": "LoweringPatternEntry",
+  "targets": [
+   "mul.Tensor"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.pass_patterns[1]/replacement_check_fn",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "ReplacementPatternEntry on amax.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.pass_patterns[1]",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "amax.default"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.pass_patterns[2]/splitwithsizes_cat_replace",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "LoweringPatternEntry on cat, cat.default, cat.out",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.pass_patterns[2]",
+  "entry_kind": "LoweringPatternEntry",
+  "targets": [
+   "cat",
+   "cat.default",
+   "cat.out"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.pass_patterns[2]/cat_splitwithsizes_replace",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "LoweringPatternEntry on split_with_sizes, split_with_sizes.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.pass_patterns[2]",
+  "entry_kind": "LoweringPatternEntry",
+  "targets": [
+   "split_with_sizes",
+   "split_with_sizes.default"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.pass_patterns[2]/unfuse_bias_add_to_pointwise",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "GraphPatternEntry on addmm, addmm.default, addmm.dtype, addmm.dtype_out, addmm.out",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.pass_patterns[2]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "addmm",
+   "addmm.default",
+   "addmm.dtype",
+   "addmm.dtype_out",
+   "addmm.out"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.pass_patterns[2]/unfuse_bias_baddbmm_to_pointwise",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "GraphPatternEntry on baddbmm, baddbmm.default, baddbmm.dtype, baddbmm.dtype_out, baddbmm.out",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.pass_patterns[2]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "baddbmm",
+   "baddbmm.default",
+   "baddbmm.dtype",
+   "baddbmm.dtype_out",
+   "baddbmm.out"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.pass_patterns[2]/addmm",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "GraphPatternEntry on add, add.Scalar, add.Scalar_out, add.Tensor, add.complex, add.complex_float, add.complex_int, add.default, add.float, add.float_complex, add.float_int, add.int, add.int_complex, add.int_float, add.out, add.str, add.t",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.pass_patterns[2]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "add",
+   "add.Scalar",
+   "add.Scalar_out",
+   "add.Tensor",
+   "add.complex",
+   "add.complex_float",
+   "add.complex_int",
+   "add.default",
+   "add.float",
+   "add.float_complex",
+   "add.float_int",
+   "add.int",
+   "add.int_complex",
+   "add.int_float",
+   "add.out",
+   "add.str",
+   "add.t"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.pass_patterns[2]/addmm#2",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "GraphPatternEntry on add, add.Scalar, add.Scalar_out, add.Tensor, add.complex, add.complex_float, add.complex_int, add.default, add.float, add.float_complex, add.float_int, add.int, add.int_complex, add.int_float, add.out, add.str, add.t",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.pass_patterns[2]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "add",
+   "add.Scalar",
+   "add.Scalar_out",
+   "add.Tensor",
+   "add.complex",
+   "add.complex_float",
+   "add.complex_int",
+   "add.default",
+   "add.float",
+   "add.float_complex",
+   "add.float_int",
+   "add.int",
+   "add.int_complex",
+   "add.int_float",
+   "add.out",
+   "add.str",
+   "add.t"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.pass_patterns[2]/_fuse_addcdiv_to_fma",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "GraphPatternEntry on add.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.pass_patterns[2]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "add.Tensor"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.pass_patterns[2]/reuse_partial",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "GraphPatternEntry on amax.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.pass_patterns[2]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "amax.default"
+  ]
+ },
+ {
+  "id": "post_grad/post_grad.pass_patterns[2]/reuse_partial#2",
+  "kind": "pattern",
+  "family": "post_grad",
+  "description": "GraphPatternEntry on amin.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "post_grad.pass_patterns[2]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "amin.default"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[normalization_pass]/normalize_split_default",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on split",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[normalization_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "split"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[normalization_pass]/normalize_split_default#2",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on split",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[normalization_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "split"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[normalization_pass]/normalize_unbind_default",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on unbind",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[normalization_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "unbind"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[normalization_pass]/normalize_unbind_default#2",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on unbind",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[normalization_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "unbind"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[normalization_pass]/normalize_cat_default",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on cat, concat",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[normalization_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "cat",
+   "concat"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[normalization_pass]/normalize_stack_default",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on stack",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[normalization_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "stack"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[normalization_pass]/normalize_squeeze_default",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on squeeze",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[normalization_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "squeeze"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[normalization_pass]/normalize_reshape_default",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on reshape",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[normalization_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "reshape"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[normalization_pass]/normalize_clamp_default",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on clamp",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[normalization_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "clamp"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[normalization_pass]/normalize_clamp_default#2",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on clamp",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[normalization_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "clamp"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[normalization_pass]/normalize_detach_default",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on detach",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[normalization_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "detach"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[remove_split_with_size_one_pass]/remove_split_with_size_one",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on split",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[remove_split_with_size_one_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "split"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[remove_split_with_size_one_pass]/remove_split_with_size_one#2",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on split",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[remove_split_with_size_one_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "split"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[merge_getitem_cat_pass]/merge_getitem_cat",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on cat",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[merge_getitem_cat_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "cat"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[merge_splits_pass]/merge_splits",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on split",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[merge_splits_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "split"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[mutate_cat_pass]/mutate_cat_node",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on cat",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[mutate_cat_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "cat"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[split_cat_pass]/merge_split_squeeze",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on squeeze",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[split_cat_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "squeeze"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[split_cat_pass]/merge_split_squeeze#2",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on squeeze",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[split_cat_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "squeeze"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[split_cat_pass]/simplify_split_cat",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on cat, stack",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[split_cat_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "cat",
+   "stack"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[split_cat_pass]/simplify_split_cat#2",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on cat, stack",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[split_cat_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "cat",
+   "stack"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[split_cat_pass]/simplify_split_cat#3",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on cat, stack",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[split_cat_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "cat",
+   "stack"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[unbind_stack_pass]/merge_unbind_stack",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on cat, stack",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[unbind_stack_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "cat",
+   "stack"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[unbind_stack_pass]/merge_unbind_stack#2",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on cat, stack",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[unbind_stack_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "cat",
+   "stack"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[unbind_stack_pass]/merge_unbind_stack#3",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on cat, stack",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[unbind_stack_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "cat",
+   "stack"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[split_cat_to_slices_pass]/split_cat_to_slices",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on cat",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[split_cat_to_slices_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "cat"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[unbind_cat_to_view_pass]/unbind_cat_to_view",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on cat",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[unbind_cat_to_view_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "cat"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[split_stack_to_cats_pass]/split_stack_to_cats",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on stack",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[split_stack_to_cats_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "stack"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[unbind_stack_to_slices_pass]/unbind_stack_to_slices",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on stack",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[unbind_stack_to_slices_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "stack"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[move_reshape_out_of_split_stack_pass]/move_reshape_out_of_split_stack",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on stack",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[move_reshape_out_of_split_stack_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "stack"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.PRE_GRAD_PATTERNS[einsum_to_pointwise_pass]/replace_einsum_to_pointwise",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on einsum",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.PRE_GRAD_PATTERNS[einsum_to_pointwise_pass]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "einsum"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.apply_gumbel_max_trick_pass/apply_gumbel_max_trick",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on argmax",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.apply_gumbel_max_trick_pass",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "argmax"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.efficient_conv_bn_eval_pass/efficient_conv_bn_eval_graph_transform_inlined",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on batch_norm",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.efficient_conv_bn_eval_pass",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "batch_norm"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.efficient_conv_bn_eval_pass/efficient_conv_bn_eval_graph_transform_decomposed",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on batch_norm.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.efficient_conv_bn_eval_pass",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "batch_norm.default"
+  ]
+ },
+ {
+  "id": "pre_grad/pre_grad.efficient_conv_bn_eval_pass/efficient_conv_bn_eval_graph_transform",
+  "kind": "pattern",
+  "family": "pre_grad",
+  "description": "GraphPatternEntry on BatchNorm1d, BatchNorm2d, BatchNorm3d, SyncBatchNorm, _BatchNorm",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "pre_grad.efficient_conv_bn_eval_pass",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "BatchNorm1d",
+   "BatchNorm2d",
+   "BatchNorm3d",
+   "SyncBatchNorm",
+   "_BatchNorm"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.pass_patterns[0]/unnecessary_dtype_convert",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "GraphPatternEntry on convert_element_type.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.pass_patterns[0]",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "convert_element_type.default"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.pass_patterns[0]/replacement_check_fn",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "ReplacementPatternEntry on mul.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.pass_patterns[0]",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "mul.Tensor"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.pass_patterns[0]/replacement_check_fn#2",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "ReplacementPatternEntry on mm.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.pass_patterns[0]",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "mm.default"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.pass_patterns[0]/replacement_check_fn#3",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "ReplacementPatternEntry on mm.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.pass_patterns[0]",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "mm.default"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.pass_patterns[0]/replacement_check_fn#4",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "ReplacementPatternEntry on addmm.default",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.pass_patterns[0]",
+  "entry_kind": "ReplacementPatternEntry",
+  "targets": [
+   "addmm.default"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.binary_folding_pass/folded_op",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "GraphPatternEntry on add.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.binary_folding_pass",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "add.Tensor"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.binary_folding_pass/folded_op#2",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "GraphPatternEntry on add.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.binary_folding_pass",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "add.Tensor"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.binary_folding_pass/folded_op#3",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "GraphPatternEntry on add.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.binary_folding_pass",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "add.Tensor"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.binary_folding_pass/folded_op#4",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "GraphPatternEntry on add.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.binary_folding_pass",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "add.Tensor"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.binary_folding_pass/folded_op#5",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "GraphPatternEntry on add.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.binary_folding_pass",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "add.Tensor"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.binary_folding_pass/folded_op#6",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "GraphPatternEntry on sub.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.binary_folding_pass",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "sub.Tensor"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.binary_folding_pass/folded_op#7",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "GraphPatternEntry on sub.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.binary_folding_pass",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "sub.Tensor"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.binary_folding_pass/folded_op#8",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "GraphPatternEntry on sub.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.binary_folding_pass",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "sub.Tensor"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.binary_folding_pass/folded_op#9",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "GraphPatternEntry on sub.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.binary_folding_pass",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "sub.Tensor"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.binary_folding_pass/folded_op#10",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "GraphPatternEntry on sub.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.binary_folding_pass",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "sub.Tensor"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.binary_folding_pass/folded_op#11",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "GraphPatternEntry on mul.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.binary_folding_pass",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "mul.Tensor"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.binary_folding_pass/folded_op#12",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "GraphPatternEntry on mul.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.binary_folding_pass",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "mul.Tensor"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.binary_folding_pass/folded_op#13",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "GraphPatternEntry on mul.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.binary_folding_pass",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "mul.Tensor"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.binary_folding_pass/folded_op#14",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "GraphPatternEntry on mul.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.binary_folding_pass",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "mul.Tensor"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.binary_folding_pass/folded_op#15",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "GraphPatternEntry on mul.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.binary_folding_pass",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "mul.Tensor"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.binary_folding_pass/folded_op#16",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "GraphPatternEntry on div.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.binary_folding_pass",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "div.Tensor"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.binary_folding_pass/folded_op#17",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "GraphPatternEntry on div.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.binary_folding_pass",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "div.Tensor"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.binary_folding_pass/folded_op#18",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "GraphPatternEntry on div.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.binary_folding_pass",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "div.Tensor"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.binary_folding_pass/folded_op#19",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "GraphPatternEntry on div.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.binary_folding_pass",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "div.Tensor"
+  ]
+ },
+ {
+  "id": "freezing/freezing_patterns.binary_folding_pass/folded_op#20",
+  "kind": "pattern",
+  "family": "freezing",
+  "description": "GraphPatternEntry on div.Tensor",
+  "default_on": true,
+  "config_path": null,
+  "on_value": null,
+  "off_value": null,
+  "option_key": null,
+  "option_value": {},
+  "pass_label": "freezing_patterns.binary_folding_pass",
+  "entry_kind": "GraphPatternEntry",
+  "targets": [
+   "div.Tensor"
+  ]
+ }
+]

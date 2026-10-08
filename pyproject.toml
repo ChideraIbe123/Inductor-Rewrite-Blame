@@ -1,0 +1,15 @@
+[project]
+name = "rewrite-blame"
+version = "0.1.0"
+description = "Finding and blaming bad graph rewrites in TorchInductor"
+requires-python = ">=3.12"
+dependencies = ["torch", "numpy"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "unit: fast tests, no torch.compile",
+    "inductor: tests that compile small graphs with TorchInductor (CPU)",
+    "slow: long-running timing tests (opt-in with -m slow)",
+]
+addopts = "-ra -p no:logging"
