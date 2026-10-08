@@ -1,7 +1,7 @@
 Subject: [CS598APE Midterm] Which Rewrite Made My Model Slower? (Chidera Ibe)
 
 Project: Finding and blaming bad graph rewrites in TorchInductor.
-Code: rewrite_blame/ (Python package, CLI), tests/, results/ in the project repo.
+Code: rewrite_blame/ (Python package + CLI), tests/, results/ in the repo.
 
 1. WHAT IS BUILT
 ----------------
