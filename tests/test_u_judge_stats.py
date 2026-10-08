@@ -60,17 +60,29 @@ def test_metric_judge_higher_is_slow_and_delta():
     assert j2({"x"}) == Verdict.SLOW
 
 
-def test_timing_judge_remeasures_only_near_threshold():
+def test_timing_judge_remeasures_near_threshold_and_confirms_slow():
     calls = []
-    seq = {frozenset({"far"}): [20.0], frozenset({"near"}): [11.4, 10.2], frozenset({"ok"}): [10.0]}
-    def measure(c):
-        calls.append(c)
+    seq = {frozenset({"far"}): [20.0, 20.5], frozenset({"near"}): [11.4, 10.2], frozenset({"ok"}): [10.0],
+           frozenset({"fluke"}): [12.5, 9.0]}
+    def measure(c, rep=0):
+        calls.append((c, rep))
         return seq[c].pop(0)
     j = TimingJudge(measure, reference_ms=10.0, tau=1.0, band=0.5)
-    assert j({"far"}) == Verdict.SLOW
-    assert j({"ok"}) == Verdict.FAST
-    # 11.4-10 = 1.4 is within (0.5, 1.5) -> re-measured -> mean 10.8 -> FAST
-    assert j({"near"}) == Verdict.FAST
-    assert j.remeasured == 1
-    assert calls.count(frozenset({"near"})) == 2 and calls.count(frozenset({"far"})) == 1
-    assert "re-measured" in j.trace[-1].note
+    assert j({"far"}) == Verdict.SLOW            # confirmed by a second measurement (rep 2)
+    assert j({"ok"}) == Verdict.FAST             # no re-measure
+    assert j({"near"}) == Verdict.FAST           # 1.4 within the band -> mean 10.8 -> FAST
+    assert j({"fluke"}) == Verdict.FAST          # 12.5 then 9.0 -> mean 10.75 -> FAST (a fluke caught)
+    assert j.remeasured == 3
+    assert (frozenset({"far"}), 2) in calls and (frozenset({"ok"}), 0) in calls
+    assert sum(1 for c, _ in calls if c == frozenset({"ok"})) == 1
+    assert "confirmed" in j.trace[0].note and "near threshold" in j.trace[2].note
+
+
+def test_timing_judge_without_slow_confirmation():
+    j = TimingJudge(lambda c, rep=0: 20.0, reference_ms=10.0, tau=1.0, confirm_slow=False)
+    assert j({"x"}) == Verdict.SLOW and j.remeasured == 0
+
+
+def test_timing_judge_accepts_measure_without_rep_argument():
+    j = TimingJudge(lambda c: 20.0, reference_ms=10.0, tau=1.0)
+    assert j({"x"}) == Verdict.SLOW and j.remeasured == 1

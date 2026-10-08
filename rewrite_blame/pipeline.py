@@ -201,9 +201,9 @@ class Runner:
 
     # ---------------------------------------------------------------- attribution
     def timing_judge(self, model: str, fast_state: State, noise: NoiseModel) -> TimingJudge:
-        def measure_ms(changes: frozenset) -> float:
+        def measure_ms(changes: frozenset, rep: int = 0) -> float:
             st = apply_changes(fast_state, changes)
-            m = self.measure(model, st)
+            m = self.measure(model, st, rep=rep)
             if m.error:
                 raise RuntimeError(m.error)
             return m.median_ms

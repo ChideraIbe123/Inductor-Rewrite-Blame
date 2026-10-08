@@ -107,31 +107,44 @@ class MetricJudge(Judge):
 class TimingJudge(Judge):
     """SLOW iff median_ms(candidate) - reference_ms > tau.
 
-    If the difference lands in the ambiguous band ``(tau*(1-band), tau*(1+band))`` the candidate is
-    measured once more and the *larger of the two medians is NOT used*; instead the mean of the two
-    medians decides, which halves the false-positive rate near the boundary at the price of one
-    extra measurement.
+    Two guards against single noisy measurements:
+    * a candidate whose difference lands in the band ``(tau*(1-band), tau*(1+band))`` is measured
+      again and the mean of the two medians decides;
+    * when ``confirm_slow`` is set, every SLOW verdict is confirmed by an independent second
+      measurement (``rep=2``) and the mean decides. ddmin issues only O(log n) SLOW verdicts, so
+      this costs little, while a false SLOW would send the search down the wrong branch.
+
+    ``measure_ms(changes, rep)`` must return the median for the candidate configuration; ``rep``
+    distinguishes independent repeated measurements of the same configuration.
     """
 
-    def __init__(self, measure_ms: Callable[[frozenset], float], reference_ms: float, tau: float,
-                 band: float = 0.5, confirm: bool = True) -> None:
+    def __init__(self, measure_ms: Callable[..., float], reference_ms: float, tau: float,
+                 band: float = 0.5, confirm: bool = True, confirm_slow: bool = True) -> None:
         super().__init__()
         self.measure_ms = measure_ms
         self.reference_ms = reference_ms
         self.tau = tau
         self.band = band
         self.confirm = confirm
+        self.confirm_slow = confirm_slow
         self.remeasured = 0
 
+    def _measure(self, candidate: frozenset, rep: int) -> float:
+        try:
+            return self.measure_ms(candidate, rep)
+        except TypeError:  # measure functions that take no rep argument
+            return self.measure_ms(candidate)
+
     def evaluate(self, candidate: frozenset) -> JudgeRecord:
-        v = self.measure_ms(candidate)
+        v = self._measure(candidate, 0)
         d = v - self.reference_ms
         note = ""
-        if self.confirm and abs(d - self.tau) < self.band * self.tau:
-            v2 = self.measure_ms(candidate)
+        near = self.confirm and abs(d - self.tau) < self.band * self.tau
+        if near or (self.confirm_slow and d > self.tau):
+            v2 = self._measure(candidate, 2)
             self.remeasured += 1
             v = 0.5 * (v + v2)
             d = v - self.reference_ms
-            note = f"re-measured near threshold (second median {v2:.3f})"
+            note = ("re-measured near threshold" if near else "slow verdict confirmed by a second measurement") + f" (second median {v2:.3f})"
         return JudgeRecord(tuple(sorted(candidate)), Verdict.SLOW if d > self.tau else Verdict.FAST,
                            v, self.reference_ms, self.tau, note)
