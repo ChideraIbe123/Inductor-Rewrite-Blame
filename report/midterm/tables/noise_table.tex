@@ -1,14 +1,14 @@
-\begin{table}[h]\centering\small
+\begin{table}[h]\centering\scriptsize
 \begin{tabular}{llrrrrrr}\toprule
-model & machine & runs & centre (ms) & MAD (ms) & $\tau$ (ms) & $\tau$ (\%) & max $|\Delta|$ identical (ms) \\\midrule
-attention\_block & Chideras-MacBook-Pro-2 & 7 & 0.926 & 0.006 & 0.017 & 1.8 & 0.029 \\
-bert\_base\_eagerattn & Chideras-MacBook-Pro-2 & 7 & 84.363 & 0.968 & 2.905 & 3.4 & 1.708 \\
-decode\_mlp & Chideras-MacBook-Pro-2 & 7 & 0.194 & 0.004 & 0.011 & 5.5 & 0.046 \\
-gpt2\_prefill & Chideras-MacBook-Pro-2 & 7 & 62.447 & 0.600 & 1.800 & 2.9 & 1.125 \\
-norm\_mlp & Chideras-MacBook-Pro-2 & 7 & 1.058 & 0.006 & 0.018 & 1.7 & 0.047 \\
-resnet18 & Chideras-MacBook-Pro-2 & 7 & 26.118 & 0.192 & 0.576 & 2.2 & 0.451 \\
-attention\_block & fa26-cs598a-010 & 7 & 8.526 & 0.066 & 0.198 & 2.3 & 0.320 \\
-norm\_mlp & fa26-cs598a-010 & 7 & 12.478 & 0.052 & 0.155 & 1.2 & 1.660 \\
+model & machine & runs & centre (ms) & MAD (ms) & $\tau$ (ms) & $\tau$ (\%) & max $|\Delta|$ (ms) \\\midrule
+attention\_block & Mac & 7 & 0.926 & 0.006 & 0.017 & 1.8 & 0.029 \\
+bert\_base\_eagerattn & Mac & 7 & 84.363 & 0.968 & 2.905 & 3.4 & 1.708 \\
+decode\_mlp & Mac & 7 & 0.194 & 0.004 & 0.011 & 5.5 & 0.046 \\
+gpt2\_prefill & Mac & 7 & 62.447 & 0.600 & 1.800 & 2.9 & 1.125 \\
+norm\_mlp & Mac & 7 & 1.058 & 0.006 & 0.018 & 1.7 & 0.047 \\
+resnet18 & Mac & 7 & 26.118 & 0.192 & 0.576 & 2.2 & 0.451 \\
+attention\_block & VM & 7 & 8.526 & 0.066 & 0.198 & 2.3 & 0.320 \\
+norm\_mlp & VM & 7 & 12.478 & 0.052 & 0.155 & 1.2 & 1.660 \\
 \bottomrule\end{tabular}
-\caption{Baseline noise from repeated identical runs in separate processes (Mac: Apple M4 Pro, 8 threads; fa26: course VM, 4-core Xeon Silver 4216).}\label{tab:noise}
+\caption{Baseline noise from repeated identical runs in separate processes (Mac: Apple M4 Pro, 8 threads; VM: course VM, 4-core Xeon Silver 4216). Last column: largest difference between two identical runs.}\label{tab:noise}
 \end{table}%

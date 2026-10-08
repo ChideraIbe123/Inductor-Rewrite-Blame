@@ -15,9 +15,13 @@ OUT = sys.argv[2] if len(sys.argv) > 2 else "report/midterm/figures"
 os.makedirs(OUT, exist_ok=True)
 
 
+def host_tag(env: str) -> str:
+    return "mac" if "Mac" in env else "vm"
+
+
 def load(pattern):
     out = {}
-    for p in sorted(glob.glob(os.path.join(RES, pattern))):
+    for p in sorted(glob.glob(os.path.join(RES, pattern)) + glob.glob(os.path.join(RES, "vm", pattern))):
         try:
             out[p] = json.load(open(p))
         except Exception as e:
@@ -33,7 +37,7 @@ def fig_noise():
     labels, data, taus = [], [], []
     for p, d in files.items():
         n = d["noise"]
-        labels.append(d["model"]); data.append([100 * (m / n["center"] - 1) for m in n["medians"]]); taus.append(100 * n["tau"] / n["center"])
+        labels.append(d["model"] + (" (VM)" if "Mac" not in d["env"] else "")); data.append([100 * (m / n["center"] - 1) for m in n["medians"]]); taus.append(100 * n["tau"] / n["center"])
     y = range(len(labels))
     for i, (xs, t) in enumerate(zip(data, taus)):
         ax.scatter(xs, [i] * len(xs), s=18, zorder=3)
@@ -61,8 +65,8 @@ def fig_sweeps():
         ax.axvspan(-tau_pct, tau_pct, color="0.85", zorder=0)
         ax.set_yticks(range(len(rows))); ax.set_yticklabels(names, fontsize=7)
         ax.set_xlabel("% change in median time vs. default (grey band = noise threshold)")
-        ax.set_title(f"{d['model']}: toggling one switch at a time ({d['env'].split('|')[0]})")
-        fig.tight_layout(); fig.savefig(os.path.join(OUT, f"sweep_{d['model']}.pdf")); plt.close(fig)
+        ax.set_title(f"{d['model']}: toggling one switch at a time ({'Mac M4 Pro' if host_tag(d['env']) == 'mac' else 'VM Xeon'})")
+        fig.tight_layout(); fig.savefig(os.path.join(OUT, f"sweep_{d['model']}_{host_tag(d['env'])}.pdf")); plt.close(fig)
 
 
 def fig_attribution_trace():
@@ -77,8 +81,8 @@ def fig_attribution_trace():
         cols = ["#c0392b" if t["verdict"] == "slow" else "#2980b9" for t in tr]
         ax.scatter(xs, sizes, c=cols, s=25)
         ax.set_xlabel("judge evaluation"); ax.set_ylabel("|changes tried|")
-        ax.set_title(f"ddmin trace, {d['model']} (red = slow, blue = fast); culprits: {len(d['result']['culprits'])}")
-        fig.tight_layout(); fig.savefig(os.path.join(OUT, f"trace_{d['model']}.pdf")); plt.close(fig)
+        ax.set_title(f"ddmin trace, {d['model']} on {'Mac' if host_tag(d['env']) == 'mac' else 'VM'} (red = slow, blue = fast); culprits: {len(d['result']['culprits'])}")
+        fig.tight_layout(); fig.savefig(os.path.join(OUT, f"trace_{d['model']}_{host_tag(d['env'])}.pdf")); plt.close(fig)
 
 
 fig_noise(); fig_sweeps(); fig_attribution_trace()

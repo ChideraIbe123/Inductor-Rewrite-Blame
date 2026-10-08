@@ -21,6 +21,17 @@ def tex(s: str) -> str:
             .replace("#", r"\#").replace("{", r"\{").replace("}", r"\}").replace("[", "{[}").replace("]", "{]}"))
 
 
+def codebr(name: str) -> str:
+    """Code name that may break after underscores/dots (for long kernel names)."""
+    return "\\code{" + tex(name).replace("\\_", "\\_\\allowbreak{}").replace(".", ".\\allowbreak{}") + "}"
+
+
+def grouped(names) -> str:
+    from collections import Counter
+    c = Counter(names)
+    return ", ".join(codebr(k) + (f" ($\\times${v})" if v > 1 else "") for k, v in sorted(c.items()))
+
+
 def short(sid: str, n=46) -> str:
     s = sid.split("/")[-1] if sid.count("/") >= 2 else sid
     return s if len(s) <= n else s[: n - 1] + "~"
@@ -66,12 +77,12 @@ def noise():
     rows = []
     for d in load_glob("noise_*.json") + load_glob("vm/noise_*.json"):
         n = d["noise"]
-        host = d["env"].split("|")[0]
-        rows.append(f"{tex(d['model'])} & {tex(host)} & {len(n['medians'])} & {n['center']:.3f} & {n['spread']:.3f} & "
+        host = "Mac" if "Mac" in d["env"] else "VM"
+        rows.append(f"{tex(d['model'])} & {host} & {len(n['medians'])} & {n['center']:.3f} & {n['spread']:.3f} & "
                     f"{n['tau']:.3f} & {100*n['tau']/n['center']:.1f} & {n['pairwise_max']:.3f} \\\\")
     write("noise.tex", "\n".join(rows) + "\n")
-    write("noise_table.tex", table_env(rows, "llrrrrrr", "model & machine & runs & centre (ms) & MAD (ms) & $\\tau$ (ms) & $\\tau$ (\\%) & max $|\\Delta|$ identical (ms)",
-                                       "Baseline noise from repeated identical runs in separate processes (Mac: Apple M4 Pro, 8 threads; fa26: course VM, 4-core Xeon Silver 4216).", "tab:noise"))
+    write("noise_table.tex", table_env(rows, "llrrrrrr", "model & machine & runs & centre (ms) & MAD (ms) & $\\tau$ (ms) & $\\tau$ (\\%) & max $|\\Delta|$ (ms)",
+                                       "Baseline noise from repeated identical runs in separate processes (Mac: Apple M4 Pro, 8 threads; VM: course VM, 4-core Xeon Silver 4216). Last column: largest difference between two identical runs.", "tab:noise", size="scriptsize"))
 
 
 def verify_summary():
@@ -86,7 +97,7 @@ def verify_summary():
                     f"{c.get('fires_only',0)} & {c.get('no_effect',0)} & {c.get('error',0)} \\\\")
     write("verify_summary.tex", "\n".join(rows) + "\n")
     write("verify_table.tex", table_env(rows, "lrrlrrrr", "model & kernels & rules fired & candidates (pat/cfg/opt) & changes graph & fires only & no effect & errors",
-                                        "Switch verification: effect of toggling each candidate switch on the compiled program. A pattern rule that never fired cannot change anything when turned off, so only fired rules are candidates.", "tab:verify"))
+                                        "Switch verification: effect of toggling each candidate switch on the compiled program. A pattern rule that never fired cannot change anything when turned off, so only fired rules are candidates.", "tab:verify", size="scriptsize"))
 
 
 def sweeps():
@@ -117,7 +128,7 @@ def attributions():
         lines.append(f"candidate changes & {len(r['candidates'])} \\\\")
         lines.append(f"judge evaluations & {r['judge_calls']} \\\\")
         lines.append(f"verdict & {d['kind']} \\\\")
-        lines.append("culprits & " + ", ".join(f"\\texttt{{{tex(short(c, 60))}}}" for c in r["culprits"]) + " \\\\")
+        lines.append("culprits & " + ", ".join(codebr(short(c, 60)) for c in r["culprits"]) + " \\\\")
         if d.get("culprit_state"):
             cs, fa = d["culprit_state"], d["fast"]
             lines.append(f"kernels fast $\\rightarrow$ culprits & {fa['code']['kernel_count']} $\\rightarrow$ {cs['code']['kernel_count']} \\\\")
@@ -167,15 +178,16 @@ def sweeps_section():
                f"{len(rows)} graph-changing switches were toggled one at a time: {len(slow)} made the model slower than "
                f"$\\tau$, {len(fast)} made it faster, {len(rows)-len(slow)-len(fast)} stayed within noise. ")
         if slow:
-            txt += "Slower: " + "; ".join(f"\\code{{{tex(short(r['switch']))}}} ({r['direction']}, {r['delta_pct']:+.1f}\\%)" for r in slow) + ". "
+            txt += "Slower: " + "; ".join(f"{codebr(short(r['switch']))} ({r['direction']}, {r['delta_pct']:+.1f}\\%)" for r in slow) + ". "
         if fast:
-            txt += "Faster: " + "; ".join(f"\\code{{{tex(short(r['switch']))}}} ({r['direction']}, {r['delta_pct']:+.1f}\\%)" for r in fast) + ". "
+            txt += "Faster: " + "; ".join(f"{codebr(short(r['switch']))} ({r['direction']}, {r['delta_pct']:+.1f}\\%)" for r in fast) + ". "
         trows = [f"{tex(short(r['switch']))} & {r['direction']} & {r['median_ms']:.3f} & {r['delta_pct']:+.1f} & {r['kernel_count']} & "
                  + ("\\textbf{slower}" if r["slower"] else ("faster" if r["faster"] else "")) + " \\\\" for r in rows]
         txt += "\n" + table_env(trows, "llrrrl", "switch & toggled & median (ms) & $\\Delta$ (\\%) & kernels & vs.\\ $\\tau$",
                                  f"Leave-one-out sweep, {tex(d['model'])}, {_host_label(d['env'])}.", size="scriptsize")
-        txt += (f"\\IfFileExists{{figures/sweep_{d['model']}.pdf}}{{\\begin{{figure}}[h]\\centering"
-                f"\\includegraphics[width=0.9\\linewidth]{{figures/sweep_{d['model']}.pdf}}\\end{{figure}}}}{{}}\n")
+        ht = "mac" if "Mac" in d["env"] else "vm"
+        txt += (f"\\IfFileExists{{figures/sweep_{d['model']}_{ht}.pdf}}{{\\begin{{figure}}[h]\\centering"
+                f"\\includegraphics[width=0.9\\linewidth]{{figures/sweep_{d['model']}_{ht}.pdf}}\\end{{figure}}}}{{}}\n")
         parts.append(txt)
     if not parts:
         parts.append("No timed sweeps have completed yet.\n")
@@ -198,7 +210,7 @@ def attribution_section():
         txt += (f"ddmin needed {r['judge_calls']} judge evaluations (versus {len(r['candidates'])} for leave-one-out, "
                 f"{len(r['candidates'])*(len(r['candidates'])-1)//2} for all pairs) and returned ")
         if r["culprits"]:
-            txt += "the culprit set " + ", ".join(f"\\code{{{tex(c)}}}" for c in r["culprits"]) + ". "
+            txt += "the culprit set " + ", ".join(codebr(c) for c in r["culprits"]) + ". "
             if r["interaction"]:
                 txt += "Each culprit alone was judged \\emph{fast}: the slowdown needs all of them together. "
             elif len(r["culprits"]) == 1:
@@ -214,19 +226,20 @@ def attribution_section():
                     f"intermediate bytes {fa['code']['alloc_bytes']:,} $\\rightarrow$ {cs['code']['alloc_bytes']:,}. ")
             only_a, only_b = sorted((ka - kb).elements()), sorted((kb - ka).elements())
             if only_a:
-                txt += "Kernels lost: " + ", ".join(f"\\code{{{tex(k)}}}" for k in only_a) + ". "
+                txt += "Kernels lost: " + grouped(only_a) + ". "
             if only_b:
-                txt += "Kernels gained: " + ", ".join(f"\\code{{{tex(k)}}}" for k in only_b) + ". "
+                txt += "Kernels gained: " + grouped(only_b) + ". "
             if (ea - eb) or (eb - ea):
-                txt += ("Extern calls lost: " + (", ".join(f"\\code{{{tex(k)}}}" for k in sorted((ea - eb).elements())) or "none")
-                        + "; gained: " + (", ".join(f"\\code{{{tex(k)}}}" for k in sorted((eb - ea).elements())) or "none") + ". ")
+                txt += ("Extern calls lost: " + (grouped(sorted((ea - eb).elements())) or "none")
+                        + "; gained: " + (grouped(sorted((eb - ea).elements())) or "none") + ". ")
             if cs.get("suppressed"):
-                txt += "Rules suppressed in the culprit state: " + ", ".join(f"\\code{{{tex(short(k))}}}" for k in cs["suppressed"]) + ". "
+                txt += "Rules suppressed in the culprit state: " + ", ".join(codebr(short(k)) for k in cs["suppressed"]) + ". "
         arows = open(os.path.join(OUT, f"attribution_{tag}.tex")).read().rstrip("%\n").splitlines()
         txt += "\n" + table_env(arows, "lp{0.62\\linewidth}", "field & value", f"Attribution summary, {tex(d['model'])}.")
-        txt += (f"\\IfFileExists{{figures/trace_{d['model']}.pdf}}{{\\begin{{figure}}[h]\\centering"
-                f"\\includegraphics[width=0.7\\linewidth]{{figures/trace_{d['model']}.pdf}}"
-                f"\\caption{{ddmin search trace for {tex(d['model'])}: each point is one judge evaluation.}}\\end{{figure}}}}{{}}\n")
+        ht = "mac" if "Mac" in d["env"] else "vm"
+        txt += (f"\\IfFileExists{{figures/trace_{d['model']}_{ht}.pdf}}{{\\begin{{figure}}[h]\\centering"
+                f"\\includegraphics[width=0.7\\linewidth]{{figures/trace_{d['model']}_{ht}.pdf}}"
+                f"\\caption{{ddmin search trace for {tex(d['model'])} ({_host_label(d['env'])}): each point is one judge evaluation.}}\\end{{figure}}}}{{}}\n")
         parts.append(txt)
     if not parts:
         parts.append("No attribution runs have completed yet.\n")

@@ -1,6 +1,7 @@
 \documentclass[11pt]{article}
 \usepackage[margin=1in]{geometry}
-\usepackage{booktabs,graphicx,amsmath,url,hyperref,xcolor,longtable,array,enumitem}
+\usepackage{booktabs,graphicx,amsmath,url,hyperref,xcolor,longtable,array,enumitem,placeins}
+\renewcommand{\floatpagefraction}{0.8}\renewcommand{\textfraction}{0.1}\renewcommand{\topfraction}{0.9}\renewcommand{\bottomfraction}{0.9}
 \usepackage[T1]{fontenc}
 \hypersetup{colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,citecolor=blue!50!black}
 \setlist{nosep}
@@ -166,6 +167,7 @@ counts them. Highlights:
 
 \input{tables/tests_table.tex}
 
+\FloatBarrier
 \section{Results so far (item 4)}\label{sec:results}
 
 \subsection{Noise}
@@ -206,6 +208,7 @@ below are generated from the stored measurements; three observations stand out.
 \end{itemize}
 \input{tables/sweeps_section.tex}%
 
+\FloatBarrier
 \section{Attribution case studies}\label{sec:attr}
 Each case study feeds the tool a fast state and a slow state that differ in many switches, most
 of them irrelevant, and asks it to name the culprits with the timing judge and the measured
@@ -218,6 +221,7 @@ leave-one-out sweep would have blamed nothing). The kernel-level diff shows why 
 \code{bmm} calls, and intermediate traffic grows from 4.2\,MB to 11.6\,MB per step.
 \input{tables/attribution_section.tex}%
 
+\FloatBarrier
 \subsection*{What ddmin does and does not promise}
 The layer-norm MLP case is instructive. Its sweep shows two independent causes (in-place buffer
 reuse, 4.3\%; constant folding, 2.6\%), but the attribution over eight changed flags returned
@@ -244,6 +248,7 @@ The VM is a shared host and shows occasional outlier runs (one identical-run pai
 1.7~ms against a MAD of 0.05~ms); the MAD-based $\tau$ is robust to such outliers, and every
 ``slow'' verdict in the trace was reproduced by at least three independent measurements.
 
+\FloatBarrier
 \section{Status against the proposal and plan to the final report}
 \begin{table}[h]\centering\small
 \begin{tabular}{p{0.42\linewidth}p{0.5\linewidth}}\toprule
