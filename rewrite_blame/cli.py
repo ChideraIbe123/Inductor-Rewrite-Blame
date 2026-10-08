@@ -132,6 +132,24 @@ def cmd_tau_scan(a):
     _write(a, res, default_name=f"tau_scan_{a.model}")
 
 
+def cmd_repeat(a):
+    """Compare baseline speed and per-switch verdicts across sessions and machines (from the store)."""
+    from .repeat import repeatability, render_repeat
+    from .switches import state_hash
+    r = _runner(a)
+    base = parse_state_spec(r.reg, a.state)
+    rows = r.store.all(model=a.model)
+    # candidate switches: everything that was ever toggled from base in a timed row, on any machine
+    toggles = {}
+    bh = state_hash(base)
+    for sid in r.reg.ids():
+        sh = state_hash(r.reg.toggled(base, sid))
+        if any(row.get("state_hash") == sh and row.get("timing") for row in rows):
+            toggles[sid] = sh
+    rep = repeatability(rows, a.model, bh, toggles)
+    _write(a, rep.to_dict(), render_repeat(rep), default_name=f"repeat_{a.model}")
+
+
 def cmd_show(a):
     from .store import Store
     st = Store(a.store)
@@ -194,6 +212,9 @@ def main(argv=None) -> int:
     p = sub.add_parser("tau-scan", help="re-run attribution for several noise multipliers k"); p.set_defaults(fn=cmd_tau_scan)
     p.add_argument("--model", required=True); p.add_argument("--fast", required=True); p.add_argument("--slow", required=True)
     p.add_argument("--ks", default="2,3,4,6"); p.add_argument("--runs", type=int, default=7); p.add_argument("--out")
+
+    p = sub.add_parser("repeat", help="repeatability of verdicts across sessions/machines from the store"); p.set_defaults(fn=cmd_repeat)
+    p.add_argument("--model", required=True); p.add_argument("--state", default="default"); p.add_argument("--out")
 
     p = sub.add_parser("show"); p.set_defaults(fn=cmd_show)
     p.add_argument("--model", default=""); p.add_argument("-n", type=int, default=40)
