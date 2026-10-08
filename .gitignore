@@ -13,3 +13,5 @@ report/midterm/*.out
 logs/
 results/**/*.sqlite
 results/vm/vm/
+report/
+results/
