@@ -155,6 +155,37 @@ def cmd_repeat(a):
     _write(a, rep.to_dict(), render_repeat(rep), default_name=f"repeat_{a.model}")
 
 
+def cmd_guards(a):
+    """Build the labelled-firing dataset from stores + sweep files and evaluate stump guards per rule family."""
+    import glob
+    from .guards import build_dataset, leave_one_model_out, render_guards
+    from .store import Store
+    from .switches import Registry, state_hash
+    r = _runner(a)
+    stores = [(r.store, r.reg)]
+    for extra in a.extra_store or []:
+        if Path(extra).exists():
+            reg_path = Path(extra).with_name("switches.json")
+            stores.append((Store(extra), Registry.load(reg_path) if reg_path.exists() else r.reg))
+    default_rows = []
+    for st, reg in stores:
+        bh = state_hash(reg.default_state())
+        for row in st.all():
+            if row.get("state_hash") == bh and row.get("firings") and not row.get("error"):
+                default_rows.append(row)
+    sweeps = []
+    for pat in (a.sweeps or ["results/sweep_*.json", "results/vm/sweep_*.json"]):
+        for f in sorted(glob.glob(pat)):
+            try:
+                sweeps.append(json.loads(Path(f).read_text()))
+            except Exception:
+                pass
+    data = build_dataset(default_rows, sweeps)
+    ev = leave_one_model_out(data)
+    _write(a, {"dataset": data, "evaluation": ev, "n_default_rows": len(default_rows), "n_sweeps": len(sweeps)},
+           render_guards(data, ev), default_name="guards")
+
+
 def cmd_show(a):
     from .store import Store
     st = Store(a.store)
@@ -222,6 +253,9 @@ def main(argv=None) -> int:
     p.add_argument("--model", required=True); p.add_argument("--state", default="default"); p.add_argument("--out")
     p.add_argument("--extra-store", action="append", help="additional measurement stores (e.g. pulled from another machine)")
     p.add_argument("--extra-registry", action="append", help="additional switch registries used to interpret old rows")
+
+    p = sub.add_parser("guards", help="labelled rule firings + per-family stump guards (stretch goal)"); p.set_defaults(fn=cmd_guards)
+    p.add_argument("--extra-store", action="append"); p.add_argument("--sweeps", action="append", help="glob(s) of sweep json files"); p.add_argument("--out")
 
     p = sub.add_parser("show"); p.set_defaults(fn=cmd_show)
     p.add_argument("--model", default=""); p.add_argument("-n", type=int, default=40)
