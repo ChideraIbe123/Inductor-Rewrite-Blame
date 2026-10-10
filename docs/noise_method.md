@@ -95,3 +95,29 @@ not a statistics choice.
    across sessions and machines.
 6. The `tau-scan` command re-runs an attribution for k = 2, 3, 4, 6 and reports whether the
    culprits are stable; unstable culprits mean the effect is near the noise floor.
+
+## Interleaving: the two confirmation runs must be separated in time
+
+A 903-pair interaction scan on the VM (4.4 hours, 1,416 measurements) showed two artefacts even
+with the AND rule in place:
+
+* 220 pairs looked *faster* than their singles. The singles were measured in the first hour, the
+  pairs later, and the machine was about 1% faster in hours 2-4 (median of all run medians per
+  2-hour bin: 0.957, 0.950, 0.956 ms). A stale baseline turns machine drift into fake "masking".
+* Four pairs of switches that cannot plausibly interact showed +70% to +150% together, confirmed
+  by both runs. The two runs were back-to-back, so one disturbed stretch of machine time passed
+  both. (Re-measuring those states in a fresh session is the direct check; see the results file.)
+
+Both are the known failure modes that interleaved designs exist for, so the harness now:
+
+1. takes a fresh **baseline run between the two candidate runs** of a slow verdict; if that
+   baseline deviates from the session reference by more than tau the machine is disturbed, the
+   attempt is discarded and retried later with fresh processes (twice at most), and if it never
+   settles the verdict is FAST with a note rather than a blame;
+2. in long scans, **re-measures the base state every 20 measurements** and compares every
+   candidate with the running baseline (median of the last three baseline runs) instead of the
+   one taken at the start; flagged pairs are confirmed only after a baseline run that is within
+   tau and by a second run that agrees.
+
+Cost: one extra baseline run per slow verdict (ddmin issues O(log n) of them) and 5% more runs
+in a scan.

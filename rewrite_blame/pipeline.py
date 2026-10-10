@@ -211,7 +211,13 @@ class Runner:
             if m.error:
                 raise RuntimeError(m.error)
             return m.median_ms
-        return TimingJudge(measure_ms, reference_ms=noise.center, tau=noise.tau)
+
+        def baseline_ms(rep: int) -> float:
+            m = self.measure(model, fast_state, rep=rep)
+            if m.error:
+                raise RuntimeError(m.error)
+            return m.median_ms
+        return TimingJudge(measure_ms, reference_ms=noise.center, tau=noise.tau, baseline_ms=baseline_ms)
 
     def metric_judge(self, model: str, fast_state: State, metric: str = "kernel_count", delta: float = 0.0,
                      higher_is_slow: bool = True) -> MetricJudge:

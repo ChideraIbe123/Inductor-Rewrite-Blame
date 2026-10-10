@@ -75,7 +75,8 @@ def test_pair_scan_flags_superadditive_and_masking():
         v += sum(val for k, val in pairs.items() if k <= state)
         return v
     res = pair_scan(frozenset(), ["a", "b", "c", "d"], measure, tau=1.0)
-    assert res.measurements == 1 + 4 + 6 + 2  # two flagged pairs were confirmed by a second measurement
+    assert res.measurements == 1 + 4 + 6 + 2 + 2  # two flagged pairs: an interleaved baseline + a confirmation run each
+    assert res.drift_events == 0 and len(res.baselines) == 3
     assert res.singles == {"a": 2.0, "b": 0.0, "c": 3.0, "d": 0.0}
     assert [(r["a"], r["b"]) for r in res.superadditive] == [("a", "b")]
     assert res.superadditive[0]["interaction_ms"] == pytest.approx(5.0)
@@ -120,3 +121,37 @@ def test_pair_scan_confirmation_removes_a_fluke():
     assert (frozenset({'a', 'b'}), 2) in seen
     res2 = pair_scan(frozenset(), ['a', 'b'], measure, tau=1.0, confirm=False)
     assert len(res2.superadditive) == 1
+
+
+def test_pair_scan_rebaselines_and_drops_flags_when_disturbed():
+    calls = []
+    state_of_time = {"slow": False}
+
+    def measure(state, rep=0):
+        calls.append((frozenset(state), rep))
+        base = 10.0
+        if frozenset(state) == frozenset({"a", "b"}) and rep == 0:
+            state_of_time["slow"] = True          # the machine becomes disturbed right at this pair
+            return base + 5.0
+        if state_of_time["slow"] and rep >= 100:   # the interleaved baseline sees the disturbance
+            state_of_time["slow"] = False
+            return base + 3.0
+        return base
+    res = pair_scan(frozenset(), ["a", "b"], measure, tau=1.0)
+    assert res.superadditive == [] and res.drift_events == 1
+    assert any("disturbed" in r["note"] for r in res.pairs)
+
+
+def test_pair_scan_periodic_rebaseline_follows_drift():
+    t = {"n": 0}
+
+    def measure(state, rep=0):
+        t["n"] += 1
+        drift = 0.5 if t["n"] > 3 else 0.0            # machine gets 0.5 ms slower after the first three measurements
+        return 10.0 + drift + (0.0 if not state else 0.0)
+    ids = [f"s{i}" for i in range(6)]
+    res = pair_scan(frozenset(), ids, measure, tau=0.2, rebaseline_every=4, confirm=False)
+    # with periodic re-baselining the later pairs are compared with the drifted baseline, not the stale one
+    late = [r for r in res.pairs][-3:]
+    assert all(abs(r["delta_ms"]) < 0.2 for r in late)
+    assert len(res.baselines) >= 3

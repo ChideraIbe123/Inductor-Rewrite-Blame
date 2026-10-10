@@ -20,20 +20,26 @@ class PairScanResult:
     superadditive: list[dict]            # pairs where delta(pair) - delta(a) - delta(b) > tau
     masking: list[dict]                  # pairs where delta(pair) < max(delta(a), delta(b)) - tau
     measurements: int
+    baselines: list[float] = field(default_factory=list)   # interleaved baseline runs over the scan
+    drift_events: int = 0
 
     def to_dict(self) -> dict:
         return asdict(self)
 
 
 def pair_scan(base_state: Iterable[str], ids: Iterable[str], measure_ms: Callable[..., float], tau: float,
-              *, max_pairs: int | None = None, toggled=None, confirm: bool = True) -> PairScanResult:
+              *, max_pairs: int | None = None, toggled=None, confirm: bool = True, rebaseline_every: int = 20) -> PairScanResult:
     """Toggle every switch in ``ids`` alone and every pair together on top of ``base_state``.
 
     ``toggled(state, sid)`` flips one switch (default: set symmetric difference). A pair is
     *superadditive* when its extra cost beyond the sum of its singles exceeds ``tau``; it is
-    *masking* when the pair is faster than the slower single by more than ``tau``. With
-    ``confirm``, a pair that would be flagged is measured a second time (``rep=2``) and keeps the
-    flag only if both runs agree (AND rule), so one noisy process cannot create an interaction.
+    *masking* when the pair is faster than the slower single by more than ``tau``.
+
+    Long scans drift with the machine, so the base state is re-measured every
+    ``rebaseline_every`` measurements and every delta is taken against the running baseline (the
+    median of the last three baseline runs). With ``confirm``, a pair that would be flagged is
+    re-measured after a fresh baseline run: the flag stands only if that baseline is within tau of
+    the running baseline (machine not disturbed) and the second run agrees (AND rule).
     ``measure_ms(state, rep=0)``; functions without a ``rep`` parameter are accepted.
     """
     base = frozenset(base_state)
@@ -48,45 +54,72 @@ def pair_scan(base_state: Iterable[str], ids: Iterable[str], measure_ms: Callabl
         except TypeError:
             return measure_ms(st)
     n = 0
-    base_ms = meas(base); n += 1
+    baselines: list[float] = [meas(base)]; n += 1
+    brep = [100]
+    drift_events = 0
+
+    def running_base() -> float:
+        recent = baselines[-3:]
+        return sorted(recent)[len(recent) // 2]
+
+    def fresh_baseline() -> tuple[bool, float]:
+        nonlocal n, drift_events
+        brep[0] += 1
+        b = meas(base, brep[0]); n += 1
+        ok = abs(b - running_base()) <= tau
+        baselines.append(b)
+        if not ok:
+            drift_events += 1
+        return ok, b
+
     singles: dict[str, float] = {}
     for a in ids:
-        singles[a] = meas(toggled(base, a)) - base_ms; n += 1
+        singles[a] = meas(toggled(base, a)) - running_base(); n += 1
+        if n % rebaseline_every == 0:
+            fresh_baseline()
     rows, superadd, masking = [], [], []
     combos = list(itertools.combinations(ids, 2))
     if max_pairs is not None:
         combos = combos[:max_pairs]
     for a, b in combos:
         st = toggled(toggled(base, a), b)
-        d = meas(st) - base_ms; n += 1
+        d = meas(st) - running_base(); n += 1
+        if n % rebaseline_every == 0:
+            fresh_baseline()
         extra = d - singles[a] - singles[b]
-        if confirm and (extra > tau or d < max(singles[a], singles[b]) - tau):
-            # AND rule: a flagged pair keeps its flag only if an independent second run agrees
-            d2 = meas(st, 2) - base_ms; n += 1
-            extra2 = d2 - singles[a] - singles[b]
-            agree = (extra > tau and extra2 > tau) or (d < max(singles[a], singles[b]) - tau and d2 < max(singles[a], singles[b]) - tau)
-            if agree:
-                d = 0.5 * (d + d2)                 # report the mean of the two agreeing runs
-                extra = d - singles[a] - singles[b]
+        flag_super = extra > tau
+        flag_mask = d < max(singles[a], singles[b]) - tau
+        note = ""
+        if confirm and (flag_super or flag_mask):
+            ok, bval = fresh_baseline()                 # interleaved baseline separates the two runs in time
+            if not ok:
+                note = f"baseline run {bval:.3f} deviated from running baseline: disturbed, flag dropped"
+                flag_super = flag_mask = False
             else:
-                d = max(d, d2) if d2 < d else min(d, d2)   # keep the run closer to "no interaction"
-                extra = d - singles[a] - singles[b]
-                if extra > tau:                    # still flagged by arithmetic: force unflag (runs disagreed)
-                    extra = tau
-                if d < max(singles[a], singles[b]) - tau:
-                    d = max(singles[a], singles[b]) - tau
+                d2 = meas(st, 2) - running_base(); n += 1
+                extra2 = d2 - singles[a] - singles[b]
+                agree = (flag_super and extra2 > tau) or (flag_mask and d2 < max(singles[a], singles[b]) - tau)
+                if agree:
+                    d = 0.5 * (d + d2); extra = d - singles[a] - singles[b]
+                    note = f"confirmed by a time-separated second run ({d2:+.3f})"
+                else:
+                    note = f"second run disagreed ({d2:+.3f}): flag dropped"
+                    flag_super = flag_mask = False
+                    d = d2; extra = d - singles[a] - singles[b]
         row = {"a": a, "b": b, "delta_ms": d, "delta_a": singles[a], "delta_b": singles[b], "interaction_ms": extra,
-               "superadditive": extra > tau, "masking": d < max(singles[a], singles[b]) - tau,
-               "pair_slow": d > tau}
+               "superadditive": flag_super, "masking": flag_mask, "pair_slow": d > tau, "note": note}
         rows.append(row)
-        if row["superadditive"]:
+        if flag_super:
             superadd.append(row)
-        if row["masking"]:
+        if flag_mask:
             masking.append(row)
     rows.sort(key=lambda r: -abs(r["interaction_ms"]))
     superadd.sort(key=lambda r: -r["interaction_ms"])
     masking.sort(key=lambda r: r["interaction_ms"])
-    return PairScanResult(base_ms, tau, singles, rows, superadd, masking, n)
+    res = PairScanResult(baselines[0], tau, singles, rows, superadd, masking, n)
+    res.baselines = baselines
+    res.drift_events = drift_events
+    return res
 
 
 @dataclass

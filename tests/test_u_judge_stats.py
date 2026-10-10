@@ -100,3 +100,24 @@ def test_steady_state_start_trims_only_a_leaked_warmup():
     s = summarize(leaked)
     assert s["steady_start"] >= 2 and s["median"] == pytest.approx(10.0, abs=0.15) and s["median_raw"] >= s["median"]
     assert "iqr_rel" in s and s["n"] == len(leaked)
+
+
+def test_timing_judge_interleaved_baseline_detects_disturbance_and_retries():
+    seq = {"cand": [20.0, 20.0, 20.0], "base": [25.0, 10.0]}   # first baseline disturbed, second fine
+    calls = []
+    def measure(c, rep=0):
+        calls.append(("cand", rep)); return seq["cand"].pop(0)
+    def baseline(rep):
+        calls.append(("base", rep)); return seq["base"].pop(0)
+    j = TimingJudge(measure, reference_ms=10.0, tau=1.0, baseline_ms=baseline)
+    assert j({"x"}) == Verdict.SLOW
+    assert j.disturbed_events == 1 and j.baseline_runs == 2
+    assert "disturbed" in j.trace[0].note and "time-separated" in j.trace[0].note
+    reps = [r for k, r in calls if k == "cand"]
+    assert len(reps) == 3 and len(set(reps)) == 3     # three distinct candidate runs
+
+
+def test_timing_judge_never_blames_when_machine_stays_disturbed():
+    j = TimingJudge(lambda c, rep=0: 20.0, reference_ms=10.0, tau=1.0, baseline_ms=lambda rep: 30.0, max_retries=1)
+    assert j({"x"}) == Verdict.FAST
+    assert "unresolved" in j.trace[0].note and j.disturbed_events == 2
