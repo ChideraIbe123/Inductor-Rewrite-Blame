@@ -32,6 +32,7 @@ class Measurement:
     graph_ops: dict = field(default_factory=dict)     # post-grad op histogram
     diff: dict = field(default_factory=dict)          # state relative to default: on_extra / off_defaults
     program_hash: str = ""                            # normalized hash of the generated program
+    firings: list = field(default_factory=list)       # features of each rule firing (for guards)
     timing: dict = field(default_factory=dict)        # summarize(samples) + samples
     eager_timing: dict = field(default_factory=dict)
     correct: bool | None = None
@@ -143,6 +144,7 @@ def measure(reg: Registry, model_name: str, state: Iterable[str], *, threads: in
             m.fired = dict(apply.FIRED)
             m.suppressed = dict(apply.SUPPRESSED)
             m.graph_ops = dict(apply.GRAPH_OPS)
+            m.firings = list(apply.FIRINGS)
             # entries registered only during this compile would have been un-switchable: record them
             from .discover import discover as _rediscover
             n_before = len(reg)

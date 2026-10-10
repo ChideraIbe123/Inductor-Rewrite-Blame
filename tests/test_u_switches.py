@@ -70,3 +70,24 @@ def test_families_and_describe_diff():
     assert {"master", "scheduler", "optimus", "cpp"} <= set(reg.families())
     d = reg.describe_diff({"a", "b"}, {"b", "c"})
     assert d == {"only_in_a": ["a"], "only_in_b": ["c"]}
+
+
+def test_match_features_from_fake_match():
+    import types
+    from rewrite_blame.apply import match_features
+    class Val:
+        def __init__(self, shape, dtype="torch.float32"):
+            self.shape, self.dtype = shape, dtype
+            self.device = types.SimpleNamespace(type="cpu")
+        def numel(self):
+            n = 1
+            for d in self.shape:
+                n *= d
+            return n
+    def node(shape):
+        return types.SimpleNamespace(meta={"val": Val(shape)})
+    match = types.SimpleNamespace(nodes=[1, 2, 3], args=[node([2, 8, 128, 64])], kwargs={"k": node([2, 8, 128, 64]), "s": 0.125})
+    f = match_features(match)
+    assert f["n_nodes"] == 3 and len(f["tensors"]) == 2
+    assert f["tensors"][0]["shape"] == [2, 8, 128, 64] and f["max_numel"] == 2 * 8 * 128 * 64
+    assert f["dtypes"] == ["float32"]

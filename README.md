@@ -21,18 +21,33 @@ make test-fast                                   # run the tests
 # list the models
 python -m rewrite_blame list-models
 
-# how noisy is the baseline?
+# how noisy is the baseline? (7 independent processes -> threshold tau)
 python -m rewrite_blame noise --model resnet18
 
 # which switches change the compiled program, and by how much?
-python -m rewrite_blame sweep --model resnet18
+python -m rewrite_blame verify --model resnet18
+python -m rewrite_blame sweep  --model resnet18
 
 # blame: which of the changes between the fast and the slow setup caused the slowdown?
-python -m rewrite_blame attribute --model attention_block --fast default --slow "default-*_sfdp_pattern_*_inference"
+python -m rewrite_blame attribute     --model attention_block --fast default --slow "default-*_sfdp_pattern_*_inference"
+python -m rewrite_blame attribute-all --model resnet18 --fast default --slow "default-lowering/layout_optimization-sched/inplace_buffers"   # every independent cause
+python -m rewrite_blame tau-scan      --model attention_block --fast default --slow "default-*_sfdp_pattern_*_inference"  # are the culprits stable across thresholds?
+
+# pairs: which switches hurt more together than alone?
+python -m rewrite_blame interactions --model decode_mlp
+
+# do verdicts hold across days and machines?
+python -m rewrite_blame repeat --model resnet18 --extra-store results/vm/measurements.sqlite
 ```
 
 A state is written as `default`, `all` or `none` followed by `+switch` or `-switch` terms
-(globs allowed). Results land in `results/` as JSON and Markdown.
+(globs allowed, `~family` toggles a whole family). Results land in `results/` as JSON and Markdown.
+
+How "slower" is decided (see `docs/noise_method.md` for the evidence): run medians over the
+steady-state calls; a reference of 7 processes with tau = max(3 MAD, 1%); a slow verdict needs
+two time-separated candidate runs that both exceed tau, with a baseline run in between to catch
+disturbed machine time; configurations whose generated program is byte-identical are never
+blamed; timings are only compared within one session (`--session`, default: today's date).
 
 ## Layout
 

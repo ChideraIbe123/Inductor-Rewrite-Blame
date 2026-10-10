@@ -22,6 +22,39 @@ FIRED: Counter = Counter()
 SUPPRESSED: Counter = Counter()
 # histogram of post-grad graph ops seen by SwitchSetPass (one compile may have several graphs)
 GRAPH_OPS: Counter = Counter()
+# features of each rule firing (switch id + shapes/dtypes of the matched tensors); the training
+# data for the stretch goal (guards that predict whether a firing will hurt)
+FIRINGS: list = []
+MAX_FIRINGS = 500
+
+
+def match_features(match) -> dict:
+    """Cheap, backend-independent description of a pattern match: per matched tensor its shape,
+    dtype and element count; plus the number of nodes the rewrite will replace."""
+    feats: dict = {"n_nodes": len(getattr(match, "nodes", []) or [])}
+    tensors = []
+
+    def visit(x):
+        node = x
+        val = getattr(getattr(node, "meta", None), "get", lambda k, d=None: d)("val") if hasattr(node, "meta") else None
+        if val is not None and hasattr(val, "shape"):
+            try:
+                tensors.append({"shape": [int(d) if not hasattr(d, "node") else str(d) for d in val.shape],
+                                "dtype": str(val.dtype).replace("torch.", ""),
+                                "numel": int(val.numel()) if all(isinstance(d, int) for d in val.shape) else None,
+                                "device": str(val.device.type)})
+            except Exception:
+                pass
+    for a in list(getattr(match, "args", []) or []):
+        visit(a)
+    for v in (getattr(match, "kwargs", {}) or {}).values():
+        visit(v)
+    feats["tensors"] = tensors[:8]
+    if tensors:
+        numels = [t["numel"] for t in tensors if t["numel"]]
+        feats["max_numel"] = max(numels) if numels else None
+        feats["dtypes"] = sorted({t["dtype"] for t in tensors})
+    return feats
 
 
 class GatedExtraCheck:
@@ -41,6 +74,11 @@ class GatedExtraCheck:
             return False
         if ok:
             FIRED[self.switch_id] += 1
+            if len(FIRINGS) < MAX_FIRINGS:
+                try:
+                    FIRINGS.append({"switch": self.switch_id, **match_features(match)})
+                except Exception:  # feature extraction must never break a compile
+                    FIRINGS.append({"switch": self.switch_id})
         return ok
 
     def __repr__(self) -> str:
@@ -153,6 +191,7 @@ def snapshot_fired() -> dict[str, int]:
 def reset_fired() -> None:
     FIRED.clear()
     SUPPRESSED.clear()
+    FIRINGS.clear()
 
 
 def fired_since(before: dict[str, int]) -> dict[str, int]:
