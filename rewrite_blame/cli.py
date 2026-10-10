@@ -186,6 +186,17 @@ def cmd_guards(a):
            render_guards(data, ev), default_name="guards")
 
 
+def cmd_summary(a):
+    from .summary import load_results, render_summary, summarize
+    res = load_results(a.dirs or ("results", "results/vm"))
+    sm = summarize(res)
+    text = render_summary(sm)
+    out = Path(a.out) if a.out else Path("results/summary.md")
+    out.write_text(text)
+    print(text)
+    print(f"[wrote {out}]", file=sys.stderr)
+
+
 def cmd_show(a):
     from .store import Store
     st = Store(a.store)
@@ -256,6 +267,9 @@ def main(argv=None) -> int:
 
     p = sub.add_parser("guards", help="labelled rule firings + per-family stump guards (stretch goal)"); p.set_defaults(fn=cmd_guards)
     p.add_argument("--extra-store", action="append"); p.add_argument("--sweeps", action="append", help="glob(s) of sweep json files"); p.add_argument("--out")
+
+    p = sub.add_parser("summary", help="one overview of all result files"); p.set_defaults(fn=cmd_summary)
+    p.add_argument("--dirs", nargs="*"); p.add_argument("--out")
 
     p = sub.add_parser("show"); p.set_defaults(fn=cmd_show)
     p.add_argument("--model", default=""); p.add_argument("-n", type=int, default=40)
