@@ -121,3 +121,16 @@ Both are the known failure modes that interleaved designs exist for, so the harn
 
 Cost: one extra baseline run per slow verdict (ddmin issues O(log n) of them) and 5% more runs
 in a scan.
+
+## A guard that needs no statistics: identical generated programs
+
+Re-measuring the four "giant interaction" pair states in a fresh session gave 0.95-0.98 ms
+against a 0.97 ms default, and all of them compile to the very same kernel as the default. That
+suggests a filter stronger than any threshold: every measurement now records a hash of the
+generated program (wrapper plus kernels, with the per-process compile counter and cache paths
+stripped). If a candidate's program hash equals the reference's, the switches in question did
+nothing to the compiled code, so a timing difference between them cannot be a rewrite effect:
+the judge returns FAST with a note, the pair scan never flags such a pair, and the sweep marks
+the row. The hash is stable across processes and changes whenever a rewrite actually fires
+(tested on the layer-norm MLP: disabling a rule that fires changes it, disabling one that never
+fires does not).

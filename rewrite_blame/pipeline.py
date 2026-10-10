@@ -177,8 +177,7 @@ class Runner:
         base = self.reg.default_state() if base is None else frozenset(base)
         if noise is None:
             noise, _ = self.noise(model, base)
-        m0s = [Measurement.from_dict(d) for d in self.store.all(model=model, env=self.env)
-               if d.get("state_hash") == state_hash(base) and d.get("timing") and not d.get("error")]
+        m0s = [self.measure(model, base, time_it=False)]
         ref = noise.center
         if ids is None:
             ver = self.verify_switches(model, base, include_options)
@@ -191,9 +190,11 @@ class Runner:
                 rows.append({"switch": sid, "error": m.error.splitlines()[0][:200]})
                 continue
             d = m.median_ms - ref
+            same = bool(m0s) and bool(m0s[0].program_hash) and m.program_hash == m0s[0].program_hash
             rows.append({"switch": sid, "direction": "off" if sid in base else "on", "median_ms": m.median_ms,
-                         "delta_ms": d, "delta_pct": 100.0 * d / ref, "beyond_noise": abs(d) > noise.tau,
-                         "slower": d > noise.tau, "faster": d < -noise.tau, "kernel_count": m.kernel_count,
+                         "delta_ms": d, "delta_pct": 100.0 * d / ref, "beyond_noise": abs(d) > noise.tau and not same,
+                         "slower": d > noise.tau and not same, "faster": d < -noise.tau and not same,
+                         "same_program": same, "kernel_count": m.kernel_count,
                          "alloc_bytes": m.code.get("alloc_bytes"), "correct": m.correct})
         rows.sort(key=lambda r: -abs(r.get("delta_ms", 0)))
         return {"model": model, "env": self.env, "base": sorted(base), "reference_ms": ref, "noise": noise.to_dict(),
@@ -201,7 +202,10 @@ class Runner:
 
     # ---------------------------------------------------------------- attribution
     def timing_judge(self, model: str, fast_state: State, noise: NoiseModel) -> TimingJudge:
-        def measure_ms(changes: frozenset, rep: int = 0) -> float:
+        m_ref = self.measure(model, fast_state, time_it=False)
+        ref_hash = m_ref.program_hash if not m_ref.error else ""
+
+        def measure_ms(changes: frozenset, rep: int = 0):
             if not changes:
                 # the empty change set *is* the reference: its value is the noise-model centre
                 # (7 independent runs), not one more noisy measurement
@@ -210,7 +214,8 @@ class Runner:
             m = self.measure(model, st, rep=rep)
             if m.error:
                 raise RuntimeError(m.error)
-            return m.median_ms
+            same = bool(ref_hash) and m.program_hash == ref_hash
+            return (m.median_ms, same)
 
         def baseline_ms(rep: int) -> float:
             m = self.measure(model, fast_state, rep=rep)
@@ -314,13 +319,16 @@ class Runner:
             ids = [r["switch"] for r in ver["effects"] if (not only_graph_changing) or r["changes_graph"]]
         ids = list(ids)
 
-        def measure_ms(state: frozenset, rep: int = 0) -> float:
+        m_base = self.measure(model, base, time_it=False)
+        base_hash = m_base.program_hash if not m_base.error else ""
+
+        def measure_ms(state: frozenset, rep: int = 0):
             if state == base and rep == 0:
                 return noise.center
             m = self.measure(model, state, rep=rep)
             if m.error:
                 raise RuntimeError(m.error)
-            return m.median_ms
+            return (m.median_ms, bool(base_hash) and m.program_hash == base_hash)
         res = pair_scan(base, ids, measure_ms, noise.tau, max_pairs=max_pairs, toggled=self.reg.toggled)
         return {"model": model, "env": self.env, "base": sorted(base), "ids": ids, "noise": noise.to_dict(), **res.to_dict()}
 
@@ -384,10 +392,11 @@ def switch_effect(reg: Registry, sid: str, direction: str, m0: Measurement, m: M
     d = diff_stats(CodeStats.from_dict(m0.code), CodeStats.from_dict(m.code))
     kernels_changed = d["kernel_count"][0] != d["kernel_count"][1] or bool(d["kernels_only_in_a"] or d["kernels_only_in_b"])
     externs_changed = bool(d["externs_only_in_a"] or d["externs_only_in_b"])
-    changes_graph = bool(ops_changed) or kernels_changed or externs_changed or d["alloc_bytes"][0] != d["alloc_bytes"][1]
+    program_changed = bool(m0.program_hash) and m.program_hash != m0.program_hash
+    changes_graph = program_changed or bool(ops_changed) or kernels_changed or externs_changed or d["alloc_bytes"][0] != d["alloc_bytes"][1]
     status = "changes_graph" if changes_graph else ("fires_only" if fired_changed else "no_effect")
     return {"switch": sid, "kind": reg[sid].kind, "family": reg[sid].family, "direction": direction, "status": status,
-            "changes_graph": changes_graph, "ops_changed": ops_changed, "fired_changed": fired_changed,
+            "changes_graph": changes_graph, "program_changed": program_changed, "ops_changed": ops_changed, "fired_changed": fired_changed,
             "kernel_count": d["kernel_count"], "alloc_bytes": d["alloc_bytes"], "extern_call_count": d["extern_call_count"],
             "kernels_only_in_base": d["kernels_only_in_a"], "kernels_only_in_toggled": d["kernels_only_in_b"],
             "externs_only_in_base": d["externs_only_in_a"], "externs_only_in_toggled": d["externs_only_in_b"],

@@ -130,3 +130,14 @@ def test_attribution_report_renders(runner):
     res = runner.attribute("norm_mlp", fast, fast - {"sched/inplace_buffers"}, judge="metric", metric="alloc_bytes")
     text = render_attribution(res)
     assert "Verdict: single" in text and "-sched/inplace_buffers" in text and "allocation bytes" in text
+
+
+def test_program_hash_is_stable_across_processes_and_sensitive_to_rewrites(runner):
+    d = runner.reg.default_state()
+    m1 = runner.measure("norm_mlp", d, time_it=False)
+    m2 = runner.measure("norm_mlp", d, time_it=False, force=True)
+    assert m1.program_hash and m1.program_hash == m2.program_hash
+    m3 = runner.measure("norm_mlp", d - {"joint/joint_graph.patterns/pointless_convert"}, time_it=False)
+    assert m3.program_hash != m1.program_hash
+    m4 = runner.measure("norm_mlp", d - {"joint/joint_graph.patterns/fix_iota_device"}, time_it=False)
+    assert m4.program_hash == m1.program_hash     # a rule that never fires leaves the program identical

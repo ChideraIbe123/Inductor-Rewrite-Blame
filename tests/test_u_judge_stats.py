@@ -121,3 +121,10 @@ def test_timing_judge_never_blames_when_machine_stays_disturbed():
     j = TimingJudge(lambda c, rep=0: 20.0, reference_ms=10.0, tau=1.0, baseline_ms=lambda rep: 30.0, max_retries=1)
     assert j({"x"}) == Verdict.FAST
     assert "unresolved" in j.trace[0].note and j.disturbed_events == 2
+
+
+def test_timing_judge_identical_program_is_never_blamed():
+    j = TimingJudge(lambda c, rep=0: (30.0, True), reference_ms=10.0, tau=1.0)
+    assert j({"x"}) == Verdict.FAST and "identical generated program" in j.trace[0].note
+    j2 = TimingJudge(lambda c, rep=0: (30.0, False), reference_ms=10.0, tau=1.0)
+    assert j2({"x"}) == Verdict.SLOW

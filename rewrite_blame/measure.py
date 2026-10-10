@@ -31,6 +31,7 @@ class Measurement:
     suppressed: dict = field(default_factory=dict)    # disabled pattern switch id -> would-have-fired count
     graph_ops: dict = field(default_factory=dict)     # post-grad op histogram
     diff: dict = field(default_factory=dict)          # state relative to default: on_extra / off_defaults
+    program_hash: str = ""                            # normalized hash of the generated program
     timing: dict = field(default_factory=dict)        # summarize(samples) + samples
     eager_timing: dict = field(default_factory=dict)
     correct: bool | None = None
@@ -128,6 +129,7 @@ def measure(reg: Registry, model_name: str, state: Iterable[str], *, threads: in
             out, codes = run_and_get_code(compiled, *inputs)
             m.compile_s = time.perf_counter() - t0
             m.code = codegen_stats.analyze_sources(list(codes)).to_dict()
+            m.program_hash = codegen_stats.program_hash(list(codes))
             m.metrics = {
                 "generated_kernel_count": metrics.generated_kernel_count,
                 "generated_cpp_vec_kernel_count": metrics.generated_cpp_vec_kernel_count,

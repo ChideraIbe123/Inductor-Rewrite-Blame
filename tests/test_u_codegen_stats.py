@@ -128,3 +128,13 @@ def test_diff_ignores_numeric_suffix_and_reports_new_kernels():
 def test_empty_source_gives_zero_stats():
     s = analyze_source("def call(args):\n    return ()\n")
     assert s.kernel_count == 0 and s.alloc_count == 0 and s.extern_call_count == 0
+
+
+def test_program_hash_ignores_volatile_tokens_only():
+    from rewrite_blame.codegen_stats import program_hash
+    a = CPP_SRC + "\n# AOT ID: ['2_inference']\n"
+    b = CPP_SRC + "\n# AOT ID: ['3_inference']\n"
+    assert program_hash([a]) == program_hash([b])
+    assert program_hash([a]) != program_hash([a.replace("cpp_fused_sum_1", "cpp_fused_sum_2")])
+    assert program_hash([a]) != program_hash([a, a])
+    assert len(program_hash([a])) == 16

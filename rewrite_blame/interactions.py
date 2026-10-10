@@ -48,11 +48,17 @@ def pair_scan(base_state: Iterable[str], ids: Iterable[str], measure_ms: Callabl
         def toggled(st, sid):
             return frozenset(set(st) ^ {sid})
 
+    same_program: dict[frozenset, bool] = {}
+
     def meas(st, rep=0):
         try:
-            return measure_ms(st, rep)
+            r = measure_ms(st, rep)
         except TypeError:
-            return measure_ms(st)
+            r = measure_ms(st)
+        if isinstance(r, tuple):
+            same_program[frozenset(st)] = bool(r[1])
+            return r[0]
+        return r
     n = 0
     baselines: list[float] = [meas(base)]; n += 1
     brep = [100]
@@ -90,6 +96,10 @@ def pair_scan(base_state: Iterable[str], ids: Iterable[str], measure_ms: Callabl
         flag_super = extra > tau
         flag_mask = d < max(singles[a], singles[b]) - tau
         note = ""
+        if same_program.get(frozenset(st)):
+            # identical generated program to the base: the two switches did nothing together
+            flag_super = flag_mask = False
+            note = "identical generated program to the base"
         if confirm and (flag_super or flag_mask):
             ok, bval = fresh_baseline()                 # interleaved baseline separates the two runs in time
             if not ok:
@@ -107,7 +117,8 @@ def pair_scan(base_state: Iterable[str], ids: Iterable[str], measure_ms: Callabl
                     flag_super = flag_mask = False
                     d = d2; extra = d - singles[a] - singles[b]
         row = {"a": a, "b": b, "delta_ms": d, "delta_a": singles[a], "delta_b": singles[b], "interaction_ms": extra,
-               "superadditive": flag_super, "masking": flag_mask, "pair_slow": d > tau, "note": note}
+               "superadditive": flag_super, "masking": flag_mask, "pair_slow": d > tau and not same_program.get(frozenset(st)),
+               "same_program": bool(same_program.get(frozenset(st))), "note": note}
         rows.append(row)
         if flag_super:
             superadd.append(row)

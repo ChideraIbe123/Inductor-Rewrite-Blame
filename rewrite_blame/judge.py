@@ -140,9 +140,14 @@ class TimingJudge(Judge):
 
     def _measure(self, candidate: frozenset, rep: int) -> float:
         try:
-            return self.measure_ms(candidate, rep)
+            r = self.measure_ms(candidate, rep)
         except TypeError:  # measure functions that take no rep argument
-            return self.measure_ms(candidate)
+            r = self.measure_ms(candidate)
+        if isinstance(r, tuple):             # (median_ms, same_program_as_reference)
+            self._last_same_program = bool(r[1])
+            return r[0]
+        self._last_same_program = False
+        return r
 
     def _baseline_ok(self) -> tuple[bool, float | None]:
         if self.baseline_ms is None:
@@ -162,6 +167,11 @@ class TimingJudge(Judge):
             values = []
             v = self._measure(candidate, rep)
             values.append(v)
+            if getattr(self, "_last_same_program", False):
+                # byte-identical generated program: the rewrites in question did nothing here, so a
+                # timing difference cannot be theirs
+                return JudgeRecord(tuple(sorted(candidate)), Verdict.FAST, v, self.reference_ms, self.tau,
+                                   "identical generated program to the reference: not a rewrite effect")
             if v - self.reference_ms <= self.tau:
                 return JudgeRecord(tuple(sorted(candidate)), Verdict.FAST, v, self.reference_ms, self.tau, "; ".join(notes))
             disturbed = False

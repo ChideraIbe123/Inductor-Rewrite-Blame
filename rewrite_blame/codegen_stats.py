@@ -8,6 +8,7 @@ GPU run later. No torch import.
 
 from __future__ import annotations
 
+import hashlib
 import re
 from collections import Counter
 from dataclasses import dataclass, field, asdict
@@ -226,3 +227,27 @@ def diff_stats(a: CodeStats, b: CodeStats) -> dict:
         "externs_only_in_a": sorted((Counter(a.extern_calls) - Counter(b.extern_calls)).elements()),
         "externs_only_in_b": sorted((Counter(b.extern_calls) - Counter(a.extern_calls)).elements()),
     }
+
+
+_VOLATILE = [
+    re.compile(r"^#\s*AOT ID:.*$", re.M),                 # per-process compile counter
+    re.compile(r"/(?:tmp|private|var|Users|home)/[^\s'\"]*"),   # temp / cache paths
+    re.compile(r"\b[0-9a-f]{32,}\b"),                    # cache keys
+]
+
+
+def normalize_source(src: str) -> str:
+    for rx in _VOLATILE:
+        src = rx.sub("", src)
+    return src
+
+
+def program_hash(sources: list[str]) -> str:
+    """Hash of the generated program with volatile tokens removed. Two configurations with the
+    same program hash compiled to byte-identical kernels and wrapper, so any timing difference
+    between them is noise by construction."""
+    h = hashlib.sha256()
+    for src in sources:
+        h.update(normalize_source(src).encode())
+        h.update(b"\x00")
+    return h.hexdigest()[:16]

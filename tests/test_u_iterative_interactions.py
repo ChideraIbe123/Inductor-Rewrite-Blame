@@ -155,3 +155,12 @@ def test_pair_scan_periodic_rebaseline_follows_drift():
     late = [r for r in res.pairs][-3:]
     assert all(abs(r["delta_ms"]) < 0.2 for r in late)
     assert len(res.baselines) >= 3
+
+
+def test_pair_scan_never_flags_pairs_with_identical_program():
+    def measure(state, rep=0):
+        if frozenset(state) == frozenset({"a", "b"}):
+            return (25.0, True)          # much slower, but the program is byte-identical to the base
+        return (10.0, False)
+    res = pair_scan(frozenset(), ["a", "b"], measure, tau=1.0)
+    assert res.superadditive == [] and res.pairs[0]["same_program"] and not res.pairs[0]["pair_slow"]
