@@ -131,7 +131,11 @@ def render_interactions(a: dict) -> str:
     for r in a["superadditive"]:
         lines.append(f"| `{r['a']}` | `{r['b']}` | {r.get('kind','')} | {r['delta_ms']:+.3f} | {r['delta_a']:+.3f} | {r['delta_b']:+.3f} | {r['interaction_ms']:+.3f} |")
     if a.get("baselines"):
-        lines.insert(4, f"- interleaved baselines: {len(a['baselines'])} runs, {a.get('drift_events', 0)} disturbed; unmeasured switches: {a.get('unmeasured', [])}")
+        nb, nd = len(a["baselines"]), a.get("drift_events", 0)
+        lines.insert(4, f"- interleaved baselines: {nb} runs, {nd} disturbed, {a.get('level_shifts', 0)} level shift(s); unmeasured switches: {a.get('unmeasured', [])}")
+        if nb and nd / nb > 0.3:
+            lines.insert(5, f"- **WARNING: the machine was unstable during this scan ({nd}/{nb} baseline runs disturbed); "
+                            "treat flagged pairs as provisional and repeat the scan in a quiet session.**")
     lines += ["", f"## Masking pairs ({len(a['masking'])}): the pair is faster than its slower member", "| a | b | pair delta ms | a alone | b alone | interaction ms |", "|---|---|---|---|---|---|"]
     for r in a["masking"]:
         lines.append(f"| `{r['a']}` | `{r['b']}` | {r['delta_ms']:+.3f} | {r['delta_a']:+.3f} | {r['delta_b']:+.3f} | {r['interaction_ms']:+.3f} |")

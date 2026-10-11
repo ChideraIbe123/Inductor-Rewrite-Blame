@@ -58,3 +58,16 @@ max_fusion_size +2.5%. Lesson recorded in docs/noise_method.md: a baseline measu
 before the toggles is stale on a laptop; sweeps now re-baseline every eight toggles.
 
 Mac corpus status: all 24 models measured; 15 attribution runs; `results/summary.md` is the overview.
+
+## Pair scan, ResNet-50 (Mac, 2026-10-11, 8 switches, 28 pairs, 86 measurements)
+
+* Robust finding: `conv_1x1_as_mm` on (-1.2 ms alone) and `layout_optimization` off (-1.1 ms
+  alone) give -0.02 ms together (confirmed by a time-separated second run): the two gains are the
+  same gain (both avoid channels-last 1x1 convolutions). Labelled "redundant gains".
+* Provisional: `inplace_buffers` off + `max_fusion_size` cap removed: +4.2 ms together vs +0.4 and
+  +0.6 alone ("compounding costs", confirmed by a second run at +5.3), but 18 of 33 interleaved
+  baseline runs were disturbed during this scan (night-time machine activity), two pairs that
+  compile to a byte-identical program still showed +1.7 and +3.6 ms, and several flags were
+  dropped by the second run. The report now prints an instability warning when more than 30% of
+  baseline runs are disturbed; this scan must be repeated in a quiet session before the pair is
+  claimed.
