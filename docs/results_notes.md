@@ -1,0 +1,46 @@
+# Results notes (running log for the final report)
+
+Numbers are medians over steady-state calls; tau is the session's noise threshold. "Mac" = Apple
+M4 Pro, 8 threads; "VM" = 4-core Xeon Silver 4216 with oneDNN. Sessions are dated; clean/cool
+sessions were re-measured with cooldown pauses after a thermal-throttling episode on the Mac.
+
+## Rewrites that hurt (default-on or opt-in), with the attribution that found them
+
+| model | machine | finding | attribution |
+|---|---|---|---|
+| SmolLM-135M decode (1 token) | Mac | opt-in `decompose_mm_pass` +134% (6.6 -> 15.5 ms) | iterative, 16 opt-in passes on at once, 9 evaluations, single culprit, residual within noise |
+| Qwen2.5-0.5B decode | Mac | `decompose_mm_pass` +39% | sweep |
+| decode MLP toy | Mac | `decompose_mm_pass` +15% | single culprit among 16 (7 evaluations) |
+| EfficientNet-B0 | Mac | channels-last `layout_optimization` +68% (325 -> 546 ms); fused conv+SiLU kernels split, intermediates 82 KB -> 2.5 MB | single culprit among 4 flags (5 evaluations) |
+| MobileNet-V3-small | Mac | `layout_optimization` +41% (127 -> 180 ms); intermediates 112 KB -> 4.9 MB | single culprit (5 evaluations) |
+| attention block | VM | attention fusion `_sfdp_pattern_11` +8% (fused CPU flash attention slower than bmm + fused softmax) | single culprit among 63 rules (8 evaluations) |
+| BERT-base, eager attention | VM | `_sfdp_pattern_28` +2.4% | single culprit among 63 (11 evaluations, 41 min) |
+| SmolLM-135M prefill | Mac | default-on `reorder_for_locality` costs 3.6% | sweep (cool session) |
+| ResNet-50 | Mac | `freezing` +7% (no oneDNN on this build) | sweep; the iterative case with a helping flag added nets out within noise (see below) |
+| cat/slice toy | VM | `batch_relu`+`batch_tanh` together +12.8% | iterative; verdict unstable across k (effect near the noise floor) |
+
+## Rewrites whose loss hurts (the "upgrade silently stopped applying it" case)
+
+| model | machine | finding | attribution |
+|---|---|---|---|
+| attention block | Mac | losing attention fusion +34%; needs both rules 11 and 12 off | interaction of 2 among 63 (16 evaluations); stable for k = 2..6 |
+| ResNet-18 | Mac, VM | `layout_optimization` lost: +11% / +13% | single culprit among 6 flags; both machines agree |
+| GPT-2 eager attention | Mac | `master/pattern_matcher` off +37% (throttled session; re-measured: within noise) | sweep |
+| BERT-base eager | Mac | `_sfdp_pattern_28` off +4.5% | sweep |
+| DistilBERT, T5-small, BERT, SmolLM | Mac | `max_fusion_size` cap removed: +2.5% to +11%; `inplace_buffers` off: +4% to +9% | sweeps |
+| layer-norm MLP | Mac | `constant_folding` off +2.6% (day 1), within noise (day 2) | iterative; a non-repeatable marginal effect |
+
+## Same rewrite, opposite sign
+
+* Attention fusion: +34% win on the Mac, 8% loss on the VM (attention block); +4.5% win / 2.2% loss (BERT).
+* `freezing`: -6% to -47% on the VM (oneDNN prepack), +1.5% to +7% on the Mac (no oneDNN).
+* `layout_optimization`: +11% win on ResNet-18, 29-40% loss on MobileNet/EfficientNet (depthwise convolutions), on the same machine.
+* `conv_1x1_as_mm` (opt-in): 3.5-5.6% win on EfficientNet/ResNet-50 (Mac), 1.8% on ResNet-50 (VM).
+
+## Things the method caught rather than reported as findings
+
+* Thermal throttling on the laptop: SmolLM prefill medians 37-149 ms within one session, GPT-2 toggles "+480%". Fixed by the unsteady-run detector and cooldown pauses; re-measured sessions give tau = 1-2%.
+* Fake pair interactions on the VM (four "+70-150%" pairs): back-to-back confirmation runs during a disturbed stretch; fresh measurements identical to default; the generated program was byte-identical. Fixed by interleaved baselines and the program-hash guard.
+* cat/slice on the VM: verdict changes with k (single at k=2, 8-way set at k=3, none at k>=4): tau-scan flags it as unstable.
+* ResNet-50 iterative case: a hurting flag (+7%) and a helping flag (-5.6%) turned on together net to +2.2%, within noise, so the tool correctly reports nothing to blame; cancelling pairs are the pair scan's job, not ddmin's.
+* Day-to-day: the layer-norm MLP's 3.6% slow state did not reproduce the next day; the `repeat` command reports such disagreements.
