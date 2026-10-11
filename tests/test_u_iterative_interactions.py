@@ -164,3 +164,17 @@ def test_pair_scan_never_flags_pairs_with_identical_program():
         return (10.0, False)
     res = pair_scan(frozenset(), ["a", "b"], measure, tau=1.0)
     assert res.superadditive == [] and res.pairs[0]["same_program"] and not res.pairs[0]["pair_slow"]
+
+
+def test_pair_scan_skips_unmeasurable_configurations():
+    def measure(state, rep=0):
+        st = frozenset(state)
+        if st == frozenset({"b"}):
+            return (float("nan"), False)       # single "b" cannot be measured
+        if st == frozenset({"a", "c"}):
+            return (float("nan"), False)       # one pair cannot be measured
+        return (10.0 + (1.0 if "c" in st else 0.0), False)
+    res = pair_scan(frozenset(), ["a", "b", "c"], measure, tau=0.1, confirm=False)
+    assert res.unmeasured == ["b"]
+    assert {(r["a"], r["b"]) for r in res.pairs} == {("a", "c")}
+    assert res.pairs[0]["note"] == "unmeasured" and res.pairs[0]["delta_ms"] is None

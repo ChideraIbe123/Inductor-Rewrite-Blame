@@ -135,5 +135,8 @@ def render_interactions(a: dict) -> str:
         lines.append(f"| `{r['a']}` | `{r['b']}` | {r['delta_ms']:+.3f} | {r['delta_a']:+.3f} | {r['delta_b']:+.3f} | {r['interaction_ms']:+.3f} |")
     lines += ["", "## All pairs (by |interaction|)", "| a | b | pair delta ms | interaction ms |", "|---|---|---|---|"]
     for r in a["pairs"][:40]:
+        if r.get("delta_ms") is None:
+            lines.append(f"| `{r['a']}` | `{r['b']}` | unmeasured | |")
+            continue
         lines.append(f"| `{r['a']}` | `{r['b']}` | {r['delta_ms']:+.3f} | {r['interaction_ms']:+.3f} |")
     return "\n".join(lines) + "\n"

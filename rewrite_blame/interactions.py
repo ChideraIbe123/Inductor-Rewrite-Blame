@@ -22,6 +22,7 @@ class PairScanResult:
     measurements: int
     baselines: list[float] = field(default_factory=list)   # interleaved baseline runs over the scan
     drift_events: int = 0
+    unmeasured: list[str] = field(default_factory=list)    # switches whose configuration failed to compile/measure
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -78,18 +79,30 @@ def pair_scan(base_state: Iterable[str], ids: Iterable[str], measure_ms: Callabl
             drift_events += 1
         return ok, b
 
+    import math
     singles: dict[str, float] = {}
+    unmeasured: list[str] = []
     for a in ids:
-        singles[a] = meas(toggled(base, a)) - running_base(); n += 1
+        v = meas(toggled(base, a)); n += 1
+        if v != v:                      # NaN: the configuration could not be measured
+            unmeasured.append(a)
+            continue
+        singles[a] = v - running_base()
         if n % rebaseline_every == 0:
             fresh_baseline()
+    ids = [a for a in ids if a not in unmeasured]
     rows, superadd, masking = [], [], []
     combos = list(itertools.combinations(ids, 2))
     if max_pairs is not None:
         combos = combos[:max_pairs]
     for a, b in combos:
         st = toggled(toggled(base, a), b)
-        d = meas(st) - running_base(); n += 1
+        v = meas(st); n += 1
+        if v != v:
+            rows.append({"a": a, "b": b, "delta_ms": None, "delta_a": singles[a], "delta_b": singles[b], "interaction_ms": 0.0,
+                         "superadditive": False, "masking": False, "pair_slow": False, "same_program": False, "note": "unmeasured"})
+            continue
+        d = v - running_base()
         if n % rebaseline_every == 0:
             fresh_baseline()
         extra = d - singles[a] - singles[b]
@@ -130,6 +143,7 @@ def pair_scan(base_state: Iterable[str], ids: Iterable[str], measure_ms: Callabl
     res = PairScanResult(baselines[0], tau, singles, rows, superadd, masking, n)
     res.baselines = baselines
     res.drift_events = drift_events
+    res.unmeasured = unmeasured
     return res
 
 

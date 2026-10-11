@@ -363,15 +363,20 @@ class Runner:
         m_base = self.measure(model, base, time_it=False)
         base_hash = m_base.program_hash if not m_base.error else ""
 
+        failures: list[dict] = []
+
         def measure_ms(state: frozenset, rep: int = 0):
             if state == base and rep == 0:
                 return noise.center
             m = self.measure(model, state, rep=rep)
             if m.error:
-                raise RuntimeError(m.error)
+                # a failed compile must not abort a scan of hundreds of pairs: report NaN, record it
+                failures.append({"state_diff": self.reg.describe_diff(base, state), "error": m.error.splitlines()[0][:200]})
+                return (float("nan"), False)
             return (m.median_ms, bool(base_hash) and m.program_hash == base_hash)
         res = pair_scan(base, ids, measure_ms, noise.tau, max_pairs=max_pairs, toggled=self.reg.toggled)
-        return {"model": model, "env": self.env, "base": sorted(base), "ids": ids, "noise": noise.to_dict(), **res.to_dict()}
+        return {"model": model, "env": self.env, "base": sorted(base), "ids": ids, "noise": noise.to_dict(),
+                "failures": failures, **res.to_dict()}
 
     # ---------------------------------------------------------------- threshold sensitivity
     def tau_sensitivity(self, model: str, fast_state: State, slow_state: State, ks: Iterable[float] = (2.0, 3.0, 4.0, 6.0),
