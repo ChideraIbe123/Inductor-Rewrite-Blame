@@ -23,6 +23,7 @@ class PairScanResult:
     baselines: list[float] = field(default_factory=list)   # interleaved baseline runs over the scan
     drift_events: int = 0
     unmeasured: list[str] = field(default_factory=list)    # switches whose configuration failed to compile/measure
+    level_shifts: int = 0                                  # times the running baseline moved to a new, confirmed level
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -66,23 +67,35 @@ def pair_scan(base_state: Iterable[str], ids: Iterable[str], measure_ms: Callabl
     drift_events = 0
 
     good_baselines: list[float] = [baselines[0]]
+    pending: list[float] = []          # deviating baseline runs not yet accepted as a new level
+    level_shifts = 0
 
     def running_base() -> float:
         recent = good_baselines[-5:]
         return sorted(recent)[len(recent) // 2]
 
     def fresh_baseline() -> tuple[bool, float]:
-        """One more baseline run. A run that deviates from the running baseline by more than tau is
-        a disturbed stretch of machine time: counted, kept in the log, but not used as a reference."""
-        nonlocal n, drift_events
+        """One more baseline run. A single run that deviates from the running baseline by more
+        than tau is a disturbed stretch of machine time: counted and logged but not used as a
+        reference. Two consecutive deviating runs that agree with each other are a genuine level
+        shift (slow drift): the running baseline moves to the new level."""
+        nonlocal n, drift_events, level_shifts
         brep[0] += 1
         b = meas(base, brep[0]); n += 1
         ok = abs(b - running_base()) <= tau
         baselines.append(b)
         if ok:
             good_baselines.append(b)
+            pending.clear()
         else:
             drift_events += 1
+            if pending and abs(pending[-1] - b) <= tau:
+                good_baselines[:] = [pending[-1], b]     # accept the new level
+                level_shifts += 1
+                pending.clear()
+                ok = True
+            else:
+                pending.append(b)
         return ok, b
 
     import math
@@ -164,6 +177,7 @@ def pair_scan(base_state: Iterable[str], ids: Iterable[str], measure_ms: Callabl
     res = PairScanResult(baselines[0], tau, singles, rows, superadd, masking, n)
     res.baselines = baselines
     res.drift_events = drift_events
+    res.level_shifts = level_shifts
     res.unmeasured = unmeasured
     return res
 

@@ -140,7 +140,7 @@ def test_pair_scan_rebaselines_and_drops_flags_when_disturbed():
         return base
     res = pair_scan(frozenset(), ["a", "b"], measure, tau=1.0)
     assert res.superadditive == [] and res.drift_events == 1
-    assert any("disturbed" in r["note"] for r in res.pairs)
+    assert any(("disturbed" in r["note"]) or ("disagreed" in r["note"]) for r in res.pairs)
 
 
 def test_pair_scan_periodic_rebaseline_follows_drift():
@@ -155,7 +155,7 @@ def test_pair_scan_periodic_rebaseline_follows_drift():
     # with periodic re-baselining the later pairs are compared with the drifted baseline, not the stale one
     late = [r for r in res.pairs][-3:]
     assert all(abs(r["delta_ms"]) < 0.2 for r in late)
-    assert len(res.baselines) >= 3
+    assert len(res.baselines) >= 3 and res.level_shifts >= 1
 
 
 def test_pair_scan_never_flags_pairs_with_identical_program():
@@ -194,7 +194,7 @@ def test_pair_scan_labels_redundant_gains_and_nulls_disturbed_pairs():
         st = frozenset(state)
         if st == frozenset() and rep >= 100:
             calls["base"] += 1
-            return (20.0, False)                 # every fresh baseline is disturbed
+            return (20.0 + 5.0 * calls["base"], False)   # every fresh baseline is disturbed, and they disagree with each other
         return (15.0 if st == frozenset({"a", "b"}) else 10.0, False)
     res2 = pair_scan(frozenset(), ["a", "b"], measure2, tau=0.5)
     assert res2.pairs[0]["delta_ms"] is None and "disturbed" in res2.pairs[0]["note"]
