@@ -27,7 +27,7 @@ sessions were re-measured with cooldown pauses after a thermal-throttling episod
 | ResNet-18 | Mac, VM | `layout_optimization` lost: +11% / +13% | single culprit among 6 flags; both machines agree |
 | GPT-2 eager attention | Mac | `master/pattern_matcher` off +37% (throttled session; re-measured: within noise) | sweep |
 | BERT-base eager | Mac | `_sfdp_pattern_28` off +4.5% | sweep |
-| DistilBERT, T5-small, BERT, SmolLM | Mac | `max_fusion_size` cap removed: +2.5% to +11%; `inplace_buffers` off: +4% to +9% | sweeps |
+| SmolLM prefill (both attention variants), T5-small | Mac | `max_fusion_size` cap removed: +3.4% / +6.9% / +1.3% | cool-session sweeps (the warm-session DistilBERT/BERT values of +9-11% did not survive re-measurement: nothing beyond noise at tau = 1%) |
 | layer-norm MLP | Mac | `constant_folding` off +2.6% (day 1), within noise (day 2) | iterative; a non-repeatable marginal effect |
 
 ## Same rewrite, opposite sign
@@ -44,3 +44,17 @@ sessions were re-measured with cooldown pauses after a thermal-throttling episod
 * cat/slice on the VM: verdict changes with k (single at k=2, 8-way set at k=3, none at k>=4): tau-scan flags it as unstable.
 * ResNet-50 iterative case: a hurting flag (+7%) and a helping flag (-5.6%) turned on together net to +2.2%, within noise, so the tool correctly reports nothing to blame; cancelling pairs are the pair scan's job, not ddmin's.
 * Day-to-day: the layer-norm MLP's 3.6% slow state did not reproduce the next day; the `repeat` command reports such disagreements.
+
+## Cool-session corrections (2026-10-11, Mac, tau = 1-2% everywhere, cooldown pauses on)
+
+Re-measured after the thermal episode. Verdicts that survived: ResNet-18 layout +10.3%; BERT eager
+rule 28 +4.7% (attributed as the single culprit among 63 rules in 11 evaluations); SmolLM decode
+decompose_mm +134.9%; MobileNet/EfficientNet layout -29% / -40% when off; SmolLM prefill
+reorder_for_locality -3.6% when off and max_fusion_size +3.4%; cat/slice toy: opt-in
+normalization_pass +15.8%, pattern matcher off +17.8%. Verdicts retracted: DistilBERT (+9-11%
+for max_fusion_size/inplace_buffers in the warm session; nothing beyond noise now, and the
+iterative case over the same flags finds nothing to blame), GPT-2 eager "+480%" rows, BERT-base
+max_fusion_size +2.5%. Lesson recorded in docs/noise_method.md: a baseline measured minutes
+before the toggles is stale on a laptop; sweeps now re-baseline every eight toggles.
+
+Mac corpus status: all 24 models measured; 15 attribution runs; `results/summary.md` is the overview.
