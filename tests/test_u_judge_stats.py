@@ -128,3 +128,12 @@ def test_timing_judge_identical_program_is_never_blamed():
     assert j({"x"}) == Verdict.FAST and "identical generated program" in j.trace[0].note
     j2 = TimingJudge(lambda c, rep=0: (30.0, False), reference_ms=10.0, tau=1.0)
     assert j2({"x"}) == Verdict.SLOW
+
+
+def test_summarize_flags_runs_that_get_slower_as_they_go():
+    steady = [10.0 + 0.05 * (i % 3) for i in range(50)]
+    s = summarize(steady)
+    assert not s["unsteady"] and abs(s["trend_ratio"] - 1.0) < 0.02
+    throttled = [10.0 + 0.2 * i for i in range(50)]      # 10 -> 20 ms over the run
+    s2 = summarize(throttled)
+    assert s2["unsteady"] and s2["trend_ratio"] > 1.5

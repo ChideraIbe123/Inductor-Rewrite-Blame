@@ -70,6 +70,11 @@ class RunnerConfig:
     # days, thermal states, VPN/background load). Default: today's date. Compile-only results
     # are deterministic and shared across sessions.
     session: str | None = None
+    # laptops throttle under sustained load: pause between timed measurements for this fraction of
+    # the previous measurement's wall time (0 on a server), and re-measure a run whose calls got
+    # slower as it went (trend_ratio > 1.10) once after a longer pause
+    cooldown_factor: float = 0.5
+    retry_unsteady: bool = True
 
     @property
     def protocol(self) -> str:
@@ -112,6 +117,22 @@ class Runner:
                        rounds=self.cfg.rounds, iters=self.cfg.iters, time_it=time_it, check_correct=check_correct,
                        timeout_s=self.cfg.timeout_s, cache_dir=self.cfg.cache_dir)
         self.new_measurements += 1
+        wall = time.time() - t0
+        if time_it and not m.error:
+            if self.cfg.retry_unsteady and m.timing.get("unsteady"):
+                # the machine got slower during the run (throttling): cool down, measure again
+                pause = min(120.0, 20.0 + wall)
+                self.log(f"  ~ unsteady run (trend x{m.timing.get('trend_ratio', 0):.2f}); cooling {pause:.0f}s and re-measuring")
+                time.sleep(pause)
+                m2 = worker.run(model, st, self.cfg.registry_path, threads=self.threads, warmup=self.cfg.warmup,
+                                rounds=self.cfg.rounds, iters=self.cfg.iters, time_it=time_it, check_correct=check_correct,
+                                timeout_s=self.cfg.timeout_s, cache_dir=self.cfg.cache_dir)
+                self.new_measurements += 1
+                if not m2.error:
+                    m2.protocol["retried_unsteady"] = {"first_median": m.median_ms, "first_trend": m.timing.get("trend_ratio")}
+                    m = m2
+            if self.cfg.cooldown_factor > 0:
+                time.sleep(min(60.0, self.cfg.cooldown_factor * wall))
         d = m.to_dict()
         d["protocol_key"] = proto
         d["rep"] = rep
@@ -135,7 +156,10 @@ class Runner:
             ms.append(m)
             if spacing_s:
                 time.sleep(spacing_s)
-        nm = noise_model([m.median_ms for m in ms], k=k, floor_frac=floor_frac)
+        steady = [m for m in ms if not m.timing.get("unsteady")]
+        used = steady if len(steady) >= max(5, runs - 2) else ms
+        nm = noise_model([m.median_ms for m in used], k=k, floor_frac=floor_frac)
+        nm.n_unsteady = len(ms) - len(steady)
         return nm, ms
 
     # ---------------------------------------------------------------- verification of switches

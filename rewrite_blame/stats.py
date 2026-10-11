@@ -63,9 +63,15 @@ def summarize(samples_ms: Sequence[float]) -> dict:
     k = steady_state_start(xs)
     steady = xs[k:]
     q1, q3 = quantile(steady, 0.25), quantile(steady, 0.75)
+    # thermal throttling shows up as a run whose calls get slower as it goes: compare the last
+    # fifth of the steady window with the first fifth
+    w = max(3, len(steady) // 5)
+    trend_ratio = median(steady[-w:]) / median(steady[:w]) if len(steady) >= 2 * w and median(steady[:w]) else 1.0
     return {
         "n": len(xs),
         "steady_start": k,
+        "trend_ratio": trend_ratio,
+        "unsteady": trend_ratio > 1.10 or trend_ratio < 0.90,
         "median": median(steady),          # the run's statistic: median over steady-state calls
         "median_raw": median(xs),
         "mad": mad(steady),
@@ -105,6 +111,7 @@ class NoiseModel:
     pairwise_p50: float
     pairwise_p90: float
     pairwise_max: float
+    n_unsteady: int = 0       # baseline runs excluded because their calls got slower as they went
 
     def to_dict(self) -> dict:
         return asdict(self)
