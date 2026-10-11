@@ -127,10 +127,12 @@ def render_interactions(a: dict) -> str:
              "## Singles", "| switch | delta ms |", "|---|---|"]
     for k, v in sorted(a["singles"].items(), key=lambda kv: -abs(kv[1])):
         lines.append(f"| `{k}` | {v:+.3f} |")
-    lines += ["", f"## Super-additive pairs ({len(a['superadditive'])})", "| a | b | pair delta ms | a alone | b alone | interaction ms |", "|---|---|---|---|---|---|"]
+    lines += ["", f"## Super-additive pairs ({len(a['superadditive'])}): the pair is worse than the sum of its parts", "| a | b | kind | pair delta ms | a alone | b alone | interaction ms |", "|---|---|---|---|---|---|---|"]
     for r in a["superadditive"]:
-        lines.append(f"| `{r['a']}` | `{r['b']}` | {r['delta_ms']:+.3f} | {r['delta_a']:+.3f} | {r['delta_b']:+.3f} | {r['interaction_ms']:+.3f} |")
-    lines += ["", f"## Masking pairs ({len(a['masking'])})", "| a | b | pair delta ms | a alone | b alone | interaction ms |", "|---|---|---|---|---|---|"]
+        lines.append(f"| `{r['a']}` | `{r['b']}` | {r.get('kind','')} | {r['delta_ms']:+.3f} | {r['delta_a']:+.3f} | {r['delta_b']:+.3f} | {r['interaction_ms']:+.3f} |")
+    if a.get("baselines"):
+        lines.insert(4, f"- interleaved baselines: {len(a['baselines'])} runs, {a.get('drift_events', 0)} disturbed; unmeasured switches: {a.get('unmeasured', [])}")
+    lines += ["", f"## Masking pairs ({len(a['masking'])}): the pair is faster than its slower member", "| a | b | pair delta ms | a alone | b alone | interaction ms |", "|---|---|---|---|---|---|"]
     for r in a["masking"]:
         lines.append(f"| `{r['a']}` | `{r['b']}` | {r['delta_ms']:+.3f} | {r['delta_a']:+.3f} | {r['delta_b']:+.3f} | {r['interaction_ms']:+.3f} |")
     lines += ["", "## All pairs (by |interaction|)", "| a | b | pair delta ms | interaction ms |", "|---|---|---|---|"]

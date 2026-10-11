@@ -65,17 +65,23 @@ def pair_scan(base_state: Iterable[str], ids: Iterable[str], measure_ms: Callabl
     brep = [100]
     drift_events = 0
 
+    good_baselines: list[float] = [baselines[0]]
+
     def running_base() -> float:
-        recent = baselines[-3:]
+        recent = good_baselines[-5:]
         return sorted(recent)[len(recent) // 2]
 
     def fresh_baseline() -> tuple[bool, float]:
+        """One more baseline run. A run that deviates from the running baseline by more than tau is
+        a disturbed stretch of machine time: counted, kept in the log, but not used as a reference."""
         nonlocal n, drift_events
         brep[0] += 1
         b = meas(base, brep[0]); n += 1
         ok = abs(b - running_base()) <= tau
         baselines.append(b)
-        if not ok:
+        if ok:
+            good_baselines.append(b)
+        else:
             drift_events += 1
         return ok, b
 
@@ -114,10 +120,18 @@ def pair_scan(base_state: Iterable[str], ids: Iterable[str], measure_ms: Callabl
             flag_super = flag_mask = False
             note = "identical generated program to the base"
         if confirm and (flag_super or flag_mask):
-            ok, bval = fresh_baseline()                 # interleaved baseline separates the two runs in time
-            if not ok:
-                note = f"baseline run {bval:.3f} deviated from running baseline: disturbed, flag dropped"
+            settled = False
+            for attempt in range(2):
+                ok, bval = fresh_baseline()             # interleaved baseline separates the two runs in time
+                if ok:
+                    settled = True
+                    break
+                note = f"baseline run {bval:.3f} deviated from running baseline: disturbed, retrying"
+            if not settled:
+                # the machine never settled: this pair's measurements are not trustworthy
                 flag_super = flag_mask = False
+                d = None; extra = 0.0
+                note = "disturbed machine during confirmation: unmeasured"
             else:
                 d2 = meas(st, 2) - running_base(); n += 1
                 extra2 = d2 - singles[a] - singles[b]
@@ -129,15 +143,22 @@ def pair_scan(base_state: Iterable[str], ids: Iterable[str], measure_ms: Callabl
                     note = f"second run disagreed ({d2:+.3f}): flag dropped"
                     flag_super = flag_mask = False
                     d = d2; extra = d - singles[a] - singles[b]
+        kind = ""
+        if flag_super:
+            # both switches help alone but the pair does not add up: the gains overlap (same cause)
+            kind = "redundant gains" if (singles[a] < -tau or singles[b] < -tau) and d is not None and d >= min(singles[a], singles[b]) - tau else "compounding costs"
+        elif flag_mask:
+            kind = "masking"
         row = {"a": a, "b": b, "delta_ms": d, "delta_a": singles[a], "delta_b": singles[b], "interaction_ms": extra,
-               "superadditive": flag_super, "masking": flag_mask, "pair_slow": d > tau and not same_program.get(frozenset(st)),
+               "superadditive": flag_super, "masking": flag_mask, "kind": kind,
+               "pair_slow": d is not None and d > tau and not same_program.get(frozenset(st)),
                "same_program": bool(same_program.get(frozenset(st))), "note": note}
         rows.append(row)
         if flag_super:
             superadd.append(row)
         if flag_mask:
             masking.append(row)
-    rows.sort(key=lambda r: -abs(r["interaction_ms"]))
+    rows.sort(key=lambda r: -abs(r["interaction_ms"]) if r.get("delta_ms") is not None else 0.0)
     superadd.sort(key=lambda r: -r["interaction_ms"])
     masking.sort(key=lambda r: r["interaction_ms"])
     res = PairScanResult(baselines[0], tau, singles, rows, superadd, masking, n)

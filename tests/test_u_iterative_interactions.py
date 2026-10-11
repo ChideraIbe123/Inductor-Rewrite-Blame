@@ -77,6 +77,7 @@ def test_pair_scan_flags_superadditive_and_masking():
     res = pair_scan(frozenset(), ["a", "b", "c", "d"], measure, tau=1.0)
     assert res.measurements == 1 + 4 + 6 + 2 + 2  # two flagged pairs: an interleaved baseline + a confirmation run each
     assert res.drift_events == 0 and len(res.baselines) == 3
+    assert res.superadditive[0]["kind"] == "compounding costs"
     assert res.singles == {"a": 2.0, "b": 0.0, "c": 3.0, "d": 0.0}
     assert [(r["a"], r["b"]) for r in res.superadditive] == [("a", "b")]
     assert res.superadditive[0]["interaction_ms"] == pytest.approx(5.0)
@@ -178,3 +179,23 @@ def test_pair_scan_skips_unmeasurable_configurations():
     assert res.unmeasured == ["b"]
     assert {(r["a"], r["b"]) for r in res.pairs} == {("a", "c")}
     assert res.pairs[0]["note"] == "unmeasured" and res.pairs[0]["delta_ms"] is None
+
+
+def test_pair_scan_labels_redundant_gains_and_nulls_disturbed_pairs():
+    # a and b each save 2 ms alone; together they save 2 ms: the gains overlap
+    def measure(state, rep=0):
+        st = frozenset(state)
+        return (8.0, False) if st & {"a", "b"} else (10.0, False)
+    res = pair_scan(frozenset(), ["a", "b"], measure, tau=0.5)
+    assert res.superadditive and res.superadditive[0]["kind"] == "redundant gains"
+    # a pair flagged during a disturbed stretch that never settles is reported as unmeasured
+    calls = {"base": 0}
+    def measure2(state, rep=0):
+        st = frozenset(state)
+        if st == frozenset() and rep >= 100:
+            calls["base"] += 1
+            return (20.0, False)                 # every fresh baseline is disturbed
+        return (15.0 if st == frozenset({"a", "b"}) else 10.0, False)
+    res2 = pair_scan(frozenset(), ["a", "b"], measure2, tau=0.5)
+    assert res2.pairs[0]["delta_ms"] is None and "disturbed" in res2.pairs[0]["note"]
+    assert res2.drift_events == 2 and res2.superadditive == []
