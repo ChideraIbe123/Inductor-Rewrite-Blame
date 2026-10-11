@@ -76,7 +76,8 @@ def render_sweep(s: dict) -> str:
     lines = [f"# Leave-one-out sweep: {s['model']}", "",
              f"- environment: `{s['env']}`",
              f"- baseline median {s['reference_ms']:.3f} ms; tau {n['tau']:.3f} ms ({100*n['tau']/s['reference_ms']:.1f}%); "
-             f"identical-run max |diff| {n['pairwise_max']:.3f} ms", "",
+             f"identical-run max |diff| {n['pairwise_max']:.3f} ms"
+             + (f"; interleaved baselines: {', '.join(f'{b:.3f}' for b in s.get('baselines', []))} ms, {s.get('drift_events', 0)} drift event(s)" if s.get("baselines") else ""), "",
              "| switch | toggled | median ms | delta ms | delta % | beyond noise | kernels | correct |", "|---|---|---|---|---|---|---|---|"]
     for r in s["rows"]:
         if "error" in r:

@@ -197,7 +197,8 @@ class Runner:
 
     # ---------------------------------------------------------------- sweeps
     def sweep(self, model: str, base: State | None = None, ids: Iterable[str] | None = None,
-              include_options: bool = True, only_graph_changing: bool = True, noise: NoiseModel | None = None) -> dict:
+              include_options: bool = True, only_graph_changing: bool = True, noise: NoiseModel | None = None,
+              rebaseline_every: int = 8) -> dict:
         base = self.reg.default_state() if base is None else frozenset(base)
         if noise is None:
             noise, _ = self.noise(model, base)
@@ -207,7 +208,23 @@ class Runner:
             ver = self.verify_switches(model, base, include_options)
             ids = [r["switch"] for r in ver["effects"] if (not only_graph_changing) or r["changes_graph"]]
         rows = []
-        for sid in ids:
+        # the machine drifts (thermal state, background load) over a long sweep: re-measure the base
+        # state every few toggles and compare each toggle with the running baseline (median of the
+        # last three baseline runs), not with the noise centre measured minutes or hours earlier
+        baselines = [ref]
+        drift_events = 0
+        brep = 200
+        for i, sid in enumerate(ids):
+            if i and i % rebaseline_every == 0:
+                brep += 1
+                mb = self.measure(model, base, rep=brep)
+                if not mb.error:
+                    if abs(mb.median_ms - ref) > noise.tau:
+                        drift_events += 1
+                        self.log(f"  ~ baseline drifted: {mb.median_ms:.3f} vs centre {ref:.3f} (tau {noise.tau:.3f})")
+                    baselines.append(mb.median_ms)
+                    recent = sorted(baselines[-3:])
+                    ref = recent[len(recent) // 2]
             st = self.reg.toggled(base, sid)
             m = self.measure(model, st)
             if m.error:
@@ -218,11 +235,11 @@ class Runner:
             rows.append({"switch": sid, "direction": "off" if sid in base else "on", "median_ms": m.median_ms,
                          "delta_ms": d, "delta_pct": 100.0 * d / ref, "beyond_noise": abs(d) > noise.tau and not same,
                          "slower": d > noise.tau and not same, "faster": d < -noise.tau and not same,
-                         "same_program": same, "kernel_count": m.kernel_count,
+                         "same_program": same, "kernel_count": m.kernel_count, "baseline_ms": ref,
                          "alloc_bytes": m.code.get("alloc_bytes"), "correct": m.correct})
         rows.sort(key=lambda r: -abs(r.get("delta_ms", 0)))
-        return {"model": model, "env": self.env, "base": sorted(base), "reference_ms": ref, "noise": noise.to_dict(),
-                "rows": rows}
+        return {"model": model, "env": self.env, "base": sorted(base), "reference_ms": noise.center, "noise": noise.to_dict(),
+                "baselines": baselines, "drift_events": drift_events, "rows": rows}
 
     # ---------------------------------------------------------------- attribution
     def timing_judge(self, model: str, fast_state: State, noise: NoiseModel) -> TimingJudge:
