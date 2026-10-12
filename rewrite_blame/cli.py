@@ -230,6 +230,8 @@ def cmd_guards_train(a):
             print(f"[guards-train] {fam}: only {len(rows)} rows, skipping", file=sys.stderr)
             continue
         counts[fam] = Counter(r["label"] for r in rows)
+        from .guard_models import evaluate_policy
+        results.append(evaluate_policy(rows, fam))          # Inductor's own hand-written rule as the baseline
         for kind in a.kinds:
             if kind in ("tree", "gbt", "logreg"):
                 results.append(evaluate(rows, fam, kind, n_folds=a.folds))

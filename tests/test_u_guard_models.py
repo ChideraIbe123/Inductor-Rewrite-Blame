@@ -55,3 +55,13 @@ def test_load_rows_filters_and_render(tmp_path):
     assert len(rows) == 5
     text = render_eval([evaluate(_rows(), "mlp", "logreg")], counts={"mlp": {"harmful": 12, "neutral": 24}})
     assert "always-fire" in text and "| mlp |" in text
+
+
+def test_inductor_policy_baseline():
+    from rewrite_blame.guard_models import evaluate_policy, inductor_policy_blocks
+    assert inductor_policy_blocks({"cfg_M": 1, "cfg_I": 1024, "cfg_Hd": 2048}, "mlp") == 0
+    assert inductor_policy_blocks({"cfg_M": 1, "cfg_I": 1024, "cfg_Hd": 8192}, "mlp") == 1
+    assert inductor_policy_blocks({"cfg_M": 8, "cfg_I": 512, "cfg_Hd": 512}, "mlp") == 1
+    assert inductor_policy_blocks({"cfg_depthwise": 1}, "conv") == 0
+    res = evaluate_policy(_rows(), "mlp")
+    assert res.model == "inductor-heuristic" and 0 <= res.accuracy <= 1 and res.folds == 0

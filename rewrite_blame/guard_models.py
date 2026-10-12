@@ -83,6 +83,29 @@ class EvalResult:
         return asdict(self)
 
 
+def inductor_policy_blocks(row: dict, family: str) -> int:
+    """Inductor's own hand-written guard for the family: 1 = Inductor would NOT fire here.
+    * mlp: decompose_mm_pass (CPU) fires only when M <= 1 and both other dims <= 2048;
+    * conv (channels-last layout) and attn (attention fusion): always fire."""
+    if family == "mlp":
+        return int(not (row.get("cfg_M", 0) <= 1 and row.get("cfg_I", 0) <= 2048 and row.get("cfg_Hd", 0) <= 2048))
+    return 0
+
+
+def evaluate_policy(rows: list[dict], family: str, name: str = "inductor-heuristic") -> "EvalResult":
+    """Score a fixed policy (no training) with the same metrics as the learned guards."""
+    y = [1 if r["label"] == "harmful" else 0 for r in rows]
+    pred = [inductor_policy_blocks(r, family) for r in rows]
+    n = len(rows)
+    harmful = [i for i, t in enumerate(y) if t == 1]
+    nonharm = [i for i, t in enumerate(y) if t == 0]
+    cost = sum(abs(r["ratio"] - 1) * 100 for r, p, t in zip(rows, pred, y) if (t == 1 and p == 0) or (r["label"] == "helpful" and p == 1)) / n
+    default_cost = sum(abs(r["ratio"] - 1) * 100 for r, t in zip(rows, y) if t == 1) / n
+    return EvalResult(family, name, n, len(harmful), 0, sum(int(p == t) for p, t in zip(pred, y)) / n, len(nonharm) / n,
+                      (sum(pred[i] for i in harmful) / len(harmful)) if harmful else 1.0,
+                      (sum(pred[i] for i in nonharm) / len(nonharm)) if nonharm else 0.0, cost, default_cost, [])
+
+
 def _groups(rows: list[dict], family: str) -> list[str]:
     """Group key for cross-validation so that all sizes of one shape 'slice' leave together:
     attn by (H, D), conv by (C, depthwise), mlp by (I, Hd). Prevents near-duplicate leakage."""
