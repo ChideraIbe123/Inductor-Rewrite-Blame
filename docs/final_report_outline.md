@@ -50,3 +50,11 @@ Working title: Which Rewrite Made My Model Slower? Finding and Blaming Bad Graph
 - [ ] Mac corpus chain (running 2026-10-10): all 24 models, session 2026-10-10; toys re-measured clean.
 - [ ] VM: corrected pair scan (running); then corpus chain for the remaining models + second sessions.
 - [ ] `repeat` and `summary` regenerated after both; `guards` after sweeps with firings exist on both machines.
+
+## Guards plan (agreed 2026-10-12)
+- Dataset: three sweep families (attention B/T/H/D, conv C/R/K/L/depthwise, decode MLP M/I/Hd), both
+  machines, confirmed on/off labels (`dataset` command, results/dataset_<family>.jsonl).
+- Three guard families on identical grouped splits: trees (primary), fine-tuned encoder (Laya /
+  ModernBERT), Decisions API (external baseline, needs OPENAI_API_KEY).
+- End-to-end: `guards-eval` on real models, stock vs guards added one family at a time; headline =
+  geometric-mean change and worst regression.
