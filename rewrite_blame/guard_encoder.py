@@ -41,6 +41,44 @@ def serialize(row: dict, family: str) -> str:
     return QUESTION[family] + " State: " + "; ".join(parts) + "."
 
 
+def load_encoder(checkpoint: str, log=print):
+    """Load a sequence-classification encoder. Laya's repo is not a standard HF classification
+    checkpoint: the ModernBERT-large encoder weights sit in the root ``model.safetensors`` under an
+    ``encoder.`` prefix next to a custom decision head, with the encoder config in ``encoder/``.
+    We rebuild a ModernBertForSequenceClassification from that config, load the encoder weights
+    and train a fresh 2-way head (the decision head is task-specific anyway)."""
+    import os
+    from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer
+    try:
+        from huggingface_hub import snapshot_download
+        local = snapshot_download(checkpoint)
+    except Exception:
+        local = checkpoint
+    enc_cfg = os.path.join(local, "encoder", "config.json")
+    if os.path.exists(enc_cfg) and os.path.exists(os.path.join(local, "model.safetensors")):
+        from safetensors.torch import load_file
+        cfg = AutoConfig.from_pretrained(os.path.join(local, "encoder"))
+        cfg.num_labels = 2
+        model = AutoModelForSequenceClassification.from_config(cfg)
+        sd = load_file(os.path.join(local, "model.safetensors"))
+        prefixes = sorted({k.split(".", 1)[0] for k in sd})
+        enc = {}
+        for k, v in sd.items():
+            for pre in ("encoder.model.", "encoder.", "model."):
+                if k.startswith(pre):
+                    enc["model." + k[len(pre):] if not k[len(pre):].startswith("model.") else k[len(pre):]] = v
+                    break
+        missing, unexpected = model.load_state_dict(enc, strict=False)
+        loaded = len(enc) - len(unexpected)
+        log(f"[encoder] Laya layout: prefixes {prefixes}; loaded {loaded} encoder tensors, {len(missing)} missing (head is trained fresh), {len(unexpected)} unexpected")
+        tok_dir = os.path.join(local, "tokenizer") if os.path.isdir(os.path.join(local, "tokenizer")) else local
+        tok = AutoTokenizer.from_pretrained(tok_dir)
+        return model, tok
+    tok = AutoTokenizer.from_pretrained(checkpoint)
+    model = AutoModelForSequenceClassification.from_pretrained(checkpoint, num_labels=2, ignore_mismatched_sizes=True)
+    return model, tok
+
+
 @dataclass
 class EncoderGuard:
     checkpoint: str
@@ -53,8 +91,7 @@ class EncoderGuard:
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
         texts = [serialize(r, self.family) for r in rows]
         y = torch.tensor([1 if r["label"] == "harmful" else 0 for r in rows])
-        tok = AutoTokenizer.from_pretrained(self.checkpoint)
-        model = AutoModelForSequenceClassification.from_pretrained(self.checkpoint, num_labels=2, ignore_mismatched_sizes=True)
+        model, tok = load_encoder(self.checkpoint, log=log)
         model.to(device).train()
         # class weights: harmful firings are the minority
         pos = max(1, int(y.sum())); neg = max(1, len(y) - pos)

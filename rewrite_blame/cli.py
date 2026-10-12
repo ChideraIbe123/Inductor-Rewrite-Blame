@@ -231,7 +231,24 @@ def cmd_guards_train(a):
             continue
         counts[fam] = Counter(r["label"] for r in rows)
         for kind in a.kinds:
-            results.append(evaluate(rows, fam, kind, n_folds=a.folds))
+            if kind in ("tree", "gbt", "logreg"):
+                results.append(evaluate(rows, fam, kind, n_folds=a.folds))
+            elif kind == "encoder":
+                from .guard_encoder import DEFAULT_CHECKPOINT, evaluate_encoder
+                from .guard_models import EvalResult
+                d = evaluate_encoder(rows, fam, checkpoint=a.checkpoint or DEFAULT_CHECKPOINT, n_folds=a.folds, epochs=a.epochs,
+                                     log=lambda *x: print(*x, file=sys.stderr, flush=True))
+                results.append(EvalResult(**d))
+            elif kind in ("api", "api-context"):
+                import os
+                if not os.environ.get("OPENAI_API_KEY"):
+                    print(f"[guards-train] {kind}: OPENAI_API_KEY not set, skipping", file=sys.stderr)
+                    continue
+                from .guard_api import evaluate_api
+                from .guard_models import EvalResult
+                d = evaluate_api(rows, fam, with_context=(kind == "api-context"), log=lambda *x: print(*x, file=sys.stderr, flush=True))
+                d.pop("probs", None)
+                results.append(EvalResult(**d))
         clf, names = fit_all(rows, fam, a.bundle_kind)
         if a.bundle_kind == "tree":
             rules[fam] = tree_rules(clf, names)
@@ -365,6 +382,7 @@ def main(argv=None) -> int:
     p.add_argument("--families", nargs="*"); p.add_argument("--kinds", nargs="*", default=["tree", "gbt", "logreg"])
     p.add_argument("--bundle-kind", default="tree"); p.add_argument("--threshold", type=float, default=0.5)
     p.add_argument("--folds", type=int, default=5); p.add_argument("--out"); p.add_argument("--bundle")
+    p.add_argument("--checkpoint", help="encoder checkpoint for --kinds encoder (default: Laya)"); p.add_argument("--epochs", type=int, default=6)
 
     p = sub.add_parser("guards-eval", help="end-to-end: stock vs guards on real models, one family at a time"); p.set_defaults(fn=cmd_guards_eval)
     p.add_argument("--models", nargs="+", required=True); p.add_argument("--bundle", default="results/guards.pkl")
