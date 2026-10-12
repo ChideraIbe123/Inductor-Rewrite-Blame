@@ -34,7 +34,11 @@ def register(spec: ModelSpec) -> ModelSpec:
 def get(name: str) -> ModelSpec:
     _ensure_loaded()
     if name not in REGISTRY:
-        raise KeyError(f"unknown model {name!r}; known: {sorted(REGISTRY)}")
+        from . import sweeps
+        spec = sweeps.resolve(name)          # parameterised synthetic models resolve from their name
+        if spec is None:
+            raise KeyError(f"unknown model {name!r}; known: {sorted(REGISTRY)} or a sweep name like sweep_attn_B4_T128_H8_D64")
+        REGISTRY[name] = spec
     return REGISTRY[name]
 
 

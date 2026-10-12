@@ -200,6 +200,23 @@ def cmd_summary(a):
     print(f"[wrote {out}]", file=sys.stderr)
 
 
+def cmd_dataset(a):
+    """Collect labelled (rule on vs off) rows for a sweep family."""
+    import random
+    from .dataset import collect
+    from .models import sweeps
+    r = _runner(a)
+    names = sweeps.grid(a.family, a.level)
+    if a.shuffle:
+        random.Random(a.seed).shuffle(names)
+    if a.limit:
+        names = names[: a.limit]
+    out = Path(a.out) if a.out else Path("results") / f"dataset_{a.family}.jsonl"
+    rows = collect(r, a.family, names, out, tau_pct=a.tau_pct, noise_config=a.noise_config, log=lambda *x: print(*x, file=sys.stderr, flush=True))
+    from collections import Counter
+    print(json.dumps({"family": a.family, "new_rows": len(rows), "labels": Counter(x["label"] for x in rows), "file": str(out)}, default=str))
+
+
 def cmd_show(a):
     from .store import Store
     st = Store(a.store)
@@ -277,6 +294,11 @@ def main(argv=None) -> int:
 
     p = sub.add_parser("summary", help="one overview of all result files"); p.set_defaults(fn=cmd_summary)
     p.add_argument("--dirs", nargs="*"); p.add_argument("--out")
+
+    p = sub.add_parser("dataset", help="collect labelled rule-on/off rows for a sweep family (guard training data)"); p.set_defaults(fn=cmd_dataset)
+    p.add_argument("--family", required=True, choices=["attn", "conv", "mlp"]); p.add_argument("--level", default="full", choices=["full", "small"])
+    p.add_argument("--shuffle", action="store_true"); p.add_argument("--seed", type=int, default=0); p.add_argument("--limit", type=int, default=0)
+    p.add_argument("--tau-pct", type=float, default=None); p.add_argument("--noise-config"); p.add_argument("--out")
 
     p = sub.add_parser("show"); p.set_defaults(fn=cmd_show)
     p.add_argument("--model", default=""); p.add_argument("-n", type=int, default=40)
