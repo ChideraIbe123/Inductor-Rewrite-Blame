@@ -6,6 +6,7 @@ Pure functions over stored measurement rows (dicts), so they are testable withou
 from __future__ import annotations
 
 import datetime
+import fnmatch
 from collections import defaultdict
 from dataclasses import dataclass, field, asdict
 from typing import Iterable
@@ -126,7 +127,7 @@ def repeatability(rows: Iterable[dict], model: str, base_state_hash, toggles,
 
 def filter_sessions(rows: Iterable[dict], exclude: Iterable[str] = (), max_tau_pct: float | None = None,
                     k: float = 3.0, floor_frac: float = 0.01) -> tuple[list[dict], list[dict]]:
-    """Drop rows from sessions named in ``exclude`` (exact match or substring) and, when
+    """Drop rows from sessions named in ``exclude`` (exact names or globs) and, when
     ``max_tau_pct`` is set, from (env, session) pairs whose baseline noise exceeds it. Returns
     (kept rows, list of dropped sessions with reasons) so the exclusion is visible in the report."""
     rows = list(rows)
@@ -150,7 +151,7 @@ def filter_sessions(rows: Iterable[dict], exclude: Iterable[str] = (), max_tau_p
     seen_excluded = set()
     for r in rows:
         sess = session_of(r)
-        if any(sess == e or e in sess for e in exclude):
+        if any(fnmatch.fnmatchcase(sess, e) for e in exclude):   # exact name, or a glob such as "*pairs*"
             seen_excluded.add((r["env"], sess))
             continue
         if (r["env"], sess) in noisy:

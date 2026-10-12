@@ -71,7 +71,9 @@ def test_filter_sessions_by_name_and_noise():
         for m in meds:
             rows.append({"model": "m", "env": "A", "session": sess, "diff": {"on_extra": [], "off_defaults": []}, "timing": {"median": m}})
         rows.append({"model": "m", "env": "A", "session": sess, "diff": {"on_extra": ["x"], "off_defaults": []}, "timing": {"median": 11.0}})
-    kept, dropped = filter_sessions(rows, exclude=["pairs"], max_tau_pct=5.0)
+    kept, dropped = filter_sessions(rows, exclude=["*pairs*"], max_tau_pct=5.0)
+    kept2, _ = filter_sessions(rows, exclude=["goo"])          # exact names only unless a glob is given
+    assert {r["session"] for r in kept2} >= {"good"}
     assert {r["session"] for r in kept} == {"good"}
     reasons = {d["session"]: d["reason"] for d in dropped}
     assert "noisy" in reasons and "tau" in reasons["noisy"] and reasons["pairs-v2"] == "excluded by name"
