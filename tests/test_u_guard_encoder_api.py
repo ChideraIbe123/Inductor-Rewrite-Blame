@@ -17,6 +17,7 @@ def test_serialize_is_readable_and_complete():
 def test_build_request_and_context():
     body = build_request(_row(1, "harmful", 1.3), "mlp")
     assert body["model"] == "gpt-6-luna" and body["questions"][0]["type"] == "predicate" and "M: 1" in body["input"]
+    assert body["questions"][0]["name"] == "harmful" and body["questions"][0]["instructions"].startswith("Will ")
     body2 = build_request(_row(1, "harmful", 1.3), "mlp", context_rows=[_row(32, "neutral", 0.99)])
     assert "Measured examples" in body2["input"] and "not slower" in body2["input"]
 

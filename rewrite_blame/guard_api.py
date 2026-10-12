@@ -34,7 +34,7 @@ def build_request(row: dict, family: str, context_rows: list[dict] | None = None
                              for r in context_rows)
         state = "Measured examples on these machines:\n" + examples + "\n\nNow decide for: " + state
     return {"model": model, "input": state,
-            "questions": [{"type": "predicate", "id": "harmful", "statement": QUESTION[family].replace("Will ", "").replace("?", "") + "."}]}
+            "questions": [{"type": "predicate", "name": "harmful", "instructions": QUESTION[family]}]}
 
 
 def ask(body: dict, api_key: str | None = None, timeout: float = 30.0) -> float:
