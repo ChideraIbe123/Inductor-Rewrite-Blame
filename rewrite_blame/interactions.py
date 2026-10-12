@@ -29,6 +29,27 @@ class PairScanResult:
         return asdict(self)
 
 
+def _pair_kind(d, da, db, tau, flag_super, flag_mask) -> str:
+    """Name the interaction. ``d`` is the pair's delta, ``da``/``db`` the singles' deltas.
+    * redundant gains: at least one switch helps alone and the pair is as good as the better single
+      (within tau): the two gains are the same gain;
+    * diminished gain: at least one switch helps alone, but the pair keeps less of that gain than
+      tau allows: the other switch erodes it;
+    * compounding costs: the pair costs more than the sum of its parts beyond tau;
+    * masking: the pair is faster than its slower member beyond tau.
+    """
+    if d is None:
+        return ""
+    if flag_super:
+        best = min(da, db)
+        if best < -tau:
+            return "redundant gains" if abs(d - best) <= tau else "diminished gain"
+        return "compounding costs"
+    if flag_mask:
+        return "masking"
+    return ""
+
+
 def pair_scan(base_state: Iterable[str], ids: Iterable[str], measure_ms: Callable[..., float], tau: float,
               *, max_pairs: int | None = None, toggled=None, confirm: bool = True, rebaseline_every: int = 20) -> PairScanResult:
     """Toggle every switch in ``ids`` alone and every pair together on top of ``base_state``.
@@ -171,12 +192,7 @@ def pair_scan(base_state: Iterable[str], ids: Iterable[str], measure_ms: Callabl
                     note = f"second run disagreed ({d2:+.3f}): flag dropped"
                     flag_super = flag_mask = False
                     d = d2; extra = d - singles[a] - singles[b]
-        kind = ""
-        if flag_super:
-            # both switches help alone but the pair does not add up: the gains overlap (same cause)
-            kind = "redundant gains" if (singles[a] < -tau or singles[b] < -tau) and d is not None and d >= min(singles[a], singles[b]) - tau else "compounding costs"
-        elif flag_mask:
-            kind = "masking"
+        kind = _pair_kind(d, singles[a], singles[b], tau, flag_super, flag_mask)
         row = {"a": a, "b": b, "delta_ms": d, "delta_a": singles[a], "delta_b": singles[b], "interaction_ms": extra,
                "abs_ms": (d + running_base()) if d is not None else None, "abs_a": singles_abs[a], "abs_b": singles_abs[b],
                "superadditive": flag_super, "masking": flag_mask, "kind": kind,
@@ -207,14 +223,11 @@ def pair_scan(base_state: Iterable[str], ids: Iterable[str], measure_ms: Callabl
             r["superadditive"] = confirmed and r["interaction_ms"] > tau
             r["masking"] = confirmed and r["delta_ms"] < max(r["delta_a"], r["delta_b"]) - tau
         r["pair_slow"] = r["delta_ms"] > tau and not r.get("same_program")
+        r["kind"] = _pair_kind(r["delta_ms"], r["delta_a"], r["delta_b"], tau, r["superadditive"], r["masking"])
         if r["superadditive"]:
-            r["kind"] = "redundant gains" if (r["delta_a"] < -tau or r["delta_b"] < -tau) and r["delta_ms"] >= min(r["delta_a"], r["delta_b"]) - tau else "compounding costs"
             superadd.append(r)
         elif r["masking"]:
-            r["kind"] = "masking"
             masking.append(r)
-        else:
-            r["kind"] = ""
     rows.sort(key=lambda r: -abs(r["interaction_ms"]) if r.get("delta_ms") is not None else 0.0)
     superadd.sort(key=lambda r: -r["interaction_ms"])
     masking.sort(key=lambda r: r["interaction_ms"])

@@ -226,3 +226,12 @@ def test_pair_scan_uses_fresh_level_when_reference_is_stale():
     res = pair_scan(frozenset(), ["a", "b"], measure, tau=0.1, confirm=False)
     assert abs(res.base_ms - 1.0) < 1e-9
     assert abs(res.singles["a"] - 0.2) < 1e-9 and abs(res.singles["b"]) < 1e-9
+
+
+def test_pair_kind_names():
+    from rewrite_blame.interactions import _pair_kind
+    assert _pair_kind(-2.0, -2.0, -2.0, 0.5, True, False) == "redundant gains"
+    assert _pair_kind(-1.0, -2.4, -0.1, 0.5, True, False) == "diminished gain"
+    assert _pair_kind(4.0, 0.4, 0.6, 0.5, True, False) == "compounding costs"
+    assert _pair_kind(-0.5, 1.0, 0.2, 0.5, False, True) == "masking"
+    assert _pair_kind(None, 1.0, 1.0, 0.5, True, False) == "" and _pair_kind(0.1, 0.0, 0.0, 0.5, False, False) == ""
