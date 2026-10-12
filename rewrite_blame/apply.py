@@ -12,7 +12,7 @@ import torch
 import torch._inductor.config as inductor_config
 from torch._inductor.custom_graph_pass import CustomGraphPass
 
-from .switches import Registry, Switch, State, state_hash
+from .switches import MODULE_OVERRIDES, Registry, Switch, State, state_hash
 
 # ids of pattern switches that are currently OFF, consulted by the extra_check wrappers
 _DISABLED: frozenset[str] = frozenset()
@@ -191,10 +191,20 @@ def active(reg: Registry, state: Iterable[str], *, tag_cache_key: bool = True):
     import torch._functorch.config as functorch_config
     prev_autograd_cache = functorch_config.enable_autograd_cache
     functorch_config.enable_autograd_cache = False
+    import importlib
+    restored: list = []
     try:
+        for sid, overrides in MODULE_OVERRIDES.items():
+            if sid in st:
+                for modname, attr, value in overrides:
+                    mod = importlib.import_module(modname)
+                    restored.append((mod, attr, getattr(mod, attr, None)))
+                    setattr(mod, attr, value)
         with inductor_config.patch(patch):
             yield st
     finally:
+        for mod, attr, old_value in reversed(restored):
+            setattr(mod, attr, old_value)
         _DISABLED = prev_disabled
         functorch_config.enable_autograd_cache = prev_autograd_cache
 

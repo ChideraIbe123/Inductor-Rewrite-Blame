@@ -73,7 +73,7 @@ _MLP = re.compile(r"^sweep_mlp_M(\d+)_I(\d+)_Hd(\d+)$")
 FAMILY_RULE = {
     "attn": {"family": "_sfdp_pattern", "off_spec": "default-*_sfdp_pattern_*_inference", "on_spec": "default"},
     "conv": {"family": "layout_optimization", "off_spec": "default-lowering/layout_optimization", "on_spec": "default"},
-    "mlp": {"family": "decompose_mm", "off_spec": "default", "on_spec": "default+optimus/decompose_mm_pass"},
+    "mlp": {"family": "decompose_mm", "off_spec": "default", "on_spec": "default+optimus/decompose_mm_wide"},
 }
 
 

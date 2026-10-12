@@ -91,3 +91,11 @@ def test_match_features_from_fake_match():
     assert f["n_nodes"] == 3 and len(f["tensors"]) == 2
     assert f["tensors"][0]["shape"] == [2, 8, 128, 64] and f["max_numel"] == 2 * 8 * 128 * 64
     assert f["dtypes"] == ["float32"]
+
+
+def test_wide_decompose_switch_has_module_overrides():
+    from rewrite_blame.switches import MODULE_OVERRIDES, builtin_registry
+    reg = builtin_registry()
+    sw = reg["optimus/decompose_mm_wide"]
+    assert sw.kind == "option" and sw.option_key == "decompose_mm_pass" and sw.option_value["cpu_max_first_dimension_decomposition"] == 4096
+    assert "optimus/decompose_mm_wide" in MODULE_OVERRIDES and not sw.default_on

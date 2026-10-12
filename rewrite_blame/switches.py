@@ -250,10 +250,23 @@ CONFIG_SWITCHES: list[Switch] = [
          "Concatenate linears sharing an input into one GEMM", default_on=False),
 ]
 
+# Module-level constants some passes read at import time (so config.patch alone cannot change them):
+# switch id -> [(module, attribute, value when the switch is ON)]
+MODULE_OVERRIDES = {
+    "optimus/decompose_mm_wide": [
+        ("torch._inductor.fx_passes.decompose_mem_bound_mm", "cpu_max_first_dimension_decomposition", 4096),
+        ("torch._inductor.fx_passes.decompose_mem_bound_mm", "cpu_max_other_dimension_decomposition", 65536),
+    ],
+}
+
 # Opt-in rewrite families enabled through Inductor's option dicts ("optimus" passes).
 OPTION_SWITCHES: list[Switch] = [
     _opt("optimus/decompose_mm_pass", "post_grad_fusion_options", "decompose_mm_pass", "optimus",
          "Decompose skinny mm/bmm/addmm into pointwise mul + sum"),
+    _opt("optimus/decompose_mm_wide", "post_grad_fusion_options", "decompose_mm_pass", "optimus",
+         "decompose_mm_pass with Inductor's CPU shape thresholds lifted (M <= 4096, other dims <= 65536) so the "
+         "rule fires for every decode-like shape; used to learn the real boundary instead of the hard-coded one",
+         value={"cpu_max_first_dimension_decomposition": 4096, "cpu_max_other_dimension_decomposition": 65536}),
     _opt("optimus/normalization_pass", "pre_grad_fusion_options", "normalization_pass", "optimus",
          "Normalise split/cat/stack call forms (prerequisite of other split/cat passes)"),
     _opt("optimus/remove_split_with_size_one_pass", "pre_grad_fusion_options", "remove_split_with_size_one_pass",
