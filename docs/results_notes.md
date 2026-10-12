@@ -71,3 +71,19 @@ Mac corpus status: all 24 models measured; 15 attribution runs; `results/summary
   dropped by the second run. The report now prints an instability warning when more than 30% of
   baseline runs are disturbed; this scan must be repeated in a quiet session before the pair is
   claimed.
+
+## Repeatability (item 6), as of 2026-10-12
+
+Sessions used: cool/clean Mac sessions and the VM's overnight sessions; excluded by name the warm
+Mac session of 2026-10-10 and the pair-scan sessions, and automatically any session whose baseline
+tau exceeds 5% (`repeat --exclude-session ... --max-tau-pct 5`).
+
+* Same machine, different days: 213 of 220 per-switch verdicts agree (96.8%). All 7 disagreements
+  are effects of 1-2.6%, i.e. at the noise threshold (norm_mlp constant folding and in-place
+  buffers, ResNet-18 freezing at -1.1% vs -1.2%, three cat/slice switches at -2%).
+* Across machines (Mac vs VM): 42 agree, 47 disagree. The disagreements are not noise: they are
+  the opposite-sign cases (attention fusion, freezing, oneDNN-dependent passes) where the same
+  rewrite genuinely helps on one CPU and hurts on the other.
+
+Reading: once sessions are measured cleanly, the harness's verdicts are stable day to day; what
+varies is the hardware's answer, which is the point of the project.
