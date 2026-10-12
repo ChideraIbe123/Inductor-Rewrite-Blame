@@ -111,7 +111,8 @@ def render_verify(v: dict) -> str:
 def render_iterative(a: dict) -> str:
     it = a["iterative"]
     lines = [f"# Iterative attribution: {a['model']}", "", f"- environment: `{a['env']}`",
-             f"- fast {a['fast_ms']:.3f} ms, slow {a['slow_ms']:.3f} ms (+{a['total_ms']:.3f} ms); "
+             f"- fast {a['fast_ms']:.3f} ms, slow {a['slow_ms']:.3f} ms ({a['total_ms']:+.3f} ms"
+             + ("; the 'slow' state is not slower than the 'fast' one" if a['total_ms'] <= 0 else "") + "); "
              f"explained by found causes: {a['explained_ms']:.3f} ms; residual within noise: {it['residual_explained']}",
              f"- rounds: {len(it['rounds'])}; judge evaluations: {it['judge_calls']}; wall {a['wall_s']:.0f} s", ""]
     if it["notes"]:
