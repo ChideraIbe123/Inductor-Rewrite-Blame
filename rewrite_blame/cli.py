@@ -217,6 +217,38 @@ def cmd_dataset(a):
     print(json.dumps({"family": a.family, "new_rows": len(rows), "labels": Counter(x["label"] for x in rows), "file": str(out)}, default=str))
 
 
+def cmd_guards_train(a):
+    """Evaluate guard models per family on the sweep datasets (grouped CV), fit on all rows, save a bundle."""
+    from collections import Counter
+    from .guard_models import GuardBundle, evaluate, fit_all, load_rows, render_eval, tree_rules
+    paths = [Path(p) for p in (a.data or [])] or sorted(Path("results").glob("dataset_*.jsonl")) + sorted(Path("results/vm").glob("dataset_*.jsonl"))
+    results, rules, counts = [], {}, {}
+    bundle = GuardBundle()
+    for fam in a.families or ["mlp", "conv", "attn"]:
+        rows = load_rows(paths, fam)
+        if len(rows) < 8:
+            print(f"[guards-train] {fam}: only {len(rows)} rows, skipping", file=sys.stderr)
+            continue
+        counts[fam] = Counter(r["label"] for r in rows)
+        for kind in a.kinds:
+            results.append(evaluate(rows, fam, kind, n_folds=a.folds))
+        clf, names = fit_all(rows, fam, a.bundle_kind)
+        if a.bundle_kind == "tree":
+            rules[fam] = tree_rules(clf, names)
+        bundle.add(fam, a.bundle_kind, clf, names, threshold=a.threshold)
+    out = Path(a.out) if a.out else Path("results/guards_eval.json")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps({"results": [r.to_dict() for r in results], "counts": {k: dict(v) for k, v in counts.items()},
+                               "rules": rules, "data": [str(p) for p in paths]}, indent=1))
+    text = render_eval(results, rules, counts)
+    out.with_suffix(".md").write_text(text)
+    print(text)
+    bpath = Path(a.bundle) if a.bundle else Path("results/guards.pkl")
+    if bundle.guards:
+        bundle.save(bpath)
+        print(f"[guards-train] bundle with {sorted(bundle.guards)} saved to {bpath}", file=sys.stderr)
+
+
 def cmd_show(a):
     from .store import Store
     st = Store(a.store)
@@ -299,6 +331,12 @@ def main(argv=None) -> int:
     p.add_argument("--family", required=True, choices=["attn", "conv", "mlp"]); p.add_argument("--level", default="full", choices=["full", "small"])
     p.add_argument("--shuffle", action="store_true"); p.add_argument("--seed", type=int, default=0); p.add_argument("--limit", type=int, default=0)
     p.add_argument("--tau-pct", type=float, default=None); p.add_argument("--noise-config"); p.add_argument("--out")
+
+    p = sub.add_parser("guards-train", help="evaluate and fit per-family guard models on the sweep datasets"); p.set_defaults(fn=cmd_guards_train)
+    p.add_argument("--data", action="append", help="dataset jsonl file(s); default: results/dataset_*.jsonl and results/vm/dataset_*.jsonl")
+    p.add_argument("--families", nargs="*"); p.add_argument("--kinds", nargs="*", default=["tree", "gbt", "logreg"])
+    p.add_argument("--bundle-kind", default="tree"); p.add_argument("--threshold", type=float, default=0.5)
+    p.add_argument("--folds", type=int, default=5); p.add_argument("--out"); p.add_argument("--bundle")
 
     p = sub.add_parser("show"); p.set_defaults(fn=cmd_show)
     p.add_argument("--model", default=""); p.add_argument("-n", type=int, default=40)
