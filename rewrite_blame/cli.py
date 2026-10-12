@@ -151,7 +151,10 @@ def cmd_repeat(a):
         if Path(extra_reg).exists():
             regs.append(Registry.load(extra_reg))
     backfill_diffs(rows, regs)
+    from .repeat import filter_sessions
+    rows, dropped = filter_sessions(rows, exclude=a.exclude_session or [], max_tau_pct=a.max_tau_pct)
     rep = repeatability_by_diff(rows, a.model)
+    rep.dropped_sessions = dropped
     _write(a, rep.to_dict(), render_repeat(rep), default_name=f"repeat_{a.model}")
 
 
@@ -266,6 +269,8 @@ def main(argv=None) -> int:
     p.add_argument("--model", required=True); p.add_argument("--state", default="default"); p.add_argument("--out")
     p.add_argument("--extra-store", action="append", help="additional measurement stores (e.g. pulled from another machine)")
     p.add_argument("--extra-registry", action="append", help="additional switch registries used to interpret old rows")
+    p.add_argument("--exclude-session", action="append", help="session name (or substring) to leave out, e.g. a known-bad run")
+    p.add_argument("--max-tau-pct", type=float, default=None, help="drop sessions whose baseline tau exceeds this percent")
 
     p = sub.add_parser("guards", help="labelled rule firings + per-family stump guards (stretch goal)"); p.set_defaults(fn=cmd_guards)
     p.add_argument("--extra-store", action="append"); p.add_argument("--sweeps", action="append", help="glob(s) of sweep json files"); p.add_argument("--out")

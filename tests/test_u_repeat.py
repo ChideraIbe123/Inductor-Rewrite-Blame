@@ -62,3 +62,16 @@ def test_repeatability_by_diff_matches_across_universes():
     assert len(rep.baselines) == 2
     sw = rep.switches[0]
     assert sw["switch"] == "a" and len(sw["cells"]) == 2 and sw["cross_machine_agree"] is True
+
+
+def test_filter_sessions_by_name_and_noise():
+    from rewrite_blame.repeat import filter_sessions
+    rows = []
+    for sess, meds in [("good", [10.0, 10.1, 9.9]), ("noisy", [10.0, 13.0, 7.0]), ("pairs-v2", [16.0, 16.1, 15.9])]:
+        for m in meds:
+            rows.append({"model": "m", "env": "A", "session": sess, "diff": {"on_extra": [], "off_defaults": []}, "timing": {"median": m}})
+        rows.append({"model": "m", "env": "A", "session": sess, "diff": {"on_extra": ["x"], "off_defaults": []}, "timing": {"median": 11.0}})
+    kept, dropped = filter_sessions(rows, exclude=["pairs"], max_tau_pct=5.0)
+    assert {r["session"] for r in kept} == {"good"}
+    reasons = {d["session"]: d["reason"] for d in dropped}
+    assert "noisy" in reasons and "tau" in reasons["noisy"] and reasons["pairs-v2"] == "excluded by name"

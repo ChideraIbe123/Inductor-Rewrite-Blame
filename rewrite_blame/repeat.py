@@ -32,6 +32,7 @@ class RepeatReport:
     baselines: list[dict]          # per (env, session): n runs, centre, tau
     switches: list[dict]           # per switch: per-(env, session) delta %, verdict, agreement
     agreement: dict                # counts of agree / disagree across sessions per machine, and across machines
+    dropped_sessions: list = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -123,6 +124,43 @@ def repeatability(rows: Iterable[dict], model: str, base_state_hash, toggles,
     return RepeatReport(model, baselines, switches, agreement)
 
 
+def filter_sessions(rows: Iterable[dict], exclude: Iterable[str] = (), max_tau_pct: float | None = None,
+                    k: float = 3.0, floor_frac: float = 0.01) -> tuple[list[dict], list[dict]]:
+    """Drop rows from sessions named in ``exclude`` (exact match or substring) and, when
+    ``max_tau_pct`` is set, from (env, session) pairs whose baseline noise exceeds it. Returns
+    (kept rows, list of dropped sessions with reasons) so the exclusion is visible in the report."""
+    rows = list(rows)
+    exclude = list(exclude)
+    dropped = []
+    # baseline tau per (env, session) from the rows that carry the empty diff
+    by_sess: dict[tuple, list[float]] = defaultdict(list)
+    for r in rows:
+        d = r.get("diff")
+        if d is not None and not d.get("on_extra") and not d.get("off_defaults") and r.get("timing"):
+            by_sess[(r["env"], session_of(r))].append(r["timing"]["median"])
+    noisy = set()
+    if max_tau_pct is not None:
+        for key, meds in by_sess.items():
+            if len(meds) >= 2:
+                nm = noise_model(meds, k=k, floor_frac=floor_frac)
+                if 100 * nm.tau / nm.center > max_tau_pct:
+                    noisy.add(key)
+                    dropped.append({"env": key[0], "session": key[1], "reason": f"baseline tau {100*nm.tau/nm.center:.1f}% > {max_tau_pct}%"})
+    kept = []
+    seen_excluded = set()
+    for r in rows:
+        sess = session_of(r)
+        if any(sess == e or e in sess for e in exclude):
+            seen_excluded.add((r["env"], sess))
+            continue
+        if (r["env"], sess) in noisy:
+            continue
+        kept.append(r)
+    for env, sess in sorted(seen_excluded):
+        dropped.append({"env": env, "session": sess, "reason": "excluded by name"})
+    return kept, dropped
+
+
 def repeatability_by_diff(rows: Iterable[dict], model: str, k: float = 3.0, floor_frac: float = 0.01) -> RepeatReport:
     """Like ``repeatability`` but identifies states by their difference from default (``row["diff"]``),
     so rows from machines with different switch universes line up. Base = empty diff; switches =
@@ -142,7 +180,10 @@ def repeatability_by_diff(rows: Iterable[dict], model: str, k: float = 3.0, floo
 
 
 def render_repeat(rep: RepeatReport) -> str:
-    lines = [f"# Repeatability: {rep.model}", "", "## Baselines per machine and session",
+    lines = [f"# Repeatability: {rep.model}", ""]
+    if rep.dropped_sessions:
+        lines += ["Sessions excluded: " + "; ".join(f"{d['env'].split('|')[0].split(' ')[0]}/{d['session']} ({d['reason']})" for d in rep.dropped_sessions), ""]
+    lines += ["## Baselines per machine and session",
              "| machine | session | runs | centre ms | tau ms | tau % |", "|---|---|---|---|---|---|"]
     for b in rep.baselines:
         lines.append(f"| {b['env']} | {b['session']} | {b['runs']} | {b['centre_ms']:.3f} | {b['tau_ms']:.3f} | {b['tau_pct']:.1f} |")
