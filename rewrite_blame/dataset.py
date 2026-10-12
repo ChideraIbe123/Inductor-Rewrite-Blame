@@ -49,12 +49,17 @@ def collect(runner: Runner, family: str, names: list[str], out_path: Path, tau_p
                 done.add(json.loads(line)["model"])
             except Exception:
                 pass
-    # noise threshold for the family: measured once on a representative configuration
+    # noise threshold for the family: the median relative tau over three representative
+    # configurations (one unlucky noise run must not set the bar for the whole family), floor 2%
     if tau_pct is None:
-        rep_name = noise_config or names[len(names) // 2]
-        nm, _ = runner.noise(rep_name, on_state)
-        tau_pct = max(100 * nm.tau / nm.center, 2.0)
-        log(f"[dataset] {family}: tau = {tau_pct:.2f}% (from {rep_name})")
+        reps = [noise_config] if noise_config else sorted({names[0], names[len(names) // 2], names[-1]})
+        taus = []
+        for rep_name in reps:
+            nm, _ = runner.noise(rep_name, on_state)
+            taus.append(100 * nm.tau / nm.center)
+            log(f"[dataset] {family}: noise on {rep_name}: tau {taus[-1]:.2f}%")
+        tau_pct = max(sorted(taus)[len(taus) // 2], 2.0)
+        log(f"[dataset] {family}: tau = {tau_pct:.2f}% (median of {len(taus)})")
     tau = tau_pct / 100.0
     rows = []
     for i, name in enumerate(names):
