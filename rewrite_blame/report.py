@@ -84,6 +84,8 @@ def render_sweep(s: dict) -> str:
             lines.append(f"| `{r['switch']}` | | error | | | | | {r['error']} |")
             continue
         flag = "SLOWER" if r["slower"] else ("faster" if r["faster"] else "")
+        if r.get("confirmation") and not (r["slower"] or r["faster"]):
+            flag = "unconfirmed"
         lines.append(f"| `{r['switch']}` | {r['direction']} | {r['median_ms']:.3f} | {r['delta_ms']:+.3f} | {r['delta_pct']:+.1f} | "
                      f"{flag} | {r['kernel_count']} | {r['correct']} |")
     return "\n".join(lines) + "\n"

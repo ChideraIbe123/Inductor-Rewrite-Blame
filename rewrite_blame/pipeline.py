@@ -198,7 +198,7 @@ class Runner:
     # ---------------------------------------------------------------- sweeps
     def sweep(self, model: str, base: State | None = None, ids: Iterable[str] | None = None,
               include_options: bool = True, only_graph_changing: bool = True, noise: NoiseModel | None = None,
-              rebaseline_every: int = 8) -> dict:
+              rebaseline_every: int = 8, confirm: bool = True) -> dict:
         base = self.reg.default_state() if base is None else frozenset(base)
         if noise is None:
             noise, _ = self.noise(model, base)
@@ -232,9 +232,23 @@ class Runner:
                 continue
             d = m.median_ms - ref
             same = bool(m0s) and bool(m0s[0].program_hash) and m.program_hash == m0s[0].program_hash
+            slower, faster = d > noise.tau and not same, d < -noise.tau and not same
+            confirm_note = ""
+            if (slower or faster) and confirm:
+                # the same AND rule as the judge: a verdict needs an independent second process that agrees
+                m2 = self.measure(model, st, rep=2)
+                if not m2.error:
+                    d2 = m2.median_ms - ref
+                    agree = (slower and d2 > noise.tau) or (faster and d2 < -noise.tau)
+                    confirm_note = f"second run {m2.median_ms:.3f} ms ({'agrees' if agree else 'disagrees'})"
+                    if agree:
+                        d = 0.5 * (d + d2)
+                    else:
+                        slower = faster = False
+                        d = d2 if abs(d2) < abs(d) else d
             rows.append({"switch": sid, "direction": "off" if sid in base else "on", "median_ms": m.median_ms,
-                         "delta_ms": d, "delta_pct": 100.0 * d / ref, "beyond_noise": abs(d) > noise.tau and not same,
-                         "slower": d > noise.tau and not same, "faster": d < -noise.tau and not same,
+                         "delta_ms": d, "delta_pct": 100.0 * d / ref, "beyond_noise": slower or faster,
+                         "slower": slower, "faster": faster, "confirmation": confirm_note,
                          "same_program": same, "kernel_count": m.kernel_count, "baseline_ms": ref,
                          "alloc_bytes": m.code.get("alloc_bytes"), "correct": m.correct})
         rows.sort(key=lambda r: -abs(r.get("delta_ms", 0)))
