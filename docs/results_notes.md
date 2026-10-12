@@ -108,3 +108,27 @@ were cross-checked instead by their second sessions (96.8% agreement, see above)
 ResNet-50 on the VM (same session): removing layout optimisation costs 16% (255 vs 220 ms), so on
 the Xeon that rewrite helps even for this model; the `conv_1x1_as_mm` + `normalization_pass` state
 is not slower than default.
+
+## Guards, MLP family (decompose_mm on decode-shaped matmuls), Mac, 2026-10-12
+
+Dataset: 161 configurations (M in 1..128, in 512..4096, hidden 1024..11008) with Inductor's CPU
+shape thresholds lifted, each labelled by a confirmed on/off pair: 107 harmful, 50 helpful, 4
+neutral. Decomposition is catastrophic at large M (up to 13x) and *helpful* (10-60% faster) for
+many M <= 2 shapes with large hidden sizes, exactly the region Inductor's hard-coded rule
+(M <= 1 and dims <= 2048) excludes, while that rule still lets through small-dimension M=1 cases
+that cost 2-4x.
+
+Grouped 5-fold cross-validation (held-out configuration slices):
+
+| guard | accuracy | harmful caught | false alarms | cost %/firing |
+|---|---|---|---|---|
+| Inductor hand-written rule | 0.63 | 0.94 | 0.98 | 14.8 |
+| decision tree (depth 4) | 0.95 | 0.95 | 0.06 | 1.3 |
+| gradient-boosted trees | 0.93 | 0.95 | 0.11 | 0.95 |
+| logistic regression | 0.91 | 0.89 | 0.04 | 6.0 |
+| Decisions API zero-shot | 0.66 | 0.99 | 1.00 | 20.6 |
+| Decisions API + 40 measured examples in context | 0.89 | 0.93 | 0.20 | 5.2 |
+
+Cost = mean % runtime lost per firing by following the guard (harmful allowed or helpful blocked);
+"always fire" would cost 341%. Zero-shot, the API calls everything harmful; with context it is a
+slow, expensive nearest-neighbour over our own data. Encoder (Laya) results pending CPU time.
