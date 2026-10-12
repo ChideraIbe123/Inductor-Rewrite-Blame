@@ -14,6 +14,17 @@ from .guard_encoder import QUESTION, serialize
 ENDPOINT = "https://api.openai.com/v1/decisions"
 
 
+def load_api_key() -> str | None:
+    """OPENAI_API_KEY from the environment, else the owner-only file ~/.openai_key (never in the repo)."""
+    key = os.environ.get("OPENAI_API_KEY")
+    if key:
+        return key.strip()
+    p = os.path.expanduser("~/.openai_key")
+    if os.path.exists(p):
+        return open(p).read().strip() or None
+    return None
+
+
 def build_request(row: dict, family: str, context_rows: list[dict] | None = None, model: str = "gpt-6-luna") -> dict:
     """Request body: a predicate question (probability that the firing is harmful) about the state.
     ``context_rows`` are serialised as labelled examples so the model can condition on measurements."""
@@ -28,9 +39,9 @@ def build_request(row: dict, family: str, context_rows: list[dict] | None = None
 
 def ask(body: dict, api_key: str | None = None, timeout: float = 30.0) -> float:
     """Return the probability the API assigns to the predicate. Raises if no key or on HTTP errors."""
-    key = api_key or os.environ.get("OPENAI_API_KEY")
+    key = api_key or load_api_key()
     if not key:
-        raise RuntimeError("OPENAI_API_KEY is not set")
+        raise RuntimeError("OPENAI_API_KEY is not set and ~/.openai_key does not exist")
     req = urllib.request.Request(ENDPOINT, data=json.dumps(body).encode(), method="POST",
                                  headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=timeout) as resp:

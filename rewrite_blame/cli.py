@@ -240,9 +240,9 @@ def cmd_guards_train(a):
                                      log=lambda *x: print(*x, file=sys.stderr, flush=True))
                 results.append(EvalResult(**d))
             elif kind in ("api", "api-context"):
-                import os
-                if not os.environ.get("OPENAI_API_KEY"):
-                    print(f"[guards-train] {kind}: OPENAI_API_KEY not set, skipping", file=sys.stderr)
+                from .guard_api import load_api_key
+                if not load_api_key():
+                    print(f"[guards-train] {kind}: no API key (OPENAI_API_KEY or ~/.openai_key), skipping", file=sys.stderr)
                     continue
                 from .guard_api import evaluate_api
                 from .guard_models import EvalResult
