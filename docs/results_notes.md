@@ -87,3 +87,24 @@ tau exceeds 5% (`repeat --exclude-session ... --max-tau-pct 5`).
 
 Reading: once sessions are measured cleanly, the harness's verdicts are stable day to day; what
 varies is the hardware's answer, which is the point of the project.
+
+## VM Qwen2.5-0.5B prefill: a retraction the method produced itself (2026-10-12)
+
+The VM sweep (single measurement per toggle, baseline measured once) showed the opt-in
+`normalization_pass` at +217% (886 -> 2810 ms) and five unrelated default-on switches at
+"-4.8% when off". Neither survived confirmation:
+
+* iterative attribution with six opt-in passes on: slow state 847 ms vs default 847 ms, nothing to blame;
+* confirmed single-switch check of `normalization_pass` alone: first run +5.9%, independent second
+  run disagreed, verdict "not reproduced";
+* "fast" state without node reordering and constant folding: 907 ms, i.e. 7% *slower* than
+  default (so those two rewrites help on the VM; the sweep's baseline had been measured during a
+  loaded minute).
+
+Consequence: sweeps now confirm every flagged row with an independent second run (the same AND
+rule as the judge) and mark rows whose second run disagrees as "unconfirmed". The Mac corpus rows
+were cross-checked instead by their second sessions (96.8% agreement, see above).
+
+ResNet-50 on the VM (same session): removing layout optimisation costs 16% (255 vs 220 ms), so on
+the Xeon that rewrite helps even for this model; the `conv_1x1_as_mm` + `normalization_pass` state
+is not slower than default.
