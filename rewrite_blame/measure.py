@@ -33,6 +33,8 @@ class Measurement:
     diff: dict = field(default_factory=dict)          # state relative to default: on_extra / off_defaults
     program_hash: str = ""                            # normalized hash of the generated program
     firings: list = field(default_factory=list)       # features of each rule firing (for guards)
+    guard_decisions: list = field(default_factory=list)   # decisions a guard bundle made during this compile
+    guarded: dict = field(default_factory=dict)       # switch id -> firings blocked by a guard
     timing: dict = field(default_factory=dict)        # summarize(samples) + samples
     eager_timing: dict = field(default_factory=dict)
     correct: bool | None = None
@@ -91,7 +93,7 @@ def _counters_snapshot() -> dict[str, int]:
 def measure(reg: Registry, model_name: str, state: Iterable[str], *, threads: int | None = None,
             warmup: int = 10, rounds: int = 5, iters: int = 10, time_it: bool = True,
             check_correct: bool = True, time_eager: bool = False, seed: int = 0,
-            dynamic: bool | None = False) -> Measurement:
+            dynamic: bool | None = False, guards=None) -> Measurement:
     """Run one configuration in *this* process. Prefer ``worker.run`` for isolation."""
     from torch._inductor import metrics
     from torch._inductor.utils import run_and_get_code
@@ -104,8 +106,19 @@ def measure(reg: Registry, model_name: str, state: Iterable[str], *, threads: in
                     threads=threads, torch_version=torch.__version__, timestamp=time.time(),
                     protocol={"warmup": warmup, "rounds": rounds, "iters": iters, "seed": seed, "dynamic": dynamic},
                     diff=state_diff(reg, st))
+    from . import live_guards
+    live_guards.reset()
+    apply.GUARDS = guards
+    apply.GUARD_CONTEXT.update({"x86": int("x86" in m.env), "threads": threads})
     try:
         model, inputs = models.build(model_name, seed=seed)
+        if guards is not None and "conv" in getattr(guards, "guards", {}) and "lowering/layout_optimization" in st:
+            lf = live_guards.model_features_conv(model, inputs, int("x86" in m.env), threads)
+            verdict = guards.predict_harmful("conv", lf) if lf else None
+            live_guards.DECISIONS.append({"switch": "lowering/layout_optimization", "family": "conv", "features": lf, "blocked": bool(verdict)})
+            if verdict:
+                st = frozenset(st - {"lowering/layout_optimization"})
+                m.protocol["guard_disabled_layout"] = True
         with torch.no_grad():
             eager_out = _flatten(model(*inputs)) if check_correct else None
             if time_eager:
@@ -145,6 +158,8 @@ def measure(reg: Registry, model_name: str, state: Iterable[str], *, threads: in
             m.suppressed = dict(apply.SUPPRESSED)
             m.graph_ops = dict(apply.GRAPH_OPS)
             m.firings = list(apply.FIRINGS)
+            m.guard_decisions = list(live_guards.DECISIONS)
+            m.guarded = dict(live_guards.GUARDED)
             # entries registered only during this compile would have been un-switchable: record them
             from .discover import discover as _rediscover
             n_before = len(reg)
@@ -174,4 +189,6 @@ def measure(reg: Registry, model_name: str, state: Iterable[str], *, threads: in
     except Exception as e:  # keep the record, report the failure
         import traceback
         m.error = f"{type(e).__name__}: {e}\n{traceback.format_exc()[-2000:]}"
+    finally:
+        apply.GUARDS = None
     return m

@@ -26,6 +26,9 @@ GRAPH_OPS: Counter = Counter()
 # data for the stretch goal (guards that predict whether a firing will hurt)
 FIRINGS: list = []
 MAX_FIRINGS = 500
+# a trained GuardBundle (see guard_models.py) consulted by the gate; None = no guards
+GUARDS = None
+GUARD_CONTEXT = {"x86": 0, "threads": 0}
 
 
 def match_features(match) -> dict:
@@ -73,12 +76,24 @@ class GatedExtraCheck:
                 SUPPRESSED[self.switch_id] += 1
             return False
         if ok:
+            feats = None
+            try:
+                feats = match_features(match)
+            except Exception:  # feature extraction must never break a compile
+                feats = None
+            if GUARDS is not None and feats is not None:
+                from . import live_guards
+                fam = live_guards.family_key(self.switch_id)
+                if fam is not None:
+                    lf = live_guards.live_features(fam, feats, GUARD_CONTEXT["x86"], GUARD_CONTEXT["threads"])
+                    verdict = GUARDS.predict_harmful(fam, lf) if lf else None
+                    live_guards.DECISIONS.append({"switch": self.switch_id, "family": fam, "features": lf, "blocked": bool(verdict)})
+                    if verdict:
+                        live_guards.GUARDED[self.switch_id] += 1
+                        return False                       # the guard predicts this firing would hurt
             FIRED[self.switch_id] += 1
             if len(FIRINGS) < MAX_FIRINGS:
-                try:
-                    FIRINGS.append({"switch": self.switch_id, **match_features(match)})
-                except Exception:  # feature extraction must never break a compile
-                    FIRINGS.append({"switch": self.switch_id})
+                FIRINGS.append({"switch": self.switch_id, **(feats or {})})
         return ok
 
     def __repr__(self) -> str:

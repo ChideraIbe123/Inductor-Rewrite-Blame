@@ -249,6 +249,34 @@ def cmd_guards_train(a):
         print(f"[guards-train] bundle with {sorted(bundle.guards)} saved to {bpath}", file=sys.stderr)
 
 
+def cmd_guards_eval(a):
+    """End-to-end: real models, stock vs guards added one family at a time."""
+    import math
+    r = _runner(a)
+    res = r.guards_eval(a.models, a.bundle, a.families, noise_runs=a.runs)
+    lines = [f"# Guards end-to-end on real models ({res['env']})", "", "| model | default ms | " + " | ".join(f"+{f}" for f in a.families) + " |",
+             "|---|---|" + "---|" * len(a.families)]
+    speedups = {f: [] for f in a.families}
+    for row in res["rows"]:
+        cells = []
+        for st in row["steps"]:
+            if "error" in st:
+                cells.append("error")
+                continue
+            cells.append(f"{st['delta_pct']:+.1f}% {st['verdict']} (blocked {st['blocked']})")
+            fam = st["guards"].split("+")[-1]
+            speedups[fam].append(st["delta_pct"])
+        lines.append(f"| {row['model']} | {row['default_ms']:.3f} | " + " | ".join(cells) + " |")
+    lines.append("")
+    for st_label in ["+".join(a.families[:i]) for i in range(1, len(a.families) + 1)]:
+        ds = [st["delta_pct"] for row in res["rows"] for st in row["steps"] if st.get("guards") == st_label and "error" not in st]
+        if ds:
+            gm = (math.exp(sum(math.log(1 + d / 100) for d in ds) / len(ds)) - 1) * 100
+            lines.append(f"- guards {st_label}: geometric-mean change {gm:+.2f}%, worst {max(ds):+.1f}%, best {min(ds):+.1f}% over {len(ds)} models")
+    text = "\n".join(lines) + "\n"
+    _write(a, res, text, default_name="guards_eval_e2e")
+
+
 def cmd_show(a):
     from .store import Store
     st = Store(a.store)
@@ -337,6 +365,10 @@ def main(argv=None) -> int:
     p.add_argument("--families", nargs="*"); p.add_argument("--kinds", nargs="*", default=["tree", "gbt", "logreg"])
     p.add_argument("--bundle-kind", default="tree"); p.add_argument("--threshold", type=float, default=0.5)
     p.add_argument("--folds", type=int, default=5); p.add_argument("--out"); p.add_argument("--bundle")
+
+    p = sub.add_parser("guards-eval", help="end-to-end: stock vs guards on real models, one family at a time"); p.set_defaults(fn=cmd_guards_eval)
+    p.add_argument("--models", nargs="+", required=True); p.add_argument("--bundle", default="results/guards.pkl")
+    p.add_argument("--families", nargs="*", default=["mlp", "conv", "attn"]); p.add_argument("--runs", type=int, default=7); p.add_argument("--out")
 
     p = sub.add_parser("show"); p.set_defaults(fn=cmd_show)
     p.add_argument("--model", default=""); p.add_argument("-n", type=int, default=40)
