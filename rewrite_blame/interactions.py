@@ -65,6 +65,19 @@ def pair_scan(base_state: Iterable[str], ids: Iterable[str], measure_ms: Callabl
     baselines: list[float] = [meas(base)]; n += 1
     brep = [100]
     drift_events = 0
+    # Sanity check before spending hours: a fresh baseline run must agree with the session's
+    # reference. If two fresh runs agree with each other but not with the reference, the reference
+    # (measured earlier) is stale and the fresh level is used; if nothing agrees, abort.
+    brep[0] += 1
+    b1 = meas(base, brep[0]); n += 1
+    if abs(b1 - baselines[0]) > tau:
+        brep[0] += 1
+        b2 = meas(base, brep[0]); n += 1
+        if abs(b2 - b1) <= tau:
+            baselines = [b1, b2]
+        elif abs(b2 - baselines[0]) > tau:
+            raise RuntimeError(f"pair scan aborted: baseline runs disagree ({baselines[0]:.3f}, {b1:.3f}, {b2:.3f} ms, tau {tau:.3f}); "
+                               "the machine is unstable or the noise reference is stale")
 
     good_baselines: list[float] = [baselines[0]]
     pending: list[float] = []          # deviating baseline runs not yet accepted as a new level
@@ -100,12 +113,14 @@ def pair_scan(base_state: Iterable[str], ids: Iterable[str], measure_ms: Callabl
 
     import math
     singles: dict[str, float] = {}
+    singles_abs: dict[str, float] = {}
     unmeasured: list[str] = []
     for a in ids:
         v = meas(toggled(base, a)); n += 1
         if v != v:                      # NaN: the configuration could not be measured
             unmeasured.append(a)
             continue
+        singles_abs[a] = v
         singles[a] = v - running_base()
         if n % rebaseline_every == 0:
             fresh_baseline()
@@ -163,6 +178,7 @@ def pair_scan(base_state: Iterable[str], ids: Iterable[str], measure_ms: Callabl
         elif flag_mask:
             kind = "masking"
         row = {"a": a, "b": b, "delta_ms": d, "delta_a": singles[a], "delta_b": singles[b], "interaction_ms": extra,
+               "abs_ms": (d + running_base()) if d is not None else None, "abs_a": singles_abs[a], "abs_b": singles_abs[b],
                "superadditive": flag_super, "masking": flag_mask, "kind": kind,
                "pair_slow": d is not None and d > tau and not same_program.get(frozenset(st)),
                "same_program": bool(same_program.get(frozenset(st))), "note": note}
@@ -171,10 +187,38 @@ def pair_scan(base_state: Iterable[str], ids: Iterable[str], measure_ms: Callabl
             superadd.append(row)
         if flag_mask:
             masking.append(row)
+    # Final pass: the running baseline may have moved during the scan (level shifts). Re-express
+    # every delta against the consolidated baseline (median of all accepted baseline runs) so
+    # singles measured early and pairs measured late are on the same footing, and re-derive flags.
+    final_base = sorted(good_baselines)[len(good_baselines) // 2]
+    for a in singles:
+        singles[a] = singles_abs[a] - final_base
+    superadd, masking = [], []
+    for r in rows:
+        if r.get("abs_ms") is None:
+            continue
+        r["delta_a"], r["delta_b"] = singles[r["a"]], singles[r["b"]]
+        r["delta_ms"] = r["abs_ms"] - final_base
+        r["interaction_ms"] = r["delta_ms"] - r["delta_a"] - r["delta_b"]
+        confirmed = (not confirm) or ("confirmed" in r.get("note", ""))
+        if r.get("same_program"):
+            r["superadditive"] = r["masking"] = False
+        else:
+            r["superadditive"] = confirmed and r["interaction_ms"] > tau
+            r["masking"] = confirmed and r["delta_ms"] < max(r["delta_a"], r["delta_b"]) - tau
+        r["pair_slow"] = r["delta_ms"] > tau and not r.get("same_program")
+        if r["superadditive"]:
+            r["kind"] = "redundant gains" if (r["delta_a"] < -tau or r["delta_b"] < -tau) and r["delta_ms"] >= min(r["delta_a"], r["delta_b"]) - tau else "compounding costs"
+            superadd.append(r)
+        elif r["masking"]:
+            r["kind"] = "masking"
+            masking.append(r)
+        else:
+            r["kind"] = ""
     rows.sort(key=lambda r: -abs(r["interaction_ms"]) if r.get("delta_ms") is not None else 0.0)
     superadd.sort(key=lambda r: -r["interaction_ms"])
     masking.sort(key=lambda r: r["interaction_ms"])
-    res = PairScanResult(baselines[0], tau, singles, rows, superadd, masking, n)
+    res = PairScanResult(final_base, tau, singles, rows, superadd, masking, n)
     res.baselines = baselines
     res.drift_events = drift_events
     res.level_shifts = level_shifts

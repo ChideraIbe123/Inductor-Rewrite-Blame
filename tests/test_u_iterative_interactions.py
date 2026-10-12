@@ -75,7 +75,7 @@ def test_pair_scan_flags_superadditive_and_masking():
         v += sum(val for k, val in pairs.items() if k <= state)
         return v
     res = pair_scan(frozenset(), ["a", "b", "c", "d"], measure, tau=1.0)
-    assert res.measurements == 1 + 4 + 6 + 2 + 2  # two flagged pairs: an interleaved baseline + a confirmation run each
+    assert res.measurements == 1 + 1 + 4 + 6 + 2 + 2  # start-up baseline check, singles, pairs, two flagged pairs: baseline + confirmation each
     assert res.drift_events == 0 and len(res.baselines) == 3
     assert res.superadditive[0]["kind"] == "compounding costs"
     assert res.singles == {"a": 2.0, "b": 0.0, "c": 3.0, "d": 0.0}
@@ -92,7 +92,7 @@ def test_pair_scan_max_pairs_and_custom_toggle():
         calls.append(state)
         return 1.0
     res = pair_scan({"x"}, ["x", "y", "z"], measure, tau=0.1, max_pairs=1)
-    assert res.measurements == 1 + 3 + 1
+    assert res.measurements == 1 + 1 + 3 + 1
     # toggling "x" on a base that has it turns it off
     assert frozenset() in calls
 
@@ -194,8 +194,35 @@ def test_pair_scan_labels_redundant_gains_and_nulls_disturbed_pairs():
         st = frozenset(state)
         if st == frozenset() and rep >= 100:
             calls["base"] += 1
-            return (20.0 + 5.0 * calls["base"], False)   # every fresh baseline is disturbed, and they disagree with each other
+            if calls["base"] <= 1:
+                return (10.0, False)                       # the start-up check passes
+            return (20.0 + 5.0 * calls["base"], False)   # later fresh baselines are disturbed and disagree with each other
         return (15.0 if st == frozenset({"a", "b"}) else 10.0, False)
     res2 = pair_scan(frozenset(), ["a", "b"], measure2, tau=0.5)
     assert res2.pairs[0]["delta_ms"] is None and "disturbed" in res2.pairs[0]["note"]
     assert res2.drift_events == 2 and res2.superadditive == []
+
+
+def test_pair_scan_aborts_when_baselines_disagree():
+    import pytest
+    seq = iter([10.0, 14.0, 18.0])
+    def measure(state, rep=0):
+        if not state:
+            return (next(seq), False)
+        return (10.0, False)
+    with pytest.raises(RuntimeError):
+        pair_scan(frozenset(), ["a", "b"], measure, tau=0.5)
+
+
+def test_pair_scan_uses_fresh_level_when_reference_is_stale():
+    # the session reference (first value) is stale at 16 ms; two fresh baselines agree at 1 ms
+    seq = iter([1.0, 1.0])
+    def measure(state, rep=0):
+        if not state and rep >= 100:
+            return (next(seq), False)
+        if not state:
+            return (16.0, False)
+        return (1.2 if state == frozenset({"a"}) else 1.0, False)
+    res = pair_scan(frozenset(), ["a", "b"], measure, tau=0.1, confirm=False)
+    assert abs(res.base_ms - 1.0) < 1e-9
+    assert abs(res.singles["a"] - 0.2) < 1e-9 and abs(res.singles["b"]) < 1e-9
