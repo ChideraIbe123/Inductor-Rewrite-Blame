@@ -15,7 +15,7 @@ from typing import Iterable
 
 from .guard_models import FEATURES
 
-DEFAULT_CHECKPOINT = "convai-innovations/laya"   # override with --checkpoint; falls back to answerdotai/ModernBERT-base if unavailable
+DEFAULT_CHECKPOINT = "convaiinnovations/laya"   # official Laya English checkpoint (ModernBERT-large, Apache 2.0); any HF seq-classification id works
 
 QUESTION = {
     "attn": "Will fusing this attention pattern into one SDPA kernel make the model slower on this machine?",
