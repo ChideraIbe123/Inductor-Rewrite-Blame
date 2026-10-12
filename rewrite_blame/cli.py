@@ -250,6 +250,9 @@ def cmd_guards_train(a):
                 from .guard_models import EvalResult
                 d = evaluate_api(rows, fam, with_context=(kind == "api-context"), log=lambda *x: print(*x, file=sys.stderr, flush=True))
                 d.pop("probs", None)
+                refusals = d.pop("refusals", 0)
+                if refusals:
+                    d["model"] += f" ({refusals} refusals)"
                 results.append(EvalResult(**d))
         clf, names = fit_all(rows, fam, a.bundle_kind)
         if a.bundle_kind == "tree":

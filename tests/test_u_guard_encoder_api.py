@@ -26,6 +26,7 @@ def test_parse_probability_variants():
     assert parse_probability({"decisions": [{"id": "harmful", "probability": 0.8}]}) == 0.8
     assert parse_probability({"answers": [{"value": 0.2}]}) == 0.2
     assert parse_probability({"probability": 0.5}) == 0.5
+    assert parse_probability({"answers": [{"type": "refusal", "name": "harmful"}]}) is None
     import pytest
     with pytest.raises(ValueError):
         parse_probability({"nothing": 1})
