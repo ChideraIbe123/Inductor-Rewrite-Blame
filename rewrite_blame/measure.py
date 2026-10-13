@@ -104,7 +104,8 @@ def measure(reg: Registry, model_name: str, state: Iterable[str], *, threads: in
     st = reg.validate_state(state)
     m = Measurement(model=model_name, state=sorted(st), state_hash=state_hash(st), env=env.fingerprint(threads),
                     threads=threads, torch_version=torch.__version__, timestamp=time.time(),
-                    protocol={"warmup": warmup, "rounds": rounds, "iters": iters, "seed": seed, "dynamic": dynamic},
+                    protocol={"warmup": warmup, "rounds": rounds, "iters": iters, "seed": seed, "dynamic": dynamic,
+                              "power": env.power_state()},
                     diff=state_diff(reg, st))
     from . import live_guards
     live_guards.reset()

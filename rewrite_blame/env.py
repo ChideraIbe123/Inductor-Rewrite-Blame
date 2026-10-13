@@ -71,3 +71,30 @@ def inductor_cache_dir(root: str | None = None) -> str:
     d = root or os.environ.get("TORCHINDUCTOR_CACHE_DIR") or os.path.join(os.getcwd(), ".inductor_cache")
     os.makedirs(d, exist_ok=True)
     return d
+
+
+def power_state() -> dict:
+    """Battery/AC and low-power-mode state (macOS) so a session's measurements carry the power budget
+    they were taken under; empty on other platforms."""
+    out: dict = {}
+    if sys.platform != "darwin":
+        return out
+    try:
+        txt = subprocess.check_output(["pmset", "-g", "batt"], text=True, timeout=5)
+        out["ac_power"] = "AC Power" in txt
+        import re
+        m = re.search(r"(\d+)%", txt)
+        if m:
+            out["battery_pct"] = int(m.group(1))
+        out["charging"] = "charging" in txt and "discharging" not in txt
+    except Exception:
+        pass
+    try:
+        txt = subprocess.check_output(["pmset", "-g"], text=True, timeout=5)
+        import re
+        m = re.search(r"lowpowermode\s+(\d)", txt)
+        if m:
+            out["low_power_mode"] = bool(int(m.group(1)))
+    except Exception:
+        pass
+    return out
