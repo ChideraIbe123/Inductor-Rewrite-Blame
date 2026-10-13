@@ -26,17 +26,24 @@ case $ph in
     $PY -m rewrite_blame --quiet --session "$S" sweep --model "$M" --noise-file "results/noise_$M.json" --out "results/sweep_$M.json" 2>&1 | grep -v "$F" | tail -3
   done ;;
 2)
-  for M in $MODELS; do
-    [ -f "results/sweep_$M.json" ] || continue
-    if $PY - "results/sweep_$M.json" <<'PY'
-import json, sys; d = json.load(open(sys.argv[1])); rows = d.get("rows", d if isinstance(d, list) else [])
-sys.exit(0 if any(r.get("verdict") == "slower" for r in rows) else 1)
-PY
-    then
-      echo "=== $(date) attribute-all $M"
-      $PY -m rewrite_blame --quiet --session "$S" attribute-all --model "$M" --out "results/attribute_all_$M.json" 2>&1 | grep -v "$F" | tail -6
-    fi
-  done ;;
+  # the same fast/slow pairs as the CPU case studies, so the three machines can be compared
+  echo "=== $(date) attribute-all cat_slice_cat: default vs all opt-in passes on"
+  $PY -m rewrite_blame --quiet --session "$S" attribute-all --model cat_slice_cat --fast default --slow "default~optimus" --out results/attribution_all_cat_slice_cat.json 2>&1 | grep -v "$F" | tail -12
+  echo "=== $(date) attribute-all resnet18: default vs six flags off"
+  $PY -m rewrite_blame --quiet --session "$S" attribute-all --model resnet18 --fast default \
+    --slow "default-lowering/layout_optimization-sched/inplace_buffers-master/post_grad_passes-joint/joint_graph.early_patterns/pointless_view-sched/reorder_for_peak_memory-sched/max_fusion_size" \
+    --out results/attribution_all_resnet18.json 2>&1 | grep -v "$F" | tail -12
+  echo "=== $(date) attribute-all decode_mlp: default vs opt-in passes incl. decompose_mm_wide"
+  $PY -m rewrite_blame --quiet --session "$S" attribute-all --model decode_mlp --fast default --slow "default~optimus" --out results/attribution_all_decode_mlp.json 2>&1 | grep -v "$F" | tail -12
+  echo "=== $(date) attribute-all smollm_135m_decode: default vs opt-in passes"
+  $PY -m rewrite_blame --quiet --session "$S" attribute-all --model smollm_135m_decode --fast default --slow "default~optimus" --out results/attribution_all_smollm_135m_decode.json 2>&1 | grep -v "$F" | tail -12
+  echo "=== $(date) attribute bert_base_eagerattn: fused attention (default) vs all GPU-side attention rules off"
+  $PY -m rewrite_blame --quiet --session "$S" attribute --model bert_base_eagerattn --fast default --slow "default-*_sfdp_pattern_*" --out results/attribution_bert_base_eagerattn.json 2>&1 | grep -v "$F" | tail -12
+  echo "=== $(date) attribute mobilenet_v3_small: default vs layout optimisation off"
+  $PY -m rewrite_blame --quiet --session "$S" attribute --model mobilenet_v3_small --fast default --slow "default-lowering/layout_optimization-sched/inplace_buffers-sched/max_fusion_size" --out results/attribution_mobilenet_v3_small.json 2>&1 | grep -v "$F" | tail -12
+  echo "=== $(date) interactions attention_block (pairs over graph-changing switches)"
+  $PY -m rewrite_blame --quiet --session "$S" interactions --model attention_block --out results/interactions_attention_block.json 2>&1 | grep -v "$F" | tail -12
+  ;;
 3)
   for FAM in conv attn; do
     echo "=== $(date) dataset $FAM"
