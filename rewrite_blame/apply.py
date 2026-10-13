@@ -28,7 +28,7 @@ FIRINGS: list = []
 MAX_FIRINGS = 500
 # a trained GuardBundle (see guard_models.py) consulted by the gate; None = no guards
 GUARDS = None
-GUARD_CONTEXT = {"x86": 0, "threads": 0}
+GUARD_CONTEXT = {"x86": 0, "cuda": 0, "threads": 0}
 
 
 def match_features(match) -> dict:
@@ -86,6 +86,8 @@ class GatedExtraCheck:
                 fam = live_guards.family_key(self.switch_id)
                 if fam is not None:
                     lf = live_guards.live_features(fam, feats, GUARD_CONTEXT["x86"], GUARD_CONTEXT["threads"])
+                    if lf:
+                        lf["cuda"] = GUARD_CONTEXT.get("cuda", 0)
                     verdict = GUARDS.predict_harmful(fam, lf) if lf else None
                     live_guards.DECISIONS.append({"switch": self.switch_id, "family": fam, "features": lf, "blocked": bool(verdict)})
                     if verdict:

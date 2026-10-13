@@ -36,7 +36,7 @@ def table_env(rows, colspec, header, caption, label="", size="small", pos="h"):
 
 os.makedirs(OUT, exist_ok=True)
 FAMILY = {"mlp": "decode MLP (decompose\\_mm)", "conv": "conv layout (channels-last)", "attn": "attention fusion (SDPA)"}
-MACHINE = {"results": "Apple M4 Pro", "results/vm": "Xeon (x86, oneDNN)"}
+MACHINE = {"results": "Apple M4 Pro", "results/vm": "Xeon (x86, oneDNN)", "results/gpu": "NVIDIA A40 (CUDA, Triton)"}
 MODEL = {"inductor-heuristic": "Inductor's rule", "tree": "decision tree", "gbt": "gradient-boosted trees",
          "logreg": "logistic regression", "decisions-api+context": "Decisions API (+context)", "decisions-api": "Decisions API",
          "encoder": "Laya encoder (fine-tuned)"}

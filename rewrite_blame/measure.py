@@ -118,11 +118,14 @@ def measure(reg: Registry, model_name: str, state: Iterable[str], *, threads: in
     from . import live_guards
     live_guards.reset()
     apply.GUARDS = guards
-    apply.GUARD_CONTEXT.update({"x86": int("x86" in m.env), "threads": threads})
+    is_cuda = "cuda" in m.env
+    apply.GUARD_CONTEXT.update({"x86": int("x86" in m.env and not is_cuda), "cuda": int(is_cuda), "threads": threads})
     try:
         model, inputs = models.build(model_name, seed=seed)
         if guards is not None and "conv" in getattr(guards, "guards", {}) and "lowering/layout_optimization" in st:
-            lf = live_guards.model_features_conv(model, inputs, int("x86" in m.env), threads)
+            lf = live_guards.model_features_conv(model, inputs, int("x86" in m.env and not is_cuda), threads)
+            if lf:
+                lf["cuda"] = int(is_cuda)
             verdict = guards.predict_harmful("conv", lf) if lf else None
             live_guards.DECISIONS.append({"switch": "lowering/layout_optimization", "family": "conv", "features": lf, "blocked": bool(verdict)})
             if verdict:

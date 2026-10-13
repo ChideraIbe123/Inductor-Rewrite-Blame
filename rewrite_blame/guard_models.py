@@ -27,9 +27,9 @@ LABELS = ("harmful", "neutral", "helpful")
 
 # per family: the configuration features used (cfg_* columns) plus shared machine features
 FEATURES = {
-    "attn": ["cfg_B", "cfg_T", "cfg_H", "cfg_D", "cfg_tokens", "cfg_qk_numel", "x86", "threads"],
-    "conv": ["cfg_C", "cfg_R", "cfg_K", "cfg_L", "cfg_depthwise", "cfg_act_numel", "x86", "threads"],
-    "mlp": ["cfg_M", "cfg_I", "cfg_Hd", "cfg_weight_numel", "cfg_flops_per_byte", "x86", "threads"],
+    "attn": ["cfg_B", "cfg_T", "cfg_H", "cfg_D", "cfg_tokens", "cfg_qk_numel", "x86", "cuda", "threads"],
+    "conv": ["cfg_C", "cfg_R", "cfg_K", "cfg_L", "cfg_depthwise", "cfg_act_numel", "x86", "cuda", "threads"],
+    "mlp": ["cfg_M", "cfg_I", "cfg_Hd", "cfg_weight_numel", "cfg_flops_per_byte", "x86", "cuda", "threads"],
 }
 
 
