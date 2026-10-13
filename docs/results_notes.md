@@ -196,3 +196,22 @@ interleaved baselines, none disturbed): exactly one super-additive pair survives
 `master/pattern_matcher` off + `batch_tanh` on: +11.6 ms (12x) together, ~0 alone. The earlier
 scans' hundreds of flags were artefacts of a stale reference, now prevented by the start-up
 reference check and consolidated-baseline re-expression.
+
+## Guards trained on both machines' data (2026-10-13, VM attention 202/414 rows)
+
+Grouped cross-validation (whole configuration slices held out), cost = mean % of runtime lost by
+following the guard's decisions per firing. The hand-written Inductor rule is the baseline where one exists.
+
+| family | rows | harmful | Inductor rule cost | tree | GBT | logistic | always-fire cost |
+|---|---|---|---|---|---|---|---|
+| decode MLP | 321 | 254 | 7.67 | 2.74 | **1.39** | 4.42 | 261 |
+| conv layout | 363 | 151 | 176 (no rule) | 58.3 | **1.20** | 3.22 | 176 |
+| attention | 616 | 56 | 1.57 (no rule) | 1.70 | **0.68** | 1.83 | 1.57 |
+
+Once both machines are mixed into one dataset a depth-4 tree is no longer enough for the conv family
+(it cannot carve the two machines' opposite behaviours apart with four splits), while gradient-boosted
+trees stay at about 1% lost per firing on all three families. `guards-train` therefore now defaults to
+`--bundle-kind best`: per family it puts the kind with the lowest cross-validated cost into the live
+bundle (`results/guards_combined.pkl` = GBT for all three families). The attention guard is the only
+one that beats "always fire" by less than a factor of two (0.68 vs 1.57), because only 9% of the
+attention firings are harmful and they are mostly on the Xeon.
