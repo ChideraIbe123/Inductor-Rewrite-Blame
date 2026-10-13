@@ -253,3 +253,25 @@ the common set.
 - ResNet-18 (2.10 ms, tau 1.0%): **layout optimisation OFF is 9.4% faster** (confirmed, second run agrees)
   and freezing ON is 12.0% faster (confirmed). On both CPUs the layout optimisation *helped* ResNet-18,
   so this is the third sign flip of that rule and the first on the GPU. Noise/verify/sweep took 16 min.
+
+## VM dataset complete and x86 end-to-end guards (2026-10-13 evening)
+
+VM attention family finished: 419 rows, 93 harmful / 127 helpful / 199 neutral (Mac: 9 / 386 / 19 of 414).
+Combined two-CPU dataset: 1,516 rows. Grouped cross-validation, cost in % runtime lost per firing:
+
+| family | rows | GBT cost | best other | always-fire |
+|---|---|---|---|---|
+| decode MLP | 320 | 0.98 | tree 6.3 | 262 |
+| conv layout | 363 | 1.20 | logreg 3.2 | 176 |
+| attention | 833 | 0.58 | tree 1.8 | 1.74 |
+
+End-to-end on the Xeon (11 real models, stock base, all three guards): every row "same" within tau and
+no firing blocked. That is the correct outcome on this machine: with the current x86 data the guards
+judge BERT's attention firings (B=8, T=128, H=12, D=64, rule 28) not harmful, and the latest VM sweep
+agrees (rule 28 is 2.6% *helpful* on BERT in session 2026-10-12; the midterm's 8% loss came from a warm
+session and was retracted). Channels-last is helpful on the Xeon, so the layout guard lets it through.
+
+Matmul guard with the decomposition pass enabled on the Xeon: gpt2_decode -73.4% (49 firings blocked),
+qwen2_0_5b_decode -2.9% (73 blocked), smollm decode +0.1%, decode_mlp +6.9% unconfirmed; geometric mean
+-27%. Together with the Mac (-46%), the guard removes most of the damage of the opt-in pass on both CPUs
+while never confirmed slower.
