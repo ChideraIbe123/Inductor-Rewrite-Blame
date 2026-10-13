@@ -54,11 +54,30 @@ def names(family: str | None = None, size: str | None = None) -> list[str]:
     return out
 
 
+def to_device(obj, device):
+    """Move every tensor inside a (possibly nested) tuple/list/dict of inputs to *device*."""
+    if isinstance(obj, torch.Tensor):
+        return obj.to(device)
+    if isinstance(obj, tuple):
+        return tuple(to_device(o, device) for o in obj)
+    if isinstance(obj, list):
+        return [to_device(o, device) for o in obj]
+    if isinstance(obj, dict):
+        return {k: to_device(v, device) for k, v in obj.items()}
+    return obj
+
+
 def build(name: str, seed: int = 0) -> tuple[torch.nn.Module, tuple[Any, ...]]:
+    """Build a model and its example inputs on the measurement device (``REWRITE_BLAME_DEVICE``, default cpu)."""
+    from .. import env
     spec = get(name)
     torch.manual_seed(seed)
     model, inputs = spec.build()
     model.eval()
+    if env.is_cuda():
+        dev = env.device()
+        model = model.to(dev)
+        inputs = to_device(inputs, dev)
     return model, inputs
 
 

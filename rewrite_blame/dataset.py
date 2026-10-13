@@ -83,7 +83,7 @@ def collect(runner: Runner, family: str, names: list[str], out_path: Path, tau_p
         feats = firing_features(m_on.firings, next(iter(fired), "")) if fired else None
         row = {
             "family": family, "rule_family": spec["family"], "model": name, "env": runner.env, "session": runner.cfg.session_tag,
-            "x86": int("x86" in runner.env), "threads": runner.threads,
+            "x86": int("x86" in runner.env and "cuda" not in runner.env), "cuda": int("cuda" in runner.env), "threads": runner.threads,
             **{f"cfg_{k}": v for k, v in sweeps.config_of(name).items()},
             "ms_on": m_on.median_ms, "ms_off": m_off.median_ms, "ratio": ratios[0],
             "ratios": ratios, "tau_pct": tau_pct, "label": label, "confirmed": confirmed,

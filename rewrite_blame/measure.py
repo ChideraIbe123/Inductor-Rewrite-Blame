@@ -72,15 +72,23 @@ def _flatten(out) -> list[torch.Tensor]:
     return []
 
 
+def _sync():
+    """Wait for outstanding GPU work so wall-clock timing covers the kernels, not just their launch."""
+    if env.is_cuda():
+        torch.cuda.synchronize(env.device())
+
+
 def _time_fn(fn, inputs, warmup: int, rounds: int, iters: int) -> list[float]:
     with torch.no_grad():
         for _ in range(warmup):
             fn(*inputs)
+        _sync()
         samples = []
         for _ in range(rounds):
             for _ in range(iters):
                 t0 = time.perf_counter_ns()
                 fn(*inputs)
+                _sync()
                 samples.append((time.perf_counter_ns() - t0) / 1e6)
     return samples
 

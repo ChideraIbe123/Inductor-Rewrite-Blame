@@ -22,6 +22,30 @@ def cpu_brand() -> str:
     return platform.processor() or "unknown-cpu"
 
 
+def device_name() -> str:
+    """Target device for every measurement: REWRITE_BLAME_DEVICE (cpu | cuda | cuda:N), default cpu."""
+    return os.environ.get("REWRITE_BLAME_DEVICE", "cpu")
+
+
+def is_cuda() -> bool:
+    return device_name().startswith("cuda")
+
+
+def device():
+    import torch
+    return torch.device(device_name())
+
+
+def gpu_brand() -> str:
+    try:
+        import torch
+        if torch.cuda.is_available():
+            return torch.cuda.get_device_name(device())
+    except Exception:
+        pass
+    return "unknown-gpu"
+
+
 def default_threads() -> int:
     env = os.environ.get("REWRITE_BLAME_THREADS")
     if env:
@@ -42,6 +66,8 @@ def machine_id() -> str:
     env = os.environ.get("REWRITE_BLAME_MACHINE")
     if env:
         return env
+    if is_cuda():
+        return f"{gpu_brand().replace('|', '/')} cuda"
     brand = cpu_brand().replace("|", "/")
     brand = " ".join(brand.replace("(R)", "").replace("(TM)", "").replace("CPU", "").split())
     return f"{brand} {platform.machine()}"
@@ -60,6 +86,8 @@ def describe(threads: int) -> dict:
         "machine": platform.machine(),
         "cpu": cpu_brand(),
         "cpu_count": os.cpu_count(),
+        "device": device_name(),
+        "gpu": gpu_brand() if is_cuda() else None,
         "threads": threads,
         "torch": torch.__version__,
         "python": sys.version.split()[0],

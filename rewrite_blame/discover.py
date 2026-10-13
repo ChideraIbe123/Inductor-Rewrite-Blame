@@ -68,9 +68,11 @@ def warmup_compile(freezing_too: bool = True) -> list[str]:
     """Trigger Inductor's lazy pattern registration via real (tiny) compiles. Returns what ran."""
     import torch._inductor.config as cfg
     ran = []
-    net = _WarmupNet().eval()
-    x = torch.randn(1, 8, 16)
-    img = torch.randn(1, 4, 8, 8)
+    from . import env
+    dev = env.device()
+    net = _WarmupNet().eval().to(dev)
+    x = torch.randn(1, 8, 16, device=dev)
+    img = torch.randn(1, 4, 8, 8, device=dev)
     prev = torch._dynamo.config.cache_size_limit
     try:
         with torch.no_grad():
