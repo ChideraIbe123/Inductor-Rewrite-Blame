@@ -177,3 +177,22 @@ by the two-run rule against each model's noise threshold (results/guards_eval_e2
 The night session ran on a 33% battery with a reduced power budget: small decode models measured
 2-3x slower than usual with wide noise; those rows (and the matmul-guard world) are re-measured
 in a plugged-in daytime session.
+
+## VM dataset (x86, oneDNN) as of 2026-10-13 (attention family partial, 202/414)
+
+| family | rows | harmful | helpful | neutral | Mac for comparison |
+|---|---|---|---|---|---|
+| decode MLP | 160 | 147 | 10 | 3 | 106 / 48 / 6 |
+| conv (channels-last) | 200 | 24 | 124 | 52 | 127 / 20 / 16 |
+| attention fusion | 202 | 47 | 70 | 85 | 9 / 386 / 19 |
+
+The two machines are near mirror images: decomposition is almost always harmful on the Xeon,
+channels-last is mostly helpful there (oneDNN) and mostly harmful on the Mac, and attention fusion
+is harmful in a quarter of the x86 configurations versus 2% on the Mac. This is why the guards
+carry the machine as a feature and are trained on both machines' data.
+
+Corrected pair scan on the VM (cat/slice toy, 43 switches, 903 pairs, 1,183 measurements, 144
+interleaved baselines, none disturbed): exactly one super-additive pair survives confirmation,
+`master/pattern_matcher` off + `batch_tanh` on: +11.6 ms (12x) together, ~0 alone. The earlier
+scans' hundreds of flags were artefacts of a stale reference, now prevented by the start-up
+reference check and consolidated-baseline re-expression.
