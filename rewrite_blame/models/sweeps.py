@@ -133,12 +133,15 @@ def grid(family: str, level: str = "full") -> list[str]:
     if family == "attn":
         Bs, Ts, Hs, Ds = ([1, 4], [32, 128, 512], [4, 12], [64]) if level == "small" else \
                          ([1, 2, 4, 8], [16, 32, 64, 128, 256, 512, 1024], [1, 4, 8, 12, 16], [32, 64, 128])
-        names = [f"sweep_attn_B{B}_T{T}_H{H}_D{D}" for B, T, H, D in itertools.product(Bs, Ts, Hs, Ds)]
+        # cap the attention-score tensor (B*H*T*T elements, fp32) at 64M elements so the largest
+        # configurations do not dominate the collection time
+        names = [f"sweep_attn_B{B}_T{T}_H{H}_D{D}" for B, T, H, D in itertools.product(Bs, Ts, Hs, Ds) if B * H * T * T <= 64 * 1024 * 1024]
     elif family == "conv":
         Cs, Rs, Ks, Ls, kinds = ([32, 128], [28, 56], [3], [2], ["dw", "dense"]) if level == "small" else \
                                 ([16, 32, 64, 128, 256], [14, 28, 56, 112], [1, 3, 5], [1, 3], ["dw", "dense"])
+        # cap the activation (4*C*R*R) * layers * kernel area so the largest configurations stay minutes, not tens of minutes
         names = [f"sweep_conv_C{C}_R{R}_K{K}_L{L}_{k}" for C, R, K, L, k in itertools.product(Cs, Rs, Ks, Ls, kinds)
-                 if not (k == "dense" and K == 1)]
+                 if not (k == "dense" and K == 1) and 4 * C * R * R * L * K * K <= 4 * 256 * 56 * 56 * 3 * 9]
     elif family == "mlp":
         Ms, Is, Hds = ([1, 8], [1024], [2048, 8192]) if level == "small" else \
                       ([1, 2, 4, 8, 16, 32, 64, 128], [512, 1024, 2048, 4096], [1024, 2048, 4096, 8192, 11008])
