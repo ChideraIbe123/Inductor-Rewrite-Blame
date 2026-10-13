@@ -238,3 +238,18 @@ of a user who turned the opt-in pass on):
 
 Geometric mean -46% over five models, none slower. The guard blocks exactly the decompositions the
 attribution runs had blamed (decompose_mm on decode-shaped matmuls) and lets the rest through.
+
+## First GPU results (NVIDIA A40, RunPod, torch 2.14.1+cu126, session 2026-10-13-gpu)
+
+The harness runs unchanged on the Triton backend (device chosen by `REWRITE_BLAME_DEVICE=cuda`, timing
+synchronised on the stream). The GPU build registers 398 switches (355 pattern rules): the CUDA-only
+rules (pad_mm, unfuse_bias_add_to_pointwise, _fuse_addcdiv_to_fma, the half-precision sfdp variants) join
+the common set.
+
+- Toy models run in 0.15-0.27 ms on the A40, which is launch overhead; their noise thresholds are 5-20%
+  and no toy switch is confirmed in either direction. The GPU story has to come from the real models.
+- Toy attention block: the sfdp rules never match on CUDA; `div_softmax_pattern` and
+  `unfuse_bias_add_to_pointwise` (GPU-only) fire instead. Six CPU-specific planted tests are now @cpu_only.
+- ResNet-18 (2.10 ms, tau 1.0%): **layout optimisation OFF is 9.4% faster** (confirmed, second run agrees)
+  and freezing ON is 12.0% faster (confirmed). On both CPUs the layout optimisation *helped* ResNet-18,
+  so this is the third sign flip of that rule and the first on the GPU. Noise/verify/sweep took 16 min.
