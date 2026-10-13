@@ -275,8 +275,9 @@ def cmd_guards_eval(a):
     """End-to-end: real models, stock vs guards added one family at a time."""
     import math
     r = _runner(a)
-    res = r.guards_eval(a.models, a.bundle, a.families, noise_runs=a.runs)
-    lines = [f"# Guards end-to-end on real models ({res['env']})", "", "| model | default ms | " + " | ".join(f"+{f}" for f in a.families) + " |",
+    base = parse_state_spec(r.reg, a.base_state) if a.base_state else None
+    res = r.guards_eval(a.models, a.bundle, a.families, noise_runs=a.runs, base=base)
+    lines = [f"# Guards end-to-end on real models ({res['env']})", f"base state: `{a.base_state or 'default'}`", "", "| model | base ms | " + " | ".join(f"+{f}" for f in a.families) + " |",
              "|---|---|" + "---|" * len(a.families)]
     speedups = {f: [] for f in a.families}
     for row in res["rows"]:
@@ -392,6 +393,7 @@ def main(argv=None) -> int:
     p = sub.add_parser("guards-eval", help="end-to-end: stock vs guards on real models, one family at a time"); p.set_defaults(fn=cmd_guards_eval)
     p.add_argument("--models", nargs="+", required=True); p.add_argument("--bundle", default="results/guards.pkl")
     p.add_argument("--families", nargs="*", default=["mlp", "conv", "attn"]); p.add_argument("--runs", type=int, default=7); p.add_argument("--out")
+    p.add_argument("--base-state", help="state spec the guards are evaluated on top of (default: default); e.g. default+optimus/decompose_mm_wide")
 
     p = sub.add_parser("show"); p.set_defaults(fn=cmd_show)
     p.add_argument("--model", default=""); p.add_argument("-n", type=int, default=40)

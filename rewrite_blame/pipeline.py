@@ -414,7 +414,8 @@ class Runner:
 
 
     # ---------------------------------------------------------------- end-to-end guard evaluation
-    def guards_eval(self, models: Iterable[str], bundle_path: str, families: list[str], noise_runs: int = 7) -> dict:
+    def guards_eval(self, models: Iterable[str], bundle_path: str, families: list[str], noise_runs: int = 7,
+                    base: State | None = None) -> dict:
         """Stock Inductor vs Inductor with guards added one family at a time, on real models.
         Each comparison is confirmed by the two-run rule against the model's noise threshold."""
         import tempfile
@@ -430,7 +431,7 @@ class Runner:
             f = tempfile.NamedTemporaryFile(suffix=".pkl", delete=False, prefix=f"guards_{'_'.join(families[:i])}_")
             sub.save(f.name)
             steps.append(("+".join(families[:i]), f.name))
-        base = self.reg.default_state()
+        base = self.reg.default_state() if base is None else frozenset(base)
         rows = []
         for model in models:
             nm, _ = self.noise(model, base, runs=noise_runs)
@@ -443,7 +444,8 @@ class Runner:
                     continue
                 d = m1.median_ms - nm.center
                 verdict = "same"
-                if abs(d) > nm.tau:
+                same_prog = bool(m0.program_hash) and m1.program_hash == m0.program_hash
+                if abs(d) > nm.tau and not same_prog:   # a byte-identical program cannot be faster or slower
                     m2 = self.measure(model, base, guards=gpath, rep=2)
                     if not m2.error:
                         d2 = m2.median_ms - nm.center
@@ -455,10 +457,10 @@ class Runner:
                 decisions = [x for x in m1.guard_decisions if x.get("blocked")]
                 row["steps"].append({"guards": label, "median_ms": m1.median_ms, "delta_pct": 100 * d / nm.center, "verdict": verdict,
                                      "blocked": sum(m1.guarded.values()) + int(bool(m1.protocol.get("guard_disabled_layout"))),
-                                     "decisions": decisions[:10], "same_program": bool(m0.program_hash) and m1.program_hash == m0.program_hash})
+                                     "decisions": decisions[:10], "same_program": same_prog})
                 self.log(f"  {model} guards={label}: {m1.median_ms:.3f} vs {nm.center:.3f} ms ({100*d/nm.center:+.1f}%) {verdict}, blocked {row['steps'][-1]['blocked']}")
             rows.append(row)
-        return {"env": self.env, "families": families, "bundle": bundle_path, "rows": rows}
+        return {"env": self.env, "families": families, "bundle": bundle_path, "base": sorted(base), "rows": rows}
 
 
 def refresh_registry(path, log=print) -> Registry:

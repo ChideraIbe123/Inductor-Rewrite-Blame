@@ -160,3 +160,20 @@ MLP 0.88 accuracy / 0.93 caught / 0.24 false alarms / cost 4.4; conv 0.76 / 0.79
 attention 0.95 / 0.11 / 0.03 / 0.92. Ranking on every family: trees > fine-tuned encoder ~ API
 with context > Inductor's hand-written rule, with the trees also the only option that answers in
 microseconds offline. End-to-end real-model results: pending (running).
+
+## Guards end to end on real models (Mac, 2026-10-13, night session on a low battery budget)
+
+Stock Inductor vs Inductor consulting the trained guards, one family added at a time, confirmed
+by the two-run rule against each model's noise threshold (results/guards_eval_e2e.md):
+
+* **channels-last guard**: MobileNet-V3-small **-29.0%**, EfficientNet-B0 **-41.2%** (the guard
+  disabled layout optimisation for exactly these two models; it left ResNet-18, ResNet-50 and all
+  transformers alone: worst change +1.2%, within noise). Trained only on synthetic conv stacks.
+* **matmul-decomposition guard**: no effect on the default pipeline because `decompose_mm_pass` is
+  opt-in and never fires by default; it is evaluated separately with the pass enabled (queued).
+* **attention guard**: no firings blocked on the Mac (fusion is helpful here), no change.
+* Geometric-mean change over the 12 models: -10.7% with the first two guards, worst +1.2%.
+
+The night session ran on a 33% battery with a reduced power budget: small decode models measured
+2-3x slower than usual with wide noise; those rows (and the matmul-guard world) are re-measured
+in a plugged-in daytime session.
