@@ -155,4 +155,8 @@ Reading per family, Mac only (no oneDNN):
   policy; the 9 harmful cases are too few for the trees to learn (3 of 9 caught). The harmful
   region exists on the Xeon (attention block +8%, BERT +2.4%); the VM's dataset supplies it.
 
-Encoder (Laya) and end-to-end real-model results: pending (running).
+Encoder (Laya, ModernBERT-large fine-tuned per fold, 4 epochs, CPU, 36 min for all families):
+MLP 0.88 accuracy / 0.93 caught / 0.24 false alarms / cost 4.4; conv 0.76 / 0.79 / 0.33 / 8.7;
+attention 0.95 / 0.11 / 0.03 / 0.92. Ranking on every family: trees > fine-tuned encoder ~ API
+with context > Inductor's hand-written rule, with the trees also the only option that answers in
+microseconds offline. End-to-end real-model results: pending (running).
