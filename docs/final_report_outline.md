@@ -46,6 +46,12 @@ Working title: Which Rewrite Made My Model Slower? Finding and Blaming Bad Graph
 - CPU backend only; no KV-cache decode; small corpus for guards; VM is a shared host; attribution
   power for 2-5% effects is a measurement-budget question.
 
+## Guards status (2026-10-13)
+- [x] Mac dataset: 737 confirmed rows over 3 families; trees vs Laya vs Decisions API compared (results/guards_eval*.md).
+- [x] End-to-end on 12 real Mac models: channels-last guard -29% / -41% on MobileNet / EfficientNet, no regressions.
+- [ ] Daytime redo of small models + matmul guard with the pass enabled (queued 10:30).
+- [ ] VM dataset (x86/oneDNN; supplies the harmful attention and helpful channels-last regions), combined training, VM end-to-end.
+
 ## Data to still collect
 - [ ] Mac corpus chain (running 2026-10-10): all 24 models, session 2026-10-10; toys re-measured clean.
 - [ ] VM: corrected pair scan (running); then corpus chain for the remaining models + second sessions.
