@@ -132,3 +132,27 @@ Grouped 5-fold cross-validation (held-out configuration slices):
 Cost = mean % runtime lost per firing by following the guard (harmful allowed or helpful blocked);
 "always fire" would cost 341%. Zero-shot, the API calls everything harmful; with context it is a
 slow, expensive nearest-neighbour over our own data. Encoder (Laya) results pending CPU time.
+
+## Guards on the full Mac dataset (2026-10-13, 737 configurations, grouped 5-fold CV)
+
+| family | rows (harmful / helpful / neutral) | Inductor's rule: acc, cost | tree: acc, caught, false alarms, cost | GBT cost | API+context: acc, cost |
+|---|---|---|---|---|---|
+| decode MLP | 161 (107 / 48 / 6) | 0.63, 14.8 | 0.95, 0.95, 0.06, 1.3 | 0.95 | 0.89, 5.2 |
+| conv (channels-last) | 163 (127 / 20 / 16) | 0.22, 390 | 0.85, 0.94, 0.50, 45 | 95 | 0.79, 6.8 |
+| attention fusion | 414 (9 / 386 / 19) | 0.98, 0.93 | 0.96, 0.33, 0.03, 0.81 | 0.49 | 0.98, 0.93 |
+
+Cost = mean % runtime lost per firing when following the policy (harmful allowed or helpful blocked).
+
+Reading per family, Mac only (no oneDNN):
+* MLP: the learned guard replaces Inductor's hard-coded M <= 1 / dims <= 2048 rule with a boundary
+  that costs a tenth as much; the tree's top split is arithmetic intensity (M/2 <= 3), then weight
+  size, then M.
+* Conv: Inductor applies channels-last unconditionally and on this machine that is wrong in 78% of
+  configurations (depthwise always, dense often) at a mean cost of 390% per firing. Every learned
+  guard is far better; the API-with-context scores lowest cost because "block almost everything" is
+  nearly right here. The VM (oneDNN) data is needed before this guard can be called general.
+* Attention: fusion is helpful in 93% of Mac configurations, so always-fire is already a 0.98
+  policy; the 9 harmful cases are too few for the trees to learn (3 of 9 caught). The harmful
+  region exists on the Xeon (attention block +8%, BERT +2.4%); the VM's dataset supplies it.
+
+Encoder (Laya) and end-to-end real-model results: pending (running).
