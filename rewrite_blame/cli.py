@@ -220,7 +220,7 @@ def cmd_dataset(a):
 def cmd_guards_train(a):
     """Evaluate guard models per family on the sweep datasets (grouped CV), fit on all rows, save a bundle."""
     from collections import Counter
-    from .guard_models import GuardBundle, evaluate, fit_all, load_rows, render_eval, tree_rules
+    from .guard_models import GuardBundle, evaluate, fit_all, load_rows, pick_bundle_kind, render_eval, tree_rules
     paths = [Path(p) for p in (a.data or [])] or sorted(Path("results").glob("dataset_*.jsonl")) + sorted(Path("results/vm").glob("dataset_*.jsonl"))
     results, rules, counts = [], {}, {}
     bundle = GuardBundle()
@@ -254,10 +254,12 @@ def cmd_guards_train(a):
                 if refusals:
                     d["model"] += f" ({refusals} refusals)"
                 results.append(EvalResult(**d))
-        clf, names = fit_all(rows, fam, a.bundle_kind)
-        if a.bundle_kind == "tree":
+        kind = pick_bundle_kind(a.bundle_kind, [r for r in results if r.family == fam])
+        clf, names = fit_all(rows, fam, kind)
+        if kind == "tree":
             rules[fam] = tree_rules(clf, names)
-        bundle.add(fam, a.bundle_kind, clf, names, threshold=a.threshold)
+        bundle.add(fam, kind, clf, names, threshold=a.threshold)
+        print(f"[guards-train] {fam}: bundled a {kind} guard", file=sys.stderr)
     out = Path(a.out) if a.out else Path("results/guards_eval.json")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps({"results": [r.to_dict() for r in results], "counts": {k: dict(v) for k, v in counts.items()},
@@ -386,7 +388,7 @@ def main(argv=None) -> int:
     p = sub.add_parser("guards-train", help="evaluate and fit per-family guard models on the sweep datasets"); p.set_defaults(fn=cmd_guards_train)
     p.add_argument("--data", action="append", help="dataset jsonl file(s); default: results/dataset_*.jsonl and results/vm/dataset_*.jsonl")
     p.add_argument("--families", nargs="*"); p.add_argument("--kinds", nargs="*", default=["tree", "gbt", "logreg"])
-    p.add_argument("--bundle-kind", default="tree"); p.add_argument("--threshold", type=float, default=0.5)
+    p.add_argument("--bundle-kind", default="best", help="tree | gbt | logreg | best (lowest cross-validated cost per family)"); p.add_argument("--threshold", type=float, default=0.5)
     p.add_argument("--folds", type=int, default=5); p.add_argument("--out"); p.add_argument("--bundle")
     p.add_argument("--checkpoint", help="encoder checkpoint for --kinds encoder (default: Laya)"); p.add_argument("--epochs", type=int, default=6)
 

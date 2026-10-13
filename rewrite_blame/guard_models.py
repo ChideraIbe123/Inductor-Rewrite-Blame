@@ -180,6 +180,18 @@ def fit_all(rows: list[dict], family: str, kind: str = "tree"):
     return clf, names
 
 
+FITTABLE = ("tree", "gbt", "logreg")
+
+
+def pick_bundle_kind(requested: str, family_results) -> str:
+    """Which model kind goes into the live bundle for a family. "best" = the fittable kind with the lowest
+    cross-validated cost (ties -> the simpler kind, in FITTABLE order); falls back to a tree when nothing was evaluated."""
+    if requested != "best":
+        return requested
+    scored = [(r.cost_weighted, FITTABLE.index(r.model), r.model) for r in family_results if r.model in FITTABLE]
+    return min(scored)[2] if scored else "tree"
+
+
 def tree_rules(clf, names: list[str]) -> str:
     """Readable rules of a fitted decision tree (what would become the extra_check)."""
     from sklearn.tree import export_text

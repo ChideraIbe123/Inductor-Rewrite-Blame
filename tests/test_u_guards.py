@@ -46,3 +46,15 @@ def test_fit_stump_prefers_fewer_positives_on_ties_and_handles_no_harmful():
     rows.append({"label": "harmful", "x86": 1, "log_max_numel": 3.0})
     st = fit_stump(rows)
     assert st.train_accuracy == 1.0
+
+
+def test_pick_bundle_kind_prefers_lowest_cost_then_simplest():
+    from rewrite_blame.guard_models import EvalResult, pick_bundle_kind
+    def res(model, cost):
+        return EvalResult(family="conv", model=model, n=10, harmful=5, folds=5, accuracy=0.5, default_accuracy=0.5,
+                          recall=0.5, false_alarm_rate=0.5, cost_weighted=cost, default_cost_weighted=9.0)
+    rs = [res("inductor-heuristic", 0.1), res("tree", 2.0), res("gbt", 1.0), res("logreg", 1.0)]
+    assert pick_bundle_kind("best", rs) == "gbt"          # heuristic is not fittable; gbt beats logreg on tie order
+    assert pick_bundle_kind("best", [res("tree", 1.0), res("gbt", 1.0)]) == "tree"
+    assert pick_bundle_kind("best", []) == "tree"
+    assert pick_bundle_kind("logreg", rs) == "logreg"
