@@ -1,61 +1,63 @@
 # Progress check, 14 Oct 2026
-Project: Which Rewrite Made My Model Slower? Finding and Blaming Bad Graph Rewrites in TorchInductor (Chidera Ibe)
+Project: Which Rewrite Made My Model Slower? (Chidera Ibe)
 
-## The problem
-torch.compile rewrites a model's graph with a few hundred small rules (fuse attention into one kernel,
-change a tensor's memory layout, split a matmul, and so on). Each rule fires whenever its pattern
-matches. Nothing checks whether the rewrite actually made the model faster on this machine. When a
-compiled model is slower than expected, an engineer has no way to find out which rule did it.
+## The problem in plain words
+PyTorch has a compiler called torch.compile. You give it a model, and it produces faster code for that
+model. Part of how it does this is a list of a few hundred small "rewrite rules". Each rule looks for a
+certain pattern in the model and replaces it with something it thinks is faster. For example, one rule
+finds the math of attention and replaces it with one combined operation.
 
-## What is built (all code, tested, on GitHub)
-1. **Per-rule switches.** Every one of Inductor's pattern rules can be turned off individually without
-   patching PyTorch, by wrapping the hook Inductor already calls before applying a rule. The harness
-   also counts how often each rule fired or was suppressed. 269 switches on the Mac build, 396 on the
-   x86 VM, 398 on the GPU.
-2. **A measurement harness** that compiles a model under any set of switches in a fresh process,
-   records the generated kernels, checks the output against eager mode, and times it. A corpus of
-   24 models: toys, ResNet/MobileNet/EfficientNet/ConvNeXt/ViT, BERT/DistilBERT/GPT-2/T5, SmolLM and
-   Qwen2.5 prefill and decode.
-3. **A noise method** chosen by calibration, not assumption: 480 repeated runs of identical
-   configurations showed which statistics give false alarms. The result: median per run, threshold
-   = 3 x MAD over 7 runs (floor 1%), and a slowdown counts only if two time-separated runs both
-   exceed it. Byte-identical generated programs are never blamed.
-4. **The blame tool.** Given a fast and a slow switch set, delta debugging over the differences finds
-   the smallest set of rule changes that reproduces the slowdown, flags pairs that only hurt together,
-   iterates until the remaining gap is within noise, and explains the result at kernel level.
-5. **Guards (the stretch goal).** A dataset of ~1,500 labelled rule firings across both CPUs
-   (shape features at the firing, measured effect of blocking it), and a small decision model per
-   rule family that runs inside the compiler and blocks a firing it predicts to be harmful.
-6. About 140 automated tests, including graphs with planted slowdowns whose culprit is known.
+The problem: the compiler applies a rule every time the pattern appears. It never checks whether the
+change actually made the model faster on the computer it is running on. Sometimes a rule makes the model
+slower. When that happens, the person using the compiler cannot tell which rule caused it.
 
-## What was found
-- **The same rewrite flips sign across machines.** Inductor's attention fusion is a 34% win on the
-  Apple M4 Pro and an 8% loss on the Xeon VM. Channels-last layout costs MobileNet 41% and
-  EfficientNet 68% on the Mac but helps ResNet, and is mostly helpful on the Xeon.
-- **A real pair interaction exists:** attention rules 11 and 12 match the same graph, so turning off
-  either alone changes nothing; only both together change the program. The tool finds it.
-- **The matmul decomposition pass is the biggest single offender:** +135% on SmolLM decode, +39% on
-  Qwen decode when enabled.
-- **Repeatability:** 213 of 220 verdicts agree across sessions on the same machine; across machines
-  42 of 47 disagree, and those disagreements are real hardware differences, not noise.
-- **Guards work.** Per firing, the learned guard loses about 1% of runtime versus 261% (matmul
-  decomposition) and 176% (channels-last) for Inductor's always-apply behaviour. End to end on real
-  models: MobileNet 29% faster, EfficientNet 41% faster, and with the decomposition pass enabled
-  SmolLM decode 58% and Qwen decode 24% faster. No model got slower.
-- **First GPU result (today):** on an NVIDIA A40 the toy attention block is never fused into SDPA at
-  all; two GPU-only rewrites fire first. Six planted tests that encode CPU behaviour had to be marked
-  CPU-only.
+## What I built
+1. **An on/off switch for every rule.** I can turn any single rule off and compile the model again. This
+   did not need any changes to PyTorch itself. The switch also counts how many times each rule was used.
+   There are 269 rules on my Mac, 396 on the course Linux machine, and 398 on the GPU.
+2. **A measuring tool.** It compiles a model with any set of rules turned on or off, checks that the
+   result is still correct, records what code was produced, and measures how long the model takes to run.
+   I test it on 24 models: small hand-made ones, image models like ResNet, and language models like BERT,
+   GPT-2 and Qwen.
+3. **A rule for telling real slowdowns from random noise.** Running the same model twice never gives
+   exactly the same time. I ran the same setup hundreds of times to see how much the times move on their
+   own. From that I set a limit. A change only counts as a slowdown if it is bigger than that limit in
+   two separate runs taken at different times.
+4. **The blame tool.** You give it a fast setup and a slow setup. It turns rules on and off in a planned
+   order, measuring each time, until it finds the smallest set of rules that makes the model slow. It
+   also notices when two rules are only harmful together. It then shows what changed in the produced code.
+5. **Guards.** A guard is a small learned model that sits in the compiler and decides, each time a rule
+   is about to fire, whether to let it. I built a dataset of about 1,500 rule firings with the measured
+   effect of each one, and trained one guard for each of three rule families.
+6. About 140 automated tests. Some tests use small models where I planted a known slowdown and check
+   that the tool finds the right rule.
+
+## What I found
+- **The same rule helps on one computer and hurts on another.** The attention rule makes a model 34%
+  faster on my Mac and 8% slower on the Linux machine. The rule that changes how images are stored in
+  memory makes MobileNet 41% slower and EfficientNet 68% slower on the Mac, but helps on the Linux machine.
+- **Two rules can hurt only together.** Attention rules number 11 and 12 match the same part of the
+  model. Turning off one changes nothing. Turning off both changes the code. The tool finds this pair.
+- **The worst single rule** is the one that splits large matrix multiplications. When it is on, SmolLM
+  text generation is 135% slower and Qwen is 39% slower.
+- **The results repeat.** On the same computer, 213 of 220 verdicts came out the same on a different day.
+  Across the two computers most verdicts differ, and that difference is real, not noise.
+- **The guards work.** Per rule firing, a guard loses about 1% of run time. Letting every rule fire, which
+  is what the compiler does today, loses 176% to 261% for the two worst families. On real models the
+  guard made MobileNet 29% faster, EfficientNet 41% faster, and SmolLM text generation 58% faster.
+  No model became slower.
+- **First GPU result, from today.** On the GPU, the attention rule never fires on my small attention
+  model. Two other rules that only exist for GPUs fire first and change the pattern before it can match.
 
 ## What is running right now
-- **GPU campaign on RunPod (A40, about $0.60/h, ~$20 total):** noise, verify and sweep over the 23
-  corpus models (overnight), then the same attribution case studies as the CPUs, a GPU guard dataset
-  for the conv and attention families, and a repeat session. This turns the two-CPU comparison into a
-  two-CPU-plus-GPU one.
-- **VM:** finishing the attention half of the x86 guard dataset, then retraining the guards on both
-  CPUs' data and running the end-to-end evaluation on x86 models.
+- **On a rented GPU (NVIDIA A40, about 60 cents an hour, about $20 in total).** The measuring tool is
+  going through all 23 models overnight. After that it will run the blame tool on the same cases I ran on
+  the two CPUs, build a GPU dataset for the guards, and repeat the measurements a second time.
+- **On the course Linux machine.** It is finishing the last part of the guard dataset. Then it will train
+  guards on the data from both CPUs and test them on real models.
 
-## Next
-Pull the GPU results, train and evaluate guards on three machines, and write the final report
-(due 19 Nov). The write-up argues the per-rule switch mechanism and the blame tool as the contribution,
-the cross-hardware sign flips as the motivating finding, and the guards as proof that the blame is
-actionable.
+## What comes next
+Collect the GPU results, test the guards across all three computers, and write the final report, due
+19 November. The report will say: the switches and the blame tool are the main contribution, the
+finding that rules flip between helpful and harmful across hardware is the reason the tool is needed,
+and the guards show that once you know which rule is harmful you can fix it.
