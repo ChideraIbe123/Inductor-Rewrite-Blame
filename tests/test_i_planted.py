@@ -3,6 +3,8 @@ rule fires by default, that its switch suppresses it, that the graph/kernels cha
 way, and that outputs stay correct under both states."""
 import pytest
 
+from conftest import cpu_only
+
 from rewrite_blame.discover import discover
 from rewrite_blame.measure import measure
 
@@ -27,6 +29,7 @@ def _m(reg, model, state, **kw):
     return m
 
 
+@cpu_only
 def test_attention_block_sdpa_fusion_and_its_switch(reg, default):
     m_on = _m(reg, "attention_block", default)
     assert m_on.fired.get(SFDP) == 1
@@ -45,6 +48,7 @@ def test_attention_block_sdpa_fusion_and_its_switch(reg, default):
     assert "joint/joint_graph.patterns/_sfdp_pattern_12_inference" in m_only11.fired
 
 
+@cpu_only
 def test_norm_mlp_pointless_convert_and_rsqrt(reg, default):
     pc = "joint/joint_graph.patterns/pointless_convert"
     rs = "post_grad/post_grad.pass_patterns[1]/reciprocal_sqrt_to_rsqrt"
@@ -61,6 +65,7 @@ def test_norm_mlp_pointless_convert_and_rsqrt(reg, default):
     assert m_off.graph_ops.get("prims.convert_element_type.default", 0) > m_on.graph_ops.get("prims.convert_element_type.default", 0)
 
 
+@cpu_only
 def test_decode_mlp_decompose_mm_opt_in(reg, default):
     m_base = _m(reg, "decode_mlp", default)
     assert m_base.code["extern_calls"].get("extern_kernels.mm", 0) == 3
@@ -83,6 +88,7 @@ def test_split_cat_mlp_optimus_passes(reg, default):
     assert any(k in m_opt.counters for k in ("batch_linear", "normalization_pass", "split_cat_pass", "pattern_matcher_count"))
 
 
+@cpu_only
 def test_conv_bn_relu_freezing_folds_bn(reg, default):
     import torch
     m_base = _m(reg, "conv_bn_relu_stack", default)
@@ -125,6 +131,7 @@ def test_inplace_buffers_off_allocates_more(reg, default):
     assert sum(k["n_inout_ptr"] for k in m_on.code["kernels"]) > sum(k["n_inout_ptr"] for k in m_off.code["kernels"])
 
 
+@cpu_only
 def test_sfdp_pattern_11_alone_is_caught_by_pattern_12(reg, default):
     """The planted interaction: disabling rule 11 changes which rule fires but not the graph."""
     m_on = _m(reg, "attention_block", default)

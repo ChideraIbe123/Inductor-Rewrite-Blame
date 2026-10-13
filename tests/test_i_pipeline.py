@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pytest
 
+from conftest import cpu_only
+
 from rewrite_blame.attribute import apply_changes
 from rewrite_blame.discover import discover
 from rewrite_blame.pipeline import Runner, RunnerConfig, parse_state_spec, switch_effect
@@ -64,6 +66,7 @@ def test_worker_reports_failures_instead_of_raising(runner):
     assert m.error and "unknown model" in m.error
 
 
+@cpu_only
 def test_metric_attribution_finds_planted_sfdp_pair(runner):
     """fast = default (SDPA fused, 1 kernel); slow = default with all inference sfdp rules off.
     Kernel count is the judge. Only patterns 11 and 12 matter and both must be off: ddmin must

@@ -215,3 +215,26 @@ trees stay at about 1% lost per firing on all three families. `guards-train` the
 bundle (`results/guards_combined.pkl` = GBT for all three families). The attention guard is the only
 one that beats "always fire" by less than a factor of two (0.68 vs 1.57), because only 9% of the
 attention firings are harmful and they are mostly on the Xeon.
+
+## Daytime redo of the end-to-end guard evaluation (Mac, 2026-10-13, session 2026-10-13-guards2, 100% battery, awake)
+
+Last night's small-model rows were taken under the laptop's battery budget and are 2.5-3x too slow
+(decode MLP 0.59 -> 0.20 ms, GPT-2 decode 25.5 -> 9.2 ms, SmolLM decode 14.9 -> 6.4 ms today). They are
+superseded by this session; every measurement now records the power state.
+
+Conv + attention guards on the six small models (stock base): every row "same" within tau, no guard fired
+wrongly (geometric mean -0.5% / -0.2%, worst +2.7% unconfirmed).
+
+Matmul guard with the decomposition pass enabled (base = `default+optimus/decompose_mm_wide`, the world
+of a user who turned the opt-in pass on):
+
+| model | base ms | with mlp guard | blocked firings |
+|---|---|---|---|
+| decode_mlp | 0.220 | -11.3% | 3 |
+| smollm_135m_decode | 15.80 | -58.1% | 210 |
+| qwen2_0_5b_decode | 20.98 | -24.5% | 96 |
+| gpt2_decode | 22.27 | -4.1% | 1 |
+| smollm_135m_prefill | 234.3 | -83.2% | 211 |
+
+Geometric mean -46% over five models, none slower. The guard blocks exactly the decompositions the
+attribution runs had blamed (decompose_mm on decode-shaped matmuls) and lets the rest through.
