@@ -41,8 +41,8 @@ def test_conv_sweep_batch_depends_on_device(monkeypatch):
     monkeypatch.delenv("REWRITE_BLAME_DEVICE", raising=False)
     assert conv_batch(256, 56) == 4 and config_of("sweep_conv_C256_R56_K3_L3_dense")["act_numel"] == 4 * 256 * 56 * 56
     monkeypatch.setenv("REWRITE_BLAME_DEVICE", "cuda")
-    assert conv_batch(256, 56) == 64                      # 64*256*56*56 = 51M elements already
-    assert conv_batch(16, 14) == 4096                     # tiny configuration: capped at 4096
-    assert 64 <= conv_batch(64, 28) <= 4096 and conv_batch(64, 28) * 64 * 28 * 28 >= 32 * 1024 * 1024
+    assert conv_batch(256, 56) == 128                     # 128*256*56*56 = 103M elements
+    assert conv_batch(16, 14) == 16384                    # tiny configuration: capped at 16384
+    assert 64 <= conv_batch(64, 28) <= 16384 and conv_batch(64, 28) * 64 * 28 * 28 >= 64 * 1024 * 1024
     monkeypatch.setenv("REWRITE_BLAME_SWEEP_BATCH", "8")
     assert conv_batch(256, 56) == 8

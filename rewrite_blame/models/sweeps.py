@@ -81,8 +81,8 @@ FAMILY_RULE = {
 def conv_batch(C: int, R: int) -> int:
     """Batch size of a conv sweep configuration. CPU: 4 (the original grid). GPU: the activation must be
     large enough that the kernels, not their launches, dominate the time (sub-millisecond runs gave 14%
-    noise bands on the A40), so the batch is raised until one activation holds at least 32M elements
-    (128 MB fp32), between 64 and 4096. REWRITE_BLAME_SWEEP_BATCH overrides both."""
+    noise bands on the A40), so the batch is raised until one activation holds at least 64M elements
+    (256 MB fp32), between 64 and 16384 (calibrated on an A40: 1.2 ms at 32M/4096 for the smallest configuration, so doubled). REWRITE_BLAME_SWEEP_BATCH overrides both."""
     env = os.environ.get("REWRITE_BLAME_SWEEP_BATCH")
     if env:
         return int(env)
@@ -91,7 +91,7 @@ def conv_batch(C: int, R: int) -> int:
         return 4
     per_sample = C * R * R
     b = 64
-    while b < 4096 and b * per_sample < 32 * 1024 * 1024:
+    while b < 16384 and b * per_sample < 64 * 1024 * 1024:
         b *= 2
     return b
 
