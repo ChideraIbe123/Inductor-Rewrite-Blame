@@ -10,7 +10,7 @@ cd "$(dirname "$0")/.."
 export REWRITE_BLAME_DEVICE=cuda REWRITE_BLAME_THREADS=4 TOKENIZERS_PARALLELISM=false
 PY=.venv/bin/python
 F='^DEBUG\|^INFO\|Graph Metrics'
-S=$(date +%F)-gpu
+S=${GPU_SESSION:-$(date +%F)-gpu}
 MODELS="attention_block norm_mlp decode_mlp split_cat_mlp conv_bn_relu_stack cat_slice_cat resnet18 resnet50 mobilenet_v3_small efficientnet_b0 convnext_tiny vit_b_16 bert_base_eagerattn distilbert gpt2_prefill gpt2_prefill_eagerattn gpt2_decode t5_small_encoder smollm_135m_prefill smollm_135m_prefill_eagerattn smollm_135m_decode qwen2_0_5b_prefill qwen2_0_5b_decode"
 mkdir -p logs results
 phases=${*:-1 2 3 4}
@@ -50,7 +50,7 @@ case $ph in
     $PY -m rewrite_blame --quiet --session "$S-ds-$FAM" dataset --family $FAM --level full --shuffle 2>&1 | grep -v "$F" | grep -E "^\[dataset\]|^\{" | tail -500
   done ;;
 4)
-  S2=$(date +%F)-gpu2
+  S2=${GPU_SESSION2:-$(date +%F)-gpu2}
   for M in $MODELS; do
     echo "=== $(date) repeat noise+sweep $M"
     $PY -m rewrite_blame --quiet --session "$S2" noise --model "$M" --runs 7 --out "results/noise2_$M.json" 2>&1 | grep -v "$F" | tail -1
