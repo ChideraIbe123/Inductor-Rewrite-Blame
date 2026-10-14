@@ -275,3 +275,30 @@ Matmul guard with the decomposition pass enabled on the Xeon: gpt2_decode -73.4%
 qwen2_0_5b_decode -2.9% (73 blocked), smollm decode +0.1%, decode_mlp +6.9% unconfirmed; geometric mean
 -27%. Together with the Mac (-46%), the guard removes most of the damage of the opt-in pass on both CPUs
 while never confirmed slower.
+
+## GPU phase 1 complete (NVIDIA A40, 23 models, session 2026-10-13-gpu, 2026-10-14)
+
+Real models measure with tau 1.0-1.5% on the A40 (toys under 0.3 ms are launch-bound and 5-30% noisy;
+EfficientNet and the cat/slice toy swung between runs and are re-measured in the repeat session).
+
+- **Freezing ON is a confirmed win on 13 of 17 real models**: SmolLM decode -21%, SmolLM prefill -15/-18%,
+  Qwen prefill -16%, ResNet-18 -12%, BERT -8.5%, ResNet-50 -7.6%, DistilBERT -7.5%, Qwen decode -7.9%,
+  MobileNet -6.5%, T5 -4.6%. Freezing is off by default: a missed win rather than a harmful rewrite.
+- **Layout optimisation is harmful on the GPU**: ResNet-18 -9.4% with it off (it helped ResNet-18 on both
+  CPUs); the conv/bn stack -25%. `conv_1x1_as_mm` (opt-in) costs ResNet-50 +26%; the opt-in
+  `normalization_pass` costs GPT-2 decode +11%.
+- The defaults that are right: the fusion-size limit (off = +2 to +14% on ConvNeXt, ViT, BERT, DistilBERT,
+  GPT-2, T5, SmolLM, Qwen decode) and the GPU-only `unfuse_bias_add_to_pointwise` (off = +12% ConvNeXt).
+- **Attention fusion never fires on CUDA fp32**: not on the toy block, BERT, GPT-2 or SmolLM. The GPU-only
+  `mul_softmax_pattern`/`div_softmax_pattern` fire first; the sfdp patterns then do not match. All 414
+  attention dataset rows on the GPU are no_effect (identical program). So the rule is a 34% win on the Mac,
+  neutral on the Xeon, and never applied on the A40.
+
+Phase 2 (the CPU case-study pairs) correctly reported "slow state is not slower" or "identical program"
+on the GPU: the tool does not invent culprits. GPU-specific cases (phase 2b) are built from the sweep:
+first result, ResNet-50 default vs all opt-in passes + conv_1x1_as_mm: culprit `+conv_1x1_as_mm` alone,
++24.8% (+0.76 ms of a 0.755 ms gap), 24->27 kernels, allocations 18 MB -> 63 MB, 9 judge evaluations.
+
+Incident: two copies of the phase 2-4 chain ran concurrently (a hung ssh launch had started one), so the
+first GPU conv dataset (178 configs written twice, labels agree on only 121) and the repeat session are
+contaminated and were moved to results/contaminated/. Both are being redone alone after phase 2b.
