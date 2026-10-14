@@ -221,7 +221,7 @@ def cmd_guards_train(a):
     """Evaluate guard models per family on the sweep datasets (grouped CV), fit on all rows, save a bundle."""
     from collections import Counter
     from .guard_models import GuardBundle, evaluate, fit_all, load_rows, pick_bundle_kind, render_eval, tree_rules
-    paths = [Path(p) for p in (a.data or [])] or sorted(Path("results").glob("dataset_*.jsonl")) + sorted(Path("results/vm").glob("dataset_*.jsonl"))
+    paths = [Path(p) for p in (a.data or [])] or sorted(Path("results").glob("dataset_*.jsonl")) + sorted(Path("results/vm").glob("dataset_*.jsonl")) + sorted(Path("results/gpu").glob("dataset_*.jsonl"))
     results, rules, counts = [], {}, {}
     bundle = GuardBundle()
     for fam in a.families or ["mlp", "conv", "attn"]:
