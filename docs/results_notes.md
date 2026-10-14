@@ -302,3 +302,20 @@ first result, ResNet-50 default vs all opt-in passes + conv_1x1_as_mm: culprit `
 Incident: two copies of the phase 2-4 chain ran concurrently (a hung ssh launch had started one), so the
 first GPU conv dataset (178 configs written twice, labels agree on only 121) and the repeat session are
 contaminated and were moved to results/contaminated/. Both are being redone alone after phase 2b.
+
+## GPU attribution case studies (A40, phase 2b, 2026-10-14, all run alone on the GPU)
+
+| case (fast vs slow) | gap | found causes (rounds) | judge evals | kernel-level change |
+|---|---|---|---|---|
+| ResNet-50: default vs all opt-in + conv_1x1_as_mm | +24.6% | `+conv_1x1_as_mm` alone, +24.8% | 9 | 24->27 kernels, alloc 18 MB -> 63 MB |
+| ResNet-18: best (layout off, freezing on) vs default | +10.7% | `-freezing` +1.2% then `+layout_optimization` +9.4% | 6 | 13->22 kernels, alloc 6.5 -> 30 MB |
+| ConvNeXt-T: default vs five flags off | +7.4% | `-inplace_buffers` +1.3%, `-max_fusion_size` +7.1% | 12 | 25->42 kernels |
+| BERT: default vs five flags off | +7.6% | `-max_fusion_size` alone, +7.9% | 7 | 7->16 kernels |
+| SmolLM prefill: default+freezing vs default-max_fusion_size | +26.6% | `-freezing` +24.1%, `-max_fusion_size` +2.6% | 5 | 12->20 kernels |
+| GPT-2 decode: default vs all opt-in passes | +2.8% (< tau 7.5%) | none: slow state not slower this session | 2 | identical kernel count |
+
+Five of six cases: the culprit(s) planted by the sweep were recovered exactly, each explaining the whole gap
+(residual within noise), with 5-12 judge evaluations. The sixth is an honest "no slowdown to attribute":
+GPT-2 decode's +11% normalization_pass row from phase 1 did not reproduce in this session (its noise band is
+7.5%), which the repeat session will settle. tau-scan on the ResNet-50 case: the same single culprit at
+k = 2, 3, 4, 6 (stable).
