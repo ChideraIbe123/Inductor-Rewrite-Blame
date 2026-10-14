@@ -33,3 +33,16 @@ def test_build_stays_on_cpu_without_cuda(monkeypatch):
     m, inputs = models.build("attention_block")
     assert all(t.device.type == "cpu" for t in inputs if isinstance(t, torch.Tensor))
     assert next(m.parameters()).device.type == "cpu"
+
+
+def test_conv_sweep_batch_depends_on_device(monkeypatch):
+    from rewrite_blame.models.sweeps import conv_batch, config_of
+    monkeypatch.delenv("REWRITE_BLAME_SWEEP_BATCH", raising=False)
+    monkeypatch.delenv("REWRITE_BLAME_DEVICE", raising=False)
+    assert conv_batch(256, 56) == 4 and config_of("sweep_conv_C256_R56_K3_L3_dense")["act_numel"] == 4 * 256 * 56 * 56
+    monkeypatch.setenv("REWRITE_BLAME_DEVICE", "cuda")
+    assert conv_batch(256, 56) == 64                      # 64*256*56*56 = 51M elements already
+    assert conv_batch(16, 14) == 4096                     # tiny configuration: capped at 4096
+    assert 64 <= conv_batch(64, 28) <= 4096 and conv_batch(64, 28) * 64 * 28 * 28 >= 32 * 1024 * 1024
+    monkeypatch.setenv("REWRITE_BLAME_SWEEP_BATCH", "8")
+    assert conv_batch(256, 56) == 8

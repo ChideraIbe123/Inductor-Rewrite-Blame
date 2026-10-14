@@ -11,6 +11,7 @@ they can be resolved without pre-registration:
 from __future__ import annotations
 
 import itertools
+import os
 import math
 import re
 
@@ -77,6 +78,24 @@ FAMILY_RULE = {
 }
 
 
+def conv_batch(C: int, R: int) -> int:
+    """Batch size of a conv sweep configuration. CPU: 4 (the original grid). GPU: the activation must be
+    large enough that the kernels, not their launches, dominate the time (sub-millisecond runs gave 14%
+    noise bands on the A40), so the batch is raised until one activation holds at least 32M elements
+    (128 MB fp32), between 64 and 4096. REWRITE_BLAME_SWEEP_BATCH overrides both."""
+    env = os.environ.get("REWRITE_BLAME_SWEEP_BATCH")
+    if env:
+        return int(env)
+    from .. import env as _env
+    if not _env.is_cuda():
+        return 4
+    per_sample = C * R * R
+    b = 64
+    while b < 4096 and b * per_sample < 32 * 1024 * 1024:
+        b *= 2
+    return b
+
+
 def resolve(name: str) -> ModelSpec | None:
     """Build a ModelSpec from a sweep name, or None if the name is not a sweep name."""
     m = _ATTN.match(name)
@@ -90,7 +109,7 @@ def resolve(name: str) -> ModelSpec | None:
     if m:
         C, R, K, L, kind = m.groups(); C, R, K, L = int(C), int(R), int(K), int(L)
         def build():
-            return SweepConv(C, K, L, kind == "dw"), (torch.randn(4, C, R, R),)
+            return SweepConv(C, K, L, kind == "dw"), (torch.randn(conv_batch(C, R), C, R, R),)
         return ModelSpec(name=name, build=build, family="sweep", size="tiny", description=f"conv C={C} R={R} K={K} L={L} {kind}",
                          tags=("conv",), exercises=("lowering:layout",))
     m = _MLP.match(name)
@@ -119,8 +138,9 @@ def config_of(name: str) -> dict:
     m = _CONV.match(name)
     if m:
         C, R, K, L, kind = m.groups()
-        return {"C": int(C), "R": int(R), "K": int(K), "L": int(L), "depthwise": int(kind == "dw"),
-                "act_numel": 4 * int(C) * int(R) * int(R)}
+        C, R = int(C), int(R)
+        return {"C": C, "R": R, "K": int(K), "L": int(L), "depthwise": int(kind == "dw"),
+                "act_numel": conv_batch(C, R) * C * R * R}
     m = _MLP.match(name)
     if m:
         M, I, Hd = map(int, m.groups())
