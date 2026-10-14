@@ -319,3 +319,24 @@ Five of six cases: the culprit(s) planted by the sweep were recovered exactly, e
 GPT-2 decode's +11% normalization_pass row from phase 1 did not reproduce in this session (its noise band is
 7.5%), which the repeat session will settle. tau-scan on the ResNet-50 case: the same single culprit at
 k = 2, 3, 4, 6 (stable).
+
+## GPU redo (alone on the A40): conv dataset, repeat session, guards (2026-10-14 afternoon)
+
+Clean GPU conv dataset: 178 configurations, 35 harmful / 1 helpful / 142 neutral (107 of the neutrals
+unconfirmed), median tau 14% because the sweep models run in 0.2-2 ms on the GPU. Compared with the
+contaminated double run (150 "harmful" of 356 rows) the direction is the same but the confidence is lower:
+on the A40, channels-last never helps and hurts in a fifth of the configurations.
+
+Attention family on the GPU: all 414 rows no_effect (the sfdp rules never fire on CUDA fp32), so there is
+nothing for an attention guard to decide there.
+
+Guard quality with the GPU rows:
+- GPU-only conv guard: logistic regression 1.38% lost per firing vs 6.71% always-fire (tree 2.45, GBT 4.34).
+- Three-machine conv guard (541 rows): logistic 3.42% vs 120.5% always-fire; GBT falls to 14.95% here, so
+  `--bundle-kind best` now picks logistic regression for conv and GBT for the other two families
+  (results/guards_3machines.pkl).
+
+GPU repeatability (two sessions, both alone on the GPU): 188 of 221 verdicts agree (85%, vs 97% on the
+CPUs). Most flips are toys and GPT-2 decode (2 ms, tau 7.5%), plus Qwen prefill effects of about 2% that sit
+on the 1.5% threshold. The headline GPU findings reproduce: freezing wins, layout harm on ResNet-18, the
+fusion-limit effects. GPT-2 decode's +11% normalization_pass flipped to -11%: unstable, not reported.
