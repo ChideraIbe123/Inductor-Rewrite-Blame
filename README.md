@@ -54,7 +54,7 @@ blamed; timings are only compared within one session (`--session`, default: toda
 ```
 rewrite_blame/   switches, discovery, measurement, attribution, CLI
 tests/           unit tests (test_u_*) and Inductor tests (test_i_*)
-scripts/         helpers for running sweeps on a remote machine and building reports
+scripts/         reusable tools: remote sync, RunPod control, chains, report tables; scripts/runs/ holds the one-off run recipes behind each result
 ```
 
 Everything runs on Inductor's CPU backend; the code parser also understands Triton output.
