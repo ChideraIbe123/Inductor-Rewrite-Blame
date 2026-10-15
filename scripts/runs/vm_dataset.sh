@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # VM: wait for the pair scan to finish, then collect the guard dataset (three families, shuffled, resumable).
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 while ! grep -q "=== all done" logs/pairs3.log 2>/dev/null; do sleep 300; done
 export REWRITE_BLAME_THREADS=4
 PY=.venv/bin/python

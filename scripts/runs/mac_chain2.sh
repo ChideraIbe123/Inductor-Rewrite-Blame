@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Second Mac batch: waits for mac_chain.sh to finish, then runs the attribution case studies.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 export REWRITE_BLAME_THREADS=8
 PY=.venv/bin/python
 while ! grep -q "mac chain done" logs/mac_chain.log 2>/dev/null; do sleep 30; done

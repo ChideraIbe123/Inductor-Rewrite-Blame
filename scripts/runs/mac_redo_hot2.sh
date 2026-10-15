@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Re-measure the models whose Mac session overlapped the throttling episode, then run the new case studies.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 while ! grep -q "redo hot done" logs/mac_redo_hot.log 2>/dev/null; do sleep 120; done
 export REWRITE_BLAME_THREADS=8
 PY=.venv/bin/python

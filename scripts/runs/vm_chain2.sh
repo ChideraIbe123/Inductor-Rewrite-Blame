@@ -2,7 +2,7 @@
 # VM: once the norm_mlp sweep is written, pause chain1, run the attention attribution alone
 # (timing needs the cores to itself), then restart chain1 for the remaining models (cached steps are skipped).
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 export REWRITE_BLAME_THREADS=4
 PY=.venv/bin/python
 while [ ! -f results/sweep_norm_mlp.json ]; do sleep 60; done

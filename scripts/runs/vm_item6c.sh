@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Once item6b hands over to the pair scan: pause it, run the confirmed Qwen normalization check, resume it.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 while ! grep -q "restarting the cat_slice_cat pair scan" logs/item6b.log 2>/dev/null; do sleep 120; done
 sleep 30; tmux kill-session -t pairs3 2>/dev/null; pkill -f "[p]ython -m rewrite_blame.worker"; pkill -f "[p]ython -m rewrite_blame --quiet --session pairs-v3"; sleep 5
 export REWRITE_BLAME_THREADS=4

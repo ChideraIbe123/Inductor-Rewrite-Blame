@@ -2,7 +2,7 @@
 # Daytime, plugged-in redo: (1) small/fast models with the default base; (2) the matmul guard in the world where the
 # decomposition pass is enabled (base = default+decompose_mm_wide), on the decode models.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 # (timer removed: launched directly)
 export REWRITE_BLAME_THREADS=8
 S=$(date +%F)-guards2

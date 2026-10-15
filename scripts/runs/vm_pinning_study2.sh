@@ -2,7 +2,7 @@
 # VM pinning study, corrected: OMP_PROC_BIND=true made PyTorch 3x slower on this VM (all threads serialised),
 # so pin with taskset only.  B2 = taskset -c 1-3 (off core 0), C2 = taskset -c 0-2 (on core 0); A from study 1.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 PY=.venv/bin/python; F='^DEBUG\|^INFO\|Graph Metrics'; D=$(date +%F)
 export REWRITE_BLAME_THREADS=3 TOKENIZERS_PARALLELISM=false
 run() { local label=$1; shift; echo "=== $(date) $label"; "$@" 2>&1 | grep -v "$F" | tail -2; }

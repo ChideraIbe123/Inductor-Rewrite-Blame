@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Cool-session re-measurement of the models whose first Mac session ran on a warm machine.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 export REWRITE_BLAME_THREADS=8
 PY=.venv/bin/python
 F='^DEBUG\|^INFO\|Graph Metrics'

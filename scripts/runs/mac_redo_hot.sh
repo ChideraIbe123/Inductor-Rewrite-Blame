@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # After the clean toy re-run, re-measure the models whose first session on the Mac was thermally throttled.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 while ! grep -q "toys clean done" logs/mac_toys_clean.log 2>/dev/null; do sleep 120; done
 export REWRITE_BLAME_THREADS=8
 PY=.venv/bin/python

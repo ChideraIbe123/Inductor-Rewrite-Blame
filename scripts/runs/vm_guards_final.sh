@@ -2,7 +2,7 @@
 # VM: after its dataset finishes, train guards on BOTH machines' data (best kind per family) and run the
 # end-to-end evaluation on the VM's real models. Mac datasets are expected at results/mac_dataset_<family>.jsonl.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 while ! grep -q "dataset done" logs/vm_dataset_resume.log 2>/dev/null; do sleep 300; done
 export REWRITE_BLAME_THREADS=4
 PY=.venv/bin/python

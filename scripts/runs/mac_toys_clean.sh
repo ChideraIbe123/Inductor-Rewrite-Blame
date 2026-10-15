@@ -2,7 +2,7 @@
 # After the corpus chain finishes, re-measure the toy models in a clean session (the first ones in
 # the chain overlapped with development activity on this machine).
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 while ! grep -q "chain done" logs/mac_corpus.log 2>/dev/null; do sleep 60; done
 export REWRITE_BLAME_THREADS=8
 PY=.venv/bin/python

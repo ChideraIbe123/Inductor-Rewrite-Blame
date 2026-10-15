@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Third Mac batch: waits for mac_chain2.sh, then runs the resnet18 case study ("several flags changed after an upgrade").
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 export REWRITE_BLAME_THREADS=8
 PY=.venv/bin/python
 while ! grep -q "mac chain2 done" logs/mac_chain2.log 2>/dev/null; do sleep 30; done

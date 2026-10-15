@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # VM attribution case studies for proposal item 5 (run alone in tmux; everything is cached in the store).
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 export REWRITE_BLAME_THREADS=4
 PY=.venv/bin/python
 F='^DEBUG\|^INFO\|Graph Metrics'

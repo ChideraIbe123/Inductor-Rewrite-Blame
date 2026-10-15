@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 # After the corpus3 sweeps finish: stop the queued pair scan, run the Qwen case studies alone, then restart the pair scan.
 set -uo pipefail
-cd "$(dirname "$0")/.."
-while ! grep -q "chain done" logs/corpus3.log 2>/dev/null; do sleep 120; done
-tmux kill-session -t corpus3 2>/dev/null; pkill -f "[p]ython -m rewrite_blame"; sleep 5
+cd "$(dirname "$0")/../.."
 export REWRITE_BLAME_THREADS=4
 PY=.venv/bin/python
 F='^DEBUG\|^INFO\|Graph Metrics'

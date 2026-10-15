@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # After the dataset collection: encoder fine-tune evaluation per family, final bundle, end-to-end guards on real models.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 while ! grep -q "dataset done" logs/mac_dataset.log 2>/dev/null; do sleep 120; done
 export REWRITE_BLAME_THREADS=8
 PY=.venv/bin/python

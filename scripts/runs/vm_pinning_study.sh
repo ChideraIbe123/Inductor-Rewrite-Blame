@@ -6,7 +6,7 @@
 #   C  3 threads, taskset -c 0-2 + OMP_PROC_BIND   (session <date>-pinC)  <- same, but including core 0
 # Then a resnet18 sweep under A and under B.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 PY=.venv/bin/python; F='^DEBUG\|^INFO\|Graph Metrics'; D=$(date +%F)
 export REWRITE_BLAME_THREADS=3 TOKENIZERS_PARALLELISM=false
 MODELS="resnet18 distilbert smollm_135m_decode"

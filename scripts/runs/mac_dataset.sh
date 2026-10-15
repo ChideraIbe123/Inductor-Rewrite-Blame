@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Guard dataset collection on the Mac: three families, shuffled order (resumable; rows append to results/dataset_<family>.jsonl).
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 export REWRITE_BLAME_THREADS=8
 PY=.venv/bin/python
 F='^DEBUG\|^INFO\|Graph Metrics'

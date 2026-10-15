@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Repeat the ResNet-50 pair scan in a quiet daytime session (the night run had 18/33 disturbed baselines).
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 now=$(date +%s); target=$(date -j -f "%H:%M" "10:00" +%s 2>/dev/null || echo $now)
 [ "$target" -le "$now" ] && target=$((target + 86400))
 sleep $((target - now))
