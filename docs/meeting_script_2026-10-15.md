@@ -15,15 +15,27 @@ for each model I first flip every switch one at a time and check whether the gen
 the switches that change the code are worth timing. For BERT that is about ten out of nearly four hundred.
 Then I time each of those with the switch off and compare to the default.
 
-**How I handle noise.** Timing the same model twice never gives the same number. One measurement is fifty
-timed calls, and I take their median, because a few calls are always much slower when the operating system
-interrupts, and those would pull up an average. I repeat the measurement seven times in separate processes
-to get a noise band. To choose this method I ran five hundred measurements where nothing was changed, so any
-slowdown found was a false alarm, and tried ten statistical tests. All of them gave false alarms around ten
-percent of the time from a single comparison. What fixed it was asking twice: a slowdown only counts if two
-separate runs, taken at different times, both beat the band. That brought false alarms down to about one
-percent. And if the compiler produced identical code for two setups, they cannot differ in speed, so the tool
-never blames a switch that did not change the code.
+**How I handle noise.** If I run the same model twice, I get two different times. So before I can say
+"this switch made the model slower," I need to know how much the time moves on its own.
+
+Here is what I do. To time a model once, I call it fifty times and take the middle value, the median. I use
+the median and not the average because a few of the fifty calls are always much slower, when the operating
+system interrupts, and those few would drag an average up.
+
+Then I do that whole thing seven times, each in a fresh process, with gaps in between. That gives me seven
+medians for the same unchanged model. How far apart those seven are tells me the normal wobble. I set a
+limit of three times that wobble, and at least one percent. A switch is only a suspect if it moves the
+time by more than that limit.
+
+How I know this is the right limit: I ran about five hundred measurements where I changed nothing at all.
+Any slowdown the tool reported there was wrong by definition. I tried ten different statistical rules on
+those runs. Every one of them was wrong about ten percent of the time if it looked at just one measurement.
+So I added one more rule: the tool measures the suspect setup twice, at two different times, with a fresh
+measurement of the default in between, and it only calls it slower if both measurements are over the limit.
+That brought the wrong calls down to about one percent.
+
+One last check that needs no statistics: if the compiler produced exactly the same code with a switch on
+and off, the speed cannot differ, so the tool never blames that switch.
 
 **Why delta debugging.** When I have a fast setup and a slow setup, the difference can be a hundred switches.
 For BERT on the GPU it was 117. Testing each one alone would take 117 compiles and would still miss the case
