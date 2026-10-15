@@ -61,7 +61,9 @@ import json,sys; p=json.load(sys.stdin); pm=p.get('portMappings') or {}; print(p
     ;;
   pull)
     read -r ip port < <("$0" wait "$2"); mkdir -p results/gpu logs/gpu
-    rsync -az -e "ssh -o StrictHostKeyChecking=no -p $port" root@"$ip":/workspace/rewrite-blame/results/ results/gpu/
+    # the store is kept per pod so a later pod can never overwrite an earlier pod's raw samples
+    rsync -az --exclude measurements.sqlite -e "ssh -o StrictHostKeyChecking=no -p $port" root@"$ip":/workspace/rewrite-blame/results/ results/gpu/
+    rsync -az -e "ssh -o StrictHostKeyChecking=no -p $port" root@"$ip":/workspace/rewrite-blame/results/measurements.sqlite "results/gpu/measurements_$2.sqlite" 2>/dev/null || true
     rsync -az -e "ssh -o StrictHostKeyChecking=no -p $port" root@"$ip":/workspace/rewrite-blame/logs/ logs/gpu/ || true
     ;;
   stop) curl -s "${hdr[@]}" -X POST "$API/pods/$2/stop" | head -c 200; echo ;;
