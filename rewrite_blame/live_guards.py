@@ -66,6 +66,45 @@ def model_features_conv(model, inputs, x86: int, threads: int) -> dict | None:
             "cfg_act_numel": B * C * R * R, "x86": x86, "threads": threads}
 
 
+def network_features(model, inputs) -> dict | None:
+    """Features describing a whole convolutional network, from one forward pass with hooks on every Conv2d:
+    batch, input resolution, number of convs, total multiply-accumulates, the fraction of that work done by
+    depthwise and by 1x1 convolutions, work-weighted mean and max output channels, and the total activation
+    volume. The same numbers exist for a 3-layer synthetic stack and an 80-layer real network."""
+    import torch
+    import torch.nn as nn
+    convs = [m for m in model.modules() if isinstance(m, nn.Conv2d)]
+    if not convs:
+        return None
+    recs = []
+
+    def hook(mod, inp, out):
+        x = inp[0]
+        k = mod.kernel_size[0] * mod.kernel_size[1]
+        macs = out.numel() / out.shape[0] * (mod.in_channels // mod.groups) * k
+        recs.append({"macs": macs, "dw": mod.groups == mod.in_channels and mod.groups > 1, "one": k == 1,
+                     "out_c": mod.out_channels, "act": out.numel() / out.shape[0], "k": mod.kernel_size[0]})
+    hs = [m.register_forward_hook(hook) for m in convs]
+    try:
+        with torch.no_grad():
+            model(*inputs)
+    finally:
+        for h in hs:
+            h.remove()
+    if not recs:
+        return None
+    x = inputs[0]
+    B = int(x.shape[0]); R = int(x.shape[-1]) if x.dim() == 4 else 0
+    total = sum(r["macs"] for r in recs) or 1.0
+    return {"cfg_B": B, "cfg_R": R, "cfg_n_conv": len(recs), "cfg_macs": total,
+            "cfg_dw_frac": sum(r["macs"] for r in recs if r["dw"]) / total,
+            "cfg_one_frac": sum(r["macs"] for r in recs if r["one"]) / total,
+            "cfg_mean_channels": sum(r["macs"] * r["out_c"] for r in recs) / total,
+            "cfg_max_channels": max(r["out_c"] for r in recs),
+            "cfg_mean_k": sum(r["macs"] * r["k"] for r in recs) / total,
+            "cfg_act_numel": B * sum(r["act"] for r in recs)}
+
+
 def reset() -> None:
     GUARDED.clear()
     DECISIONS.clear()

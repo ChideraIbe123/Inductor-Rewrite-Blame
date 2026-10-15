@@ -122,12 +122,19 @@ def measure(reg: Registry, model_name: str, state: Iterable[str], *, threads: in
     apply.GUARD_CONTEXT.update({"x86": int("x86" in m.env and not is_cuda), "cuda": int(is_cuda), "threads": threads})
     try:
         model, inputs = models.build(model_name, seed=seed)
-        if guards is not None and "conv" in getattr(guards, "guards", {}) and "lowering/layout_optimization" in st:
-            lf = live_guards.model_features_conv(model, inputs, int("x86" in m.env and not is_cuda), threads)
-            if lf:
-                lf["cuda"] = int(is_cuda)
-            verdict = guards.predict_harmful("conv", lf) if lf else None
-            live_guards.DECISIONS.append({"switch": "lowering/layout_optimization", "family": "conv", "features": lf, "blocked": bool(verdict)})
+        gfams = getattr(guards, "guards", {}) if guards is not None else {}
+        if ("net" in gfams or "conv" in gfams) and "lowering/layout_optimization" in st:
+            fam = "net" if "net" in gfams else "conv"
+            if fam == "net":
+                lf = live_guards.network_features(model, inputs)
+                if lf:
+                    lf.update({"x86": int("x86" in m.env and not is_cuda), "cuda": int(is_cuda), "threads": threads})
+            else:
+                lf = live_guards.model_features_conv(model, inputs, int("x86" in m.env and not is_cuda), threads)
+                if lf:
+                    lf["cuda"] = int(is_cuda)
+            verdict = guards.predict_harmful(fam, lf) if lf else None
+            live_guards.DECISIONS.append({"switch": "lowering/layout_optimization", "family": fam, "features": lf, "blocked": bool(verdict)})
             if verdict:
                 st = frozenset(st - {"lowering/layout_optimization"})
                 m.protocol["guard_disabled_layout"] = True

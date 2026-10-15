@@ -30,7 +30,10 @@ FEATURES = {
     "attn": ["cfg_B", "cfg_T", "cfg_H", "cfg_D", "cfg_tokens", "cfg_qk_numel", "x86", "cuda", "threads"],
     "conv": ["cfg_C", "cfg_R", "cfg_K", "cfg_L", "cfg_depthwise", "cfg_act_numel", "x86", "cuda", "threads"],
     "mlp": ["cfg_M", "cfg_I", "cfg_Hd", "cfg_weight_numel", "cfg_flops_per_byte", "x86", "cuda", "threads"],
+    "net": ["cfg_B", "cfg_R", "cfg_n_conv", "cfg_macs", "cfg_dw_frac", "cfg_one_frac", "cfg_mean_channels", "cfg_max_channels",
+            "cfg_mean_k", "cfg_act_numel", "x86", "cuda", "threads"],
 }
+LOG_FEATURES = {"cfg_B", "cfg_n_conv", "cfg_macs", "cfg_mean_channels", "cfg_max_channels"}   # log2-scaled like the size features
 
 
 def load_rows(paths: Iterable[Path], family: str | None = None, drop_no_effect: bool = True) -> list[dict]:
@@ -57,7 +60,7 @@ def featurize(rows: list[dict], family: str):
     X = [[float(r.get(n, 0) or 0) for n in names] for r in rows]
     # log-scale the size-like features so thresholds are sane across orders of magnitude
     for j, n in enumerate(names):
-        if n.endswith(("numel", "tokens", "_T", "_I", "_Hd", "_R", "_M", "_C")):
+        if n.endswith(("numel", "tokens", "_T", "_I", "_Hd", "_R", "_M", "_C")) or n in LOG_FEATURES:
             for i in range(len(X)):
                 X[i][j] = math.log2(X[i][j] + 1.0)
     y = [1 if r["label"] == "harmful" else 0 for r in rows]
@@ -109,7 +112,7 @@ def evaluate_policy(rows: list[dict], family: str, name: str = "inductor-heurist
 def _groups(rows: list[dict], family: str) -> list[str]:
     """Group key for cross-validation so that all sizes of one shape 'slice' leave together:
     attn by (H, D), conv by (C, depthwise), mlp by (I, Hd). Prevents near-duplicate leakage."""
-    key = {"attn": ("cfg_H", "cfg_D"), "conv": ("cfg_C", "cfg_depthwise"), "mlp": ("cfg_I", "cfg_Hd")}[family]
+    key = {"attn": ("cfg_H", "cfg_D"), "conv": ("cfg_C", "cfg_depthwise"), "mlp": ("cfg_I", "cfg_Hd"), "net": ("cfg_arch",)}[family]
     return [f"{r['env'].split('|')[0]}|" + "|".join(str(r.get(k)) for k in key) for r in rows]
 
 
@@ -215,7 +218,7 @@ class GuardBundle:
             return None
         x = [[float(features.get(n, 0) or 0) for n in g["names"]]]
         for j, n in enumerate(g["names"]):
-            if n.endswith(("numel", "tokens", "_T", "_I", "_Hd", "_R", "_M", "_C")):
+            if n.endswith(("numel", "tokens", "_T", "_I", "_Hd", "_R", "_M", "_C")) or n in LOG_FEATURES:
                 x[0][j] = math.log2(x[0][j] + 1.0)
         clf = g["clf"]
         if hasattr(clf, "predict_proba"):

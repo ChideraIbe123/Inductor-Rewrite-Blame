@@ -381,7 +381,7 @@ def main(argv=None) -> int:
     p.add_argument("--dirs", nargs="*"); p.add_argument("--out")
 
     p = sub.add_parser("dataset", help="collect labelled rule-on/off rows for a sweep family (guard training data)"); p.set_defaults(fn=cmd_dataset)
-    p.add_argument("--family", required=True, choices=["attn", "conv", "mlp"]); p.add_argument("--level", default="full", choices=["full", "small"])
+    p.add_argument("--family", required=True, choices=["attn", "conv", "mlp", "net"]); p.add_argument("--level", default="full", choices=["full", "small"])
     p.add_argument("--shuffle", action="store_true"); p.add_argument("--seed", type=int, default=0); p.add_argument("--limit", type=int, default=0)
     p.add_argument("--tau-pct", type=float, default=None); p.add_argument("--noise-config"); p.add_argument("--out")
 

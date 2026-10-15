@@ -75,6 +75,8 @@ FAMILY_RULE = {
     "attn": {"family": "_sfdp_pattern", "off_spec": "default-*_sfdp_pattern_*_inference", "on_spec": "default"},
     "conv": {"family": "layout_optimization", "off_spec": "default-lowering/layout_optimization", "on_spec": "default"},
     "mlp": {"family": "decompose_mm", "off_spec": "default", "on_spec": "default+optimus/decompose_mm_wide"},
+    # real torchvision networks (models/zoo.py) for the layout rule: same on/off as "conv", network-level features
+    "net": {"family": "layout_optimization", "off_spec": "default-lowering/layout_optimization", "on_spec": "default"},
 }
 
 
@@ -98,6 +100,9 @@ def conv_batch(C: int, R: int) -> int:
 
 def resolve(name: str) -> ModelSpec | None:
     """Build a ModelSpec from a sweep name, or None if the name is not a sweep name."""
+    if name.startswith("zoo_"):
+        from . import zoo
+        return zoo.resolve(name)
     m = _ATTN.match(name)
     if m:
         B, T, H, D = map(int, m.groups())
@@ -123,6 +128,8 @@ def resolve(name: str) -> ModelSpec | None:
 
 
 def sweep_family_of(name: str) -> str | None:
+    if name.startswith("zoo_"):
+        return "net"
     for fam, rx in (("attn", _ATTN), ("conv", _CONV), ("mlp", _MLP)):
         if rx.match(name):
             return fam
@@ -131,6 +138,9 @@ def sweep_family_of(name: str) -> str | None:
 
 def config_of(name: str) -> dict:
     """Numeric configuration parameters parsed from the name (features for the guard)."""
+    if name.startswith("zoo_"):
+        from . import zoo
+        return {k[4:] if k.startswith("cfg_") else k: v for k, v in zoo.features_of(name).items()}
     m = _ATTN.match(name)
     if m:
         B, T, H, D = map(int, m.groups())
@@ -166,6 +176,9 @@ def grid(family: str, level: str = "full") -> list[str]:
         Ms, Is, Hds = ([1, 8], [1024], [2048, 8192]) if level == "small" else \
                       ([1, 2, 4, 8, 16, 32, 64, 128], [512, 1024, 2048, 4096], [1024, 2048, 4096, 8192, 11008])
         names = [f"sweep_mlp_M{M}_I{I}_Hd{Hd}" for M, I, Hd in itertools.product(Ms, Is, Hds)]
+    elif family == "net":
+        from . import zoo
+        names = zoo.names(level)
     else:
         raise KeyError(family)
     return names
