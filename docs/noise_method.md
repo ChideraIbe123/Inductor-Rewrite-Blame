@@ -134,3 +134,39 @@ the judge returns FAST with a note, the pair scan never flags such a pair, and t
 the row. The hash is stable across processes and changes whenever a rewrite actually fires
 (tested on the layer-norm MLP: disabling a rule that fires changes it, disabling one that never
 fires does not).
+
+## Follow-up (2026-10-15): the two standard benchmarking fixes, tested on our data
+
+Suggested by the course staff: take the *min* instead of the median, and pin the process to fixed cores
+away from core 0 (plus turbo off and hyperthreads off, which need root and are unavailable on the VM, and
+impossible on the Mac).
+
+**Min vs median** (`scripts/noise_study_min.py`, every stored measurement keeps its 50 per-call samples).
+Leave-one-out false alarms on identical-configuration groups, single comparison:
+
+| machine | groups | median | min | p10 |
+|---|---|---|---|---|
+| Mac | 93 | 13.6% | 9.1% | 10.3% |
+| Xeon VM | 69 | 8.4% | 3.8% | 6.2% |
+| A40 GPU | 107 | 15.4% | 13.6% | 14.0% |
+
+Min is better on every machine (interference only ever adds time, so the fastest run is the cleanest
+estimate). Single-switch sweep verdicts recomputed with min agree with the median verdicts on 276/374 (Mac),
+174/206 (VM), 628/691 (GPU) rows; the disagreements sit at the threshold (median |delta| 2.3-2.6%), and of
+the rows with |delta| >= 5% the two statistics agree on 366 and disagree on 54. No headline finding changes.
+Recommendation: min as the per-run statistic for new sessions, with the AND rule kept (the AND rule, not
+the statistic, is what removed most false alarms).
+
+**Core pinning on the Xeon VM** (`scripts/runs/vm_pinning_study2.sh`; 3 threads in all arrangements):
+
+| model | arrangement | between-run CV of medians | of mins |
+|---|---|---|---|
+| ResNet-18 (207 ms) | unpinned / pinned 1-3 / pinned 0-2 | 0.30 / 0.38 / 0.42% | 0.21 / 0.24 / 0.19% |
+| DistilBERT (715 ms) | unpinned / pinned 1-3 / pinned 0-2 | 0.31 / 0.32 / 0.28% | 0.23 / 0.27 / 0.23% |
+| SmolLM decode (29 ms) | unpinned / pinned 1-3 / pinned 0-2 | **3.01 / 0.80 / 0.92%** | **3.13 / 0.36 / 0.60%** |
+
+Pinning does nothing for models that run for hundreds of milliseconds and cuts the spread of a 30 ms
+decode step by about 4x; keeping off core 0 gives a further small gain (0.36 vs 0.60% with min). The
+ResNet-18 sweep gives identical verdicts pinned and unpinned (freezing faster, layout and inplace_buffers
+slower, three switches same). Pitfall found on the way: `OMP_PROC_BIND=true` makes PyTorch 3x slower on
+this VM (207 -> 607 ms, threads serialised); pin with `taskset` only.
