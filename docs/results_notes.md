@@ -364,3 +364,37 @@ real networks). Kept as evidence: results/gpu/dataset_conv_smallbatch.jsonl (noi
 results/gpu/guards_eval_e2e.json (three-machine guard), results/gpu/guards_eval_e2e_gpu2.json (GPU-only).
 
 GPU campaign cost: $18.60 of the $188 RunPod credit (A40 at $0.59/h for ~31 h). Pod terminated 2026-10-14.
+
+## GPU layout guard trained on real networks (2026-10-15, second A40 pod)
+
+The synthetic-sweep guard did not transfer to real GPU models (above). Replacing the training set with real
+networks fixes it. New family `net`: 20 torchvision architectures (models/zoo.py; the seven corpus image models
+are excluded and held out) at batch 8, 32 and 64, features from one forward pass with hooks on every
+convolution (batch, resolution, number of convs, total MACs, fraction of MACs in depthwise and in 1x1 convs,
+work-weighted mean and max channels, mean kernel, total activation volume). Noise band from one stable
+batch-32 network (ResNet-34: 1.0%, floor 2%). A first attempt used the default median-of-3 representative
+configurations, two of which were batch-1 networks with 36-43% noise bands on the GPU; it labelled all 60 rows
+neutral and is kept as results/gpu/dataset_net_tau36_*.jsonl. Batch 1 is now excluded from the GPU grid.
+
+Dataset: 60 rows, 10 harmful / 30 helpful / 20 neutral. The layout rule hurts at batch 8 (DenseNet, VGG,
+RegNet-Y +20%, ResNet-34 +9%, ShuffleNet at batch 64 +26%) and helps most networks at batch 32-64 (AlexNet
+-34%, ResNeXt -11%, ResNet-101 -8%). Grouped CV by architecture: logistic regression 1.65% lost per firing vs
+1.98% always-fire (recall 0.80, false alarms 0.20); trees do worse on 60 rows.
+
+End-to-end on the seven held-out corpus image models (stock base, A40):
+
+| model | stock ms | with the net guard | blocked |
+|---|---|---|---|
+| resnet18 | 2.10 | **-8.2% faster (confirmed)** | yes |
+| resnet50 | 3.13 | **-3.7% faster (confirmed)** | yes |
+| conv_bn_relu_stack | 0.27 | **-21.0% faster (confirmed)** | yes |
+| efficientnet_b0 | 2.82 | -19.4% (not confirmed) | yes |
+| mobilenet_v3_small | 1.66 | +5.9% (not confirmed) | yes |
+| convnext_tiny | 4.23 | -0.2% | no |
+| vit_b_16 | 11.76 | +0.2% | no |
+
+Geometric mean -7.1%, three confirmed speed-ups, no confirmed regression; the 9.4% ResNet-18 slowdown the
+sweep found is removed by the guard. Compared with the synthetic-sweep guard (blocked nothing): same
+compiler hook, same decision point, different training distribution. Conclusion for the report: the guard
+mechanism works on all three machines; what it needs is training rows whose features look like the firings
+it will judge. Second pod cost about $3 (A40, 4 h).
