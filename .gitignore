@@ -15,3 +15,5 @@ results/**/*.sqlite
 results/vm/vm/
 report/
 results/
+docs/meeting_script_*.md
+docs/progress_check_*.md
