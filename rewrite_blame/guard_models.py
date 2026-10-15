@@ -221,8 +221,13 @@ class GuardBundle:
             if n.endswith(("numel", "tokens", "_T", "_I", "_Hd", "_R", "_M", "_C")) or n in LOG_FEATURES:
                 x[0][j] = math.log2(x[0][j] + 1.0)
         clf = g["clf"]
+        est = clf.steps[-1][1] if hasattr(clf, "steps") else clf          # pipelines keep classes_ on the last step
+        classes = [int(c) for c in getattr(est, "classes_", [])]
+        if len(classes) == 1:                       # degenerate training set (one label only): constant answer
+            return bool(classes[0] == 1)
         if hasattr(clf, "predict_proba"):
-            return bool(clf.predict_proba(x)[0][1] >= g["threshold"])
+            idx = classes.index(1) if 1 in classes else 1
+            return bool(clf.predict_proba(x)[0][idx] >= g["threshold"])
         return bool(clf.predict(x)[0])
 
     def save(self, path) -> None:

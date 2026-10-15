@@ -234,7 +234,10 @@ def cmd_guards_train(a):
         results.append(evaluate_policy(rows, fam))          # Inductor's own hand-written rule as the baseline
         for kind in a.kinds:
             if kind in ("tree", "gbt", "logreg"):
-                results.append(evaluate(rows, fam, kind, n_folds=a.folds))
+                try:
+                    results.append(evaluate(rows, fam, kind, n_folds=a.folds))
+                except ValueError as e:              # e.g. a single label in the data: logistic regression cannot fit
+                    print(f"[guards-train] {fam}/{kind}: skipped ({str(e)[:80]})", file=sys.stderr)
             elif kind == "encoder":
                 from .guard_encoder import DEFAULT_CHECKPOINT, evaluate_encoder
                 from .guard_models import EvalResult
@@ -255,7 +258,10 @@ def cmd_guards_train(a):
                     d["model"] += f" ({refusals} refusals)"
                 results.append(EvalResult(**d))
         kind = pick_bundle_kind(a.bundle_kind, [r for r in results if r.family == fam])
-        clf, names = fit_all(rows, fam, kind)
+        try:
+            clf, names = fit_all(rows, fam, kind)
+        except ValueError:
+            kind = "tree"; clf, names = fit_all(rows, fam, kind)
         if kind == "tree":
             rules[fam] = tree_rules(clf, names)
         bundle.add(fam, kind, clf, names, threshold=a.threshold)

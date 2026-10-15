@@ -21,7 +21,8 @@ ARCHS = [
     ("vgg11_bn", 224), ("vgg16_bn", 224), ("googlenet", 224), ("inception_v3", 299),
     ("convnext_small", 224), ("alexnet", 224),
 ]
-BATCHES = {"full": (1, 8, 32), "small": (8,)}
+# batch 1 is launch-bound on a GPU (36-43% noise bands on the A40), so the grid starts at 8
+BATCHES = {"full": (8, 32, 64), "small": (8,)}
 _NAME = re.compile(r"^zoo_(?P<arch>[a-z0-9_]+?)_b(?P<B>\d+)$")
 _FEATURES: dict[str, dict] = {}
 

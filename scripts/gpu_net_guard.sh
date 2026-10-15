@@ -4,8 +4,12 @@
 cd /workspace/rewrite-blame
 export REWRITE_BLAME_DEVICE=cuda REWRITE_BLAME_THREADS=4 TOKENIZERS_PARALLELISM=false
 F='^DEBUG\|^INFO\|Graph Metrics'; D=$(date +%F)
+# session fixed so the on/off measurements already in the store are reused; tau from one stable batch-32 network
+# (the median-of-3 default picked two batch-1 networks whose GPU noise bands were 36-43% and labelled everything neutral)
+S=${NET_SESSION:-2026-10-15-gpu-ds-net}
+[ -f results/dataset_net.jsonl ] && mv results/dataset_net.jsonl "results/dataset_net_tau36_$(date +%H%M).jsonl"
 echo "=== $(date) dataset net (real networks)"
-.venv/bin/python -m rewrite_blame --quiet --session "$D-gpu-ds-net" dataset --family net --level full --shuffle 2>&1 | grep -v "$F" | grep -E "^\[dataset\]|^\{" | tail -120
+.venv/bin/python -m rewrite_blame --quiet --session "$S" dataset --family net --level full --shuffle --noise-config zoo_resnet34_b32 2>&1 | grep -v "$F" | grep -E "^\[dataset\]|^\{" | tail -120
 echo "=== $(date) guards-train net (GPU rows only)"
 .venv/bin/python -m rewrite_blame guards-train --families net --kinds tree gbt logreg --data results/dataset_net.jsonl --out results/guards_eval_net.json --bundle results/guards_net.pkl 2>&1 | grep "^| net\|bundled"
 echo "=== $(date) guards-eval net on the held-out corpus image models"
