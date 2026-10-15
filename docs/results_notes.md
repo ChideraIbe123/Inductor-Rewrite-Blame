@@ -340,3 +340,27 @@ GPU repeatability (two sessions, both alone on the GPU): 188 of 221 verdicts agr
 CPUs). Most flips are toys and GPT-2 decode (2 ms, tau 7.5%), plus Qwen prefill effects of about 2% that sit
 on the 1.5% threshold. The headline GPU findings reproduce: freezing wins, layout harm on ResNet-18, the
 fusion-limit effects. GPT-2 decode's +11% normalization_pass flipped to -11%: unstable, not reported.
+
+## GPU conv dataset v2 (GPU-sized batches) and the GPU guard: a negative result (2026-10-14 evening)
+
+Recollected with the batch raised until each activation holds >=64M elements (calibrated: the sweep
+models then run 2.5-33 ms instead of 0.2-2 ms). Labels became decisive: 99 harmful / 57 helpful / 22
+neutral of 178 (small-batch run: 35 / 1 / 142). On the A40 channels-last is harmful in 71% of dense and
+46% of depthwise configurations, with little dependence on channels or resolution.
+
+GPU-only conv guard (grouped CV): logistic 2.30% lost per firing vs 8.76% always-fire (tree 2.79, GBT 2.71).
+
+End-to-end on the seven GPU image models (stock base): the guard was consulted on every model and
+blocked none, so every row is "same"; ResNet-18's 9.4% layout slowdown was not removed. Diagnosis: the
+model-level features of real networks (20-81 convolutions, max channels 512-2048 at 224x224) lie far
+outside the sweep grid (1-3 layers, 16-256 channels, 14-112 px), and the guard extrapolates to
+"harmless" (P <= 0.17 even after clipping every feature to the training range). The two CPU guards work
+on real models because depthwise=1 is decisive there and the CPU batch regime matches the sweeps.
+
+Conclusion for the report: a guard learned from synthetic sweeps transfers only when the real firings
+look like the sweep configurations. For the GPU layout decision that is not the case; a guard there needs
+training rows taken from real-network firings (or a sweep whose layer counts and activation budgets match
+real networks). Kept as evidence: results/gpu/dataset_conv_smallbatch.jsonl (noisy labels),
+results/gpu/guards_eval_e2e.json (three-machine guard), results/gpu/guards_eval_e2e_gpu2.json (GPU-only).
+
+GPU campaign cost: $18.60 of the $188 RunPod credit (A40 at $0.59/h for ~31 h). Pod terminated 2026-10-14.
