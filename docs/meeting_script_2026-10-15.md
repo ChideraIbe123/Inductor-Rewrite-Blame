@@ -87,9 +87,63 @@ look like the training cases.
 credits. Code and notes are on GitHub. What is left is the final report, due November 19.
 
 ## If asked
-- Why do the rule counts differ per machine (269, 396, 398)? The compiler only sets up the rules that can run
-  there: the Xeon build has Intel oneDNN fusion rules, the GPU build has CUDA-only rules.
-- How many tests? About 140, including small models with a planted slowdown where the tool must name the
-  right rule.
-- Could this go upstream? The switch mechanism answers an open PyTorch request for pattern-matcher
-  observability, and the freezing and layout findings are concrete issues to file.
+
+**Where are you in the project?**
+All of the measurement work is finished on three machines. The switches, the measuring tool, the noise
+method and the blame tool are built and tested, about 140 tests. I swept 24 models on each machine, ran
+attribution case studies on all three, checked that verdicts repeat across days, and built and evaluated the
+guards. Everything is on GitHub with a results log. Items 1 through 7 of the proposal are done. Item 8, the
+final report, is what remains.
+
+**Where are you hoping to go?**
+The final report, due November 19. Its argument: the per-rule switches and the blame tool are the
+contribution, the finding that rules flip between helpful and harmful across hardware is why the tool is
+needed, and the guards show that once you know the harmful rule you can act on it, with a clear statement of
+where that stops working. If time allows, two things would strengthen it: a GPU guard that actually works,
+and filing the freezing and layout findings as issues with PyTorch.
+
+**Any roadblocks?**
+- No GPU anywhere at the start. I did the whole project on two CPUs, then rented a GPU for 19 dollars this
+  week and reran everything there.
+- Noise. Single measurements gave false alarms about ten percent of the time. Fixed by requiring two
+  separate confirming runs, which took it to one percent.
+- The GPU guard does not work. The synthetic training networks have one to three layers, real networks have
+  twenty to eighty, so the guard has never seen anything like a real model. This is the open problem.
+- Smaller ones: the laptop throttles under sustained load and slowed on battery, the course VM reboots every
+  day and killed long jobs, and I once ran two copies of a job on the GPU by accident and had to redo six
+  hours. All handled, but they cost time.
+
+**Could a better dataset fix the GPU guard?**
+Yes, and it is small enough to do before the report. The current dataset comes from synthetic stacks of one
+to three layers. Instead, collect rows from real models: for each of the 24 models on the GPU, measure it
+with the layout rule on and off and record the features at every place the rule fires. Those rows look like
+real networks because they are real networks. Public model zoos add more; torchvision alone has about 80
+image models, so a few hundred rows for a few dollars of GPU time. Two caveats: the guard must then be
+scored by holding out whole models, not just rows, or it will look better than it is; and it only fixes the
+layout family, because the attention rule never fires on the GPU, so there is nothing to guard there.
+
+**So are the guards just overfitted to the data?**
+No. Two separate questions. Are they overfitted to the synthetic data? The cross-validation says no: I hold
+out whole groups of configurations the guard never saw, and it still predicts them correctly, losing about
+one percent per firing where always-apply loses up to 260 percent. A model that memorized its rows would
+fail that. Do they work on real models? On the two CPUs, yes, and that is the stronger evidence: the
+end-to-end test compiles real models nothing like the synthetic stacks, MobileNet, EfficientNet, SmolLM,
+GPT-2, and the guard made them 24 to 83 percent faster where the harmful rule was active and never made
+anything slower across about 25 real models. On the GPU the guard was asked about inputs outside anything it
+had seen and extrapolated wrong. That is a coverage problem in the training data, not memorization. The CPU
+guards survived the same gap because on the CPUs one feature, whether the convolutions are depthwise,
+decides most of the answer, and that feature is the same for a 3-layer stack and an 80-layer network. On
+the GPU no single feature decides it. One sentence: the guards generalize to real models on both CPUs, and
+the GPU shows the limit of synthetic training data; when real cases fall outside what it covers, the guard
+cannot be trusted, and the fix is training rows from real networks.
+
+**Why do the rule counts differ per machine (269, 396, 398)?**
+The compiler only sets up the rules that can run there: the Xeon build has Intel oneDNN fusion rules, the
+GPU build has CUDA-only rules.
+
+**How many tests?**
+About 140, including small models with a planted slowdown where the tool must name the right rule.
+
+**Could this go upstream?**
+The switch mechanism answers an open PyTorch request for pattern-matcher observability, and the freezing
+and layout findings are concrete issues to file.
