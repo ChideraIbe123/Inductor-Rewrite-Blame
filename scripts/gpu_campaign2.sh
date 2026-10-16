@@ -26,9 +26,10 @@ case $ph in
   done ;;
 2)
   echo "=== $(date) ranking switches"
-  $PY scripts/rank_switches.py results --top $TOPK --min-pct 3 --exclude-master --verbose | tee results/top_switches.tsv
+  $PY scripts/rank_switches.py results --top $TOPK --min-pct 3 --exclude-master --verbose | tee results/top_switches.tsv || true
   # freezing is default-off and a confirmed win on most GPU models: always include it (an "enable" guard)
-  SWITCHES="$($PY scripts/rank_switches.py results --top $TOPK --min-pct 3 --exclude-master | tr '\n' ' ') lowering/freezing"
+  # SWITCHES_OVERRIDE lets a second pod collect datasets in parallel with the sweep (fixed list from the fp32 ranking)
+  SWITCHES="${SWITCHES_OVERRIDE:-$($PY scripts/rank_switches.py results --top $TOPK --min-pct 3 --exclude-master | tr '\n' ' ') lowering/freezing}"
   for SW in $SWITCHES; do
     case "$SW" in
       *layout*|*conv_1x1*|*freezing*|*max_fusion*|*inplace*|*reorder*|*post_grad_passes*|*pattern_matcher*) SET="zoo:all" ;;
