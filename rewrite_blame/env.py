@@ -36,6 +36,19 @@ def device():
     return torch.device(device_name())
 
 
+def dtype_name() -> str:
+    """Model/activation precision for every measurement: REWRITE_BLAME_DTYPE (fp32 | bf16 | fp16), default fp32."""
+    d = os.environ.get("REWRITE_BLAME_DTYPE", "fp32").lower()
+    if d not in ("fp32", "bf16", "fp16"):
+        raise ValueError(f"REWRITE_BLAME_DTYPE must be fp32|bf16|fp16, got {d!r}")
+    return d
+
+
+def torch_dtype():
+    import torch
+    return {"fp32": torch.float32, "bf16": torch.bfloat16, "fp16": torch.float16}[dtype_name()]
+
+
 def gpu_brand() -> str:
     try:
         import torch
@@ -75,7 +88,8 @@ def machine_id() -> str:
 
 def fingerprint(threads: int) -> str:
     import torch
-    return f"{machine_id()}|torch{torch.__version__}|T{threads}"
+    dt = dtype_name()
+    return f"{machine_id()}|torch{torch.__version__}|T{threads}" + ("" if dt == "fp32" else f"|{dt}")
 
 
 def describe(threads: int) -> dict:
@@ -87,6 +101,7 @@ def describe(threads: int) -> dict:
         "cpu": cpu_brand(),
         "cpu_count": os.cpu_count(),
         "device": device_name(),
+        "dtype": dtype_name(),
         "gpu": gpu_brand() if is_cuda() else None,
         "threads": threads,
         "torch": torch.__version__,

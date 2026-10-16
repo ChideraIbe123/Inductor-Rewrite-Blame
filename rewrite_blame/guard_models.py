@@ -33,7 +33,27 @@ FEATURES = {
     "net": ["cfg_B", "cfg_R", "cfg_n_conv", "cfg_macs", "cfg_dw_frac", "cfg_one_frac", "cfg_mean_channels", "cfg_max_channels",
             "cfg_mean_k", "cfg_act_numel", "x86", "cuda", "threads"],
 }
-LOG_FEATURES = {"cfg_B", "cfg_n_conv", "cfg_macs", "cfg_mean_channels", "cfg_max_channels"}   # log2-scaled like the size features
+LOG_FEATURES = {"cfg_B", "cfg_n_conv", "cfg_macs", "cfg_mean_channels", "cfg_max_channels", "cfg_tokens", "cfg_params",
+                "cfg_n_norm", "cfg_n_linear", "cfg_linear_macs", "cfg_lin_mean_M", "cfg_lin_mean_K", "cfg_lin_mean_N",
+                "cfg_lin_max_N", "cfg_n_attn", "cfg_attn_B", "cfg_attn_H", "cfg_attn_T", "cfg_attn_D", "cfg_attn_qk_numel"}
+MACHINE_FEATURES = ["x86", "cuda", "threads"]
+
+
+def features_for(family: str, rows: list[dict]) -> list[str]:
+    """Feature names for a family: the fixed list for the sweep families, otherwise (``switch:<id>`` real-model
+    rows) every numeric ``cfg_*`` column present in the rows, in sorted order, plus the machine features."""
+    if family in FEATURES:
+        return FEATURES[family]
+    cols = sorted({k for r in rows for k, v in r.items() if k.startswith("cfg_") and isinstance(v, (int, float)) and not isinstance(v, bool)})
+    return cols + MACHINE_FEATURES
+
+
+def target_of(family: str, rows: list[dict]) -> str:
+    """Which label a guard predicts: ``harmful`` (block a default-on switch that hurts) or ``helpful`` (enable a
+    default-off switch that helps). Sweep families and default-on switches use ``harmful``."""
+    if rows and family.startswith("switch:") and rows[0].get("default_on") is False:
+        return "helpful"
+    return "harmful"
 
 
 def load_rows(paths: Iterable[Path], family: str | None = None, drop_no_effect: bool = True) -> list[dict]:
@@ -55,15 +75,16 @@ def load_rows(paths: Iterable[Path], family: str | None = None, drop_no_effect: 
     return rows
 
 
-def featurize(rows: list[dict], family: str):
-    names = FEATURES[family]
+def featurize(rows: list[dict], family: str, target: str | None = None, names: list[str] | None = None):
+    names = names or features_for(family, rows)
+    target = target or target_of(family, rows)
     X = [[float(r.get(n, 0) or 0) for n in names] for r in rows]
     # log-scale the size-like features so thresholds are sane across orders of magnitude
     for j, n in enumerate(names):
         if n.endswith(("numel", "tokens", "_T", "_I", "_Hd", "_R", "_M", "_C")) or n in LOG_FEATURES:
             for i in range(len(X)):
                 X[i][j] = math.log2(X[i][j] + 1.0)
-    y = [1 if r["label"] == "harmful" else 0 for r in rows]
+    y = [1 if r["label"] == target else 0 for r in rows]
     return X, y, names
 
 
@@ -97,7 +118,7 @@ def inductor_policy_blocks(row: dict, family: str) -> int:
 
 def evaluate_policy(rows: list[dict], family: str, name: str = "inductor-heuristic") -> "EvalResult":
     """Score a fixed policy (no training) with the same metrics as the learned guards."""
-    y = [1 if r["label"] == "harmful" else 0 for r in rows]
+    y = [1 if r["label"] == target_of(family, rows) else 0 for r in rows]
     pred = [inductor_policy_blocks(r, family) for r in rows]
     n = len(rows)
     harmful = [i for i, t in enumerate(y) if t == 1]
@@ -112,7 +133,7 @@ def evaluate_policy(rows: list[dict], family: str, name: str = "inductor-heurist
 def _groups(rows: list[dict], family: str) -> list[str]:
     """Group key for cross-validation so that all sizes of one shape 'slice' leave together:
     attn by (H, D), conv by (C, depthwise), mlp by (I, Hd). Prevents near-duplicate leakage."""
-    key = {"attn": ("cfg_H", "cfg_D"), "conv": ("cfg_C", "cfg_depthwise"), "mlp": ("cfg_I", "cfg_Hd"), "net": ("cfg_arch",)}[family]
+    key = {"attn": ("cfg_H", "cfg_D"), "conv": ("cfg_C", "cfg_depthwise"), "mlp": ("cfg_I", "cfg_Hd"), "net": ("cfg_arch",)}.get(family, ("cfg_arch",))
     return [f"{r['env'].split('|')[0]}|" + "|".join(str(r.get(k)) for k in key) for r in rows]
 
 
@@ -209,8 +230,10 @@ class GuardBundle:
     """Serialisable set of guards: family -> (kind, fitted model, feature names, threshold of harm prob)."""
     guards: dict = field(default_factory=dict)
 
-    def add(self, family: str, kind: str, clf, names: list[str], threshold: float = 0.5) -> None:
-        self.guards[family] = {"kind": kind, "clf": clf, "names": names, "threshold": threshold}
+    def add(self, family: str, kind: str, clf, names: list[str], threshold: float = 0.5, mode: str = "block") -> None:
+        """``mode`` = block (predict harmful, turn a default-on switch off) or enable (predict helpful, turn a
+        default-off switch on)."""
+        self.guards[family] = {"kind": kind, "clf": clf, "names": names, "threshold": threshold, "mode": mode}
 
     def predict_harmful(self, family: str, features: dict) -> bool | None:
         g = self.guards.get(family)

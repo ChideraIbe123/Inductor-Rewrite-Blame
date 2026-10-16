@@ -206,14 +206,30 @@ def cmd_dataset(a):
     from .dataset import collect
     from .models import sweeps
     r = _runner(a)
+    log = lambda *x: print(*x, file=sys.stderr, flush=True)
+    from collections import Counter
+    if a.switch:
+        from .dataset import collect_switch
+        from . import models as _models
+        names = _models.expand_spec(a.models or "zoo:all", a.level)
+        if a.shuffle:
+            random.Random(a.seed).shuffle(names)
+        if a.limit:
+            names = names[: a.limit]
+        slug = a.switch.replace("/", "_")
+        out = Path(a.out) if a.out else Path("results") / f"dataset_switch_{slug}.jsonl"
+        rows = collect_switch(r, a.switch, names, out, tau_pct=a.tau_pct, noise_config=a.noise_config, log=log)
+        print(json.dumps({"switch": a.switch, "models": a.models or "zoo:all", "new_rows": len(rows), "labels": Counter(x["label"] for x in rows), "file": str(out)}, default=str))
+        return
+    if not a.family:
+        raise SystemExit("dataset: give --family (sweep family) or --switch (one switch over real models)")
     names = sweeps.grid(a.family, a.level)
     if a.shuffle:
         random.Random(a.seed).shuffle(names)
     if a.limit:
         names = names[: a.limit]
     out = Path(a.out) if a.out else Path("results") / f"dataset_{a.family}.jsonl"
-    rows = collect(r, a.family, names, out, tau_pct=a.tau_pct, noise_config=a.noise_config, log=lambda *x: print(*x, file=sys.stderr, flush=True))
-    from collections import Counter
+    rows = collect(r, a.family, names, out, tau_pct=a.tau_pct, noise_config=a.noise_config, log=log)
     print(json.dumps({"family": a.family, "new_rows": len(rows), "labels": Counter(x["label"] for x in rows), "file": str(out)}, default=str))
 
 
@@ -224,7 +240,10 @@ def cmd_guards_train(a):
     paths = [Path(p) for p in (a.data or [])] or sorted(Path("results").glob("dataset_*.jsonl")) + sorted(Path("results/vm").glob("dataset_*.jsonl")) + sorted(Path("results/gpu").glob("dataset_*.jsonl"))
     results, rules, counts = [], {}, {}
     bundle = GuardBundle()
-    for fam in a.families or ["mlp", "conv", "attn"]:
+    fams = a.families
+    if not fams:                      # every family present in the data files (sweep families and switch:<id>)
+        fams = sorted({r.get("family") for r in load_rows(paths) if r.get("family")})
+    for fam in fams:
         rows = load_rows(paths, fam)
         if len(rows) < 8:
             print(f"[guards-train] {fam}: only {len(rows)} rows, skipping", file=sys.stderr)
@@ -264,8 +283,10 @@ def cmd_guards_train(a):
             kind = "tree"; clf, names = fit_all(rows, fam, kind)
         if kind == "tree":
             rules[fam] = tree_rules(clf, names)
-        bundle.add(fam, kind, clf, names, threshold=a.threshold)
-        print(f"[guards-train] {fam}: bundled a {kind} guard", file=sys.stderr)
+        from .guard_models import target_of
+        mode = "enable" if target_of(fam, rows) == "helpful" else "block"
+        bundle.add(fam, kind, clf, names, threshold=a.threshold, mode=mode)
+        print(f"[guards-train] {fam}: bundled a {kind} guard (mode {mode})", file=sys.stderr)
     out = Path(a.out) if a.out else Path("results/guards_eval.json")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps({"results": [r.to_dict() for r in results], "counts": {k: dict(v) for k, v in counts.items()},
@@ -284,21 +305,37 @@ def cmd_guards_eval(a):
     import math
     r = _runner(a)
     base = parse_state_spec(r.reg, a.base_state) if a.base_state else None
-    res = r.guards_eval(a.models, a.bundle, a.families, noise_runs=a.runs, base=base)
-    lines = [f"# Guards end-to-end on real models ({res['env']})", f"base state: `{a.base_state or 'default'}`", "", "| model | base ms | " + " | ".join(f"+{f}" for f in a.families) + " |",
-             "|---|---|" + "---|" * len(a.families)]
+    res = r.guards_eval(a.models, a.bundle, a.families, noise_runs=a.runs, base=base, oracle=not a.no_oracle, max_autotune=a.max_autotune)
+    extra = ([" oracle (best toggle) "] if res.get("oracle_switches") else []) + ([" max-autotune "] if res.get("max_autotune") else [])
+    lines = [f"# Guards end-to-end on real models ({res['env']})", f"base state: `{a.base_state or 'default'}`",
+             (f"oracle switches: {', '.join(res['oracle_switches'])}" if res.get("oracle_switches") else ""), "",
+             "| model | base ms | " + " | ".join(f"+{f}" for f in a.families) + " |" + "|".join(extra) + ("|" if extra else ""),
+             "|---|---|" + "---|" * (len(a.families) + len(extra))]
     speedups = {f: [] for f in a.families}
+    fractions = []
     for row in res["rows"]:
         cells = []
         for st in row["steps"]:
             if "error" in st:
                 cells.append("error")
                 continue
-            cells.append(f"{st['delta_pct']:+.1f}% {st['verdict']} (blocked {st['blocked']})")
+            frac = f", {100*st['oracle_fraction']:.0f}% of oracle" if "oracle_fraction" in st else ""
+            cells.append(f"{st['delta_pct']:+.1f}% {st['verdict']} (blocked {st['blocked']}{frac})")
             fam = st["guards"].split("+")[-1]
             speedups[fam].append(st["delta_pct"])
+            if "oracle_fraction" in st and st["guards"] == "+".join(a.families):
+                fractions.append(st["oracle_fraction"])
+        if res.get("oracle_switches"):
+            o = row.get("oracle", {}); best = o.get("best_delta_pct", 0.0)
+            who = [k.split("/")[-1] for k, v in o.get("toggles", {}).items() if v["verdict"] == "faster" and abs(v["delta_pct"] - best) < 1e-9]
+            cells.append(f"{best:+.1f}%" + (f" ({who[0]})" if who else " (stock is best)"))
+        if res.get("max_autotune"):
+            ma = row.get("max_autotune", {})
+            cells.append("error" if ma.get("error") else f"{ma['delta_pct']:+.1f}% {ma['verdict']}")
         lines.append(f"| {row['model']} | {row['default_ms']:.3f} | " + " | ".join(cells) + " |")
     lines.append("")
+    if fractions:
+        lines.append(f"- oracle recovered by the full guard set where the oracle beats stock: mean {100*sum(fractions)/len(fractions):.0f}% over {len(fractions)} models")
     for st_label in ["+".join(a.families[:i]) for i in range(1, len(a.families) + 1)]:
         ds = [st["delta_pct"] for row in res["rows"] for st in row["steps"] if st.get("guards") == st_label and "error" not in st]
         if ds:
@@ -387,7 +424,9 @@ def main(argv=None) -> int:
     p.add_argument("--dirs", nargs="*"); p.add_argument("--out")
 
     p = sub.add_parser("dataset", help="collect labelled rule-on/off rows for a sweep family (guard training data)"); p.set_defaults(fn=cmd_dataset)
-    p.add_argument("--family", required=True, choices=["attn", "conv", "mlp", "net"]); p.add_argument("--level", default="full", choices=["full", "small"])
+    p.add_argument("--family", choices=["attn", "conv", "mlp", "net"]); p.add_argument("--level", default="full", choices=["full", "small"])
+    p.add_argument("--switch", help="one switch id: real-model rows (switch on vs off) over --models")
+    p.add_argument("--models", help="model set for --switch: zoo:conv | zoo:hf | zoo:all | corpus:images | names,globs (default zoo:all)")
     p.add_argument("--shuffle", action="store_true"); p.add_argument("--seed", type=int, default=0); p.add_argument("--limit", type=int, default=0)
     p.add_argument("--tau-pct", type=float, default=None); p.add_argument("--noise-config"); p.add_argument("--out")
 
@@ -401,6 +440,7 @@ def main(argv=None) -> int:
     p = sub.add_parser("guards-eval", help="end-to-end: stock vs guards on real models, one family at a time"); p.set_defaults(fn=cmd_guards_eval)
     p.add_argument("--models", nargs="+", required=True); p.add_argument("--bundle", default="results/guards.pkl")
     p.add_argument("--families", nargs="*", default=["mlp", "conv", "attn"]); p.add_argument("--runs", type=int, default=7); p.add_argument("--out")
+    p.add_argument("--no-oracle", action="store_true", help="skip the hand-toggled oracle per switch"); p.add_argument("--max-autotune", action="store_true", help="also measure stock mode=max-autotune")
     p.add_argument("--base-state", help="state spec the guards are evaluated on top of (default: default); e.g. default+optimus/decompose_mm_wide")
 
     p = sub.add_parser("show"); p.set_defaults(fn=cmd_show)

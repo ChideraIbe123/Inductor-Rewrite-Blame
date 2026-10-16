@@ -30,6 +30,7 @@ def _child_main(argv: list[str]) -> int:
     ap.add_argument("--time-eager", action="store_true")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--guards", default=None, help="path to a GuardBundle pickle to consult during the compile")
+    ap.add_argument("--mode", default=None, help="torch.compile mode (e.g. max-autotune); default None")
     a = ap.parse_args(argv)
 
     from . import env
@@ -46,7 +47,7 @@ def _child_main(argv: list[str]) -> int:
     if a.guards:
         from .guard_models import GuardBundle
         guards = GuardBundle.load(a.guards)
-    m = measure(reg, a.model, state, threads=threads, warmup=a.warmup, rounds=a.rounds, iters=a.iters,
+    m = measure(reg, a.model, state, threads=threads, warmup=a.warmup, rounds=a.rounds, iters=a.iters, mode=a.mode,
                 time_it=not a.no_time, check_correct=not a.no_check, time_eager=a.time_eager, seed=a.seed, guards=guards)
     d = m.to_dict()
     d["registry_drift"] = {"missing_in_process": missing, "extra_in_process": extra}
@@ -58,7 +59,8 @@ def _child_main(argv: list[str]) -> int:
 def run(model: str, state: Iterable[str], registry_path: str | Path, *, threads: int = 0, warmup: int = 10,
         rounds: int = 5, iters: int = 10, time_it: bool = True, check_correct: bool = True,
         time_eager: bool = False, seed: int = 0, timeout_s: int = 3600, cache_dir: str | None = None,
-        python: str | None = None, extra_env: dict | None = None, guards: str | None = None) -> Measurement:
+        python: str | None = None, extra_env: dict | None = None, guards: str | None = None,
+        mode: str | None = None) -> Measurement:
     from . import env
     import tempfile
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
@@ -75,6 +77,8 @@ def run(model: str, state: Iterable[str], registry_path: str | Path, *, threads:
         cmd.append("--time-eager")
     if guards:
         cmd += ["--guards", str(guards)]
+    if mode:
+        cmd += ["--mode", mode]
     e = dict(os.environ)
     e["TORCHINDUCTOR_CACHE_DIR"] = env.inductor_cache_dir(cache_dir)
     e.setdefault("TOKENIZERS_PARALLELISM", "false")

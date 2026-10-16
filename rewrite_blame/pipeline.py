@@ -104,12 +104,15 @@ class Runner:
 
     # ---------------------------------------------------------------- measurements
     def measure(self, model: str, state: Iterable[str], *, time_it: bool = True, rep: int = 0,
-                force: bool = False, check_correct: bool = True, guards: str | None = None) -> Measurement:
+                force: bool = False, check_correct: bool = True, guards: str | None = None,
+                mode: str | None = None) -> Measurement:
         st = self.reg.validate_state(state)
         proto = (f"{self.cfg.protocol}@{self.cfg.session_tag}" if time_it else "compile_only") + (f"/rep{rep}" if rep else "")
         if guards:
             import hashlib
             proto += "+guards:" + hashlib.sha256(Path(guards).read_bytes()).hexdigest()[:10]
+        if mode:
+            proto += f"+mode:{mode}"
         if not force:
             cached = self.store.get(model, self.env, state_hash(st), proto)
             if cached is not None and not cached.get("error"):
@@ -118,7 +121,7 @@ class Runner:
         t0 = time.time()
         m = worker.run(model, st, self.cfg.registry_path, threads=self.threads, warmup=self.cfg.warmup,
                        rounds=self.cfg.rounds, iters=self.cfg.iters, time_it=time_it, check_correct=check_correct,
-                       timeout_s=self.cfg.timeout_s, cache_dir=self.cfg.cache_dir, guards=guards)
+                       timeout_s=self.cfg.timeout_s, cache_dir=self.cfg.cache_dir, guards=guards, mode=mode)
         self.new_measurements += 1
         wall = time.time() - t0
         if time_it and not m.error:
@@ -129,7 +132,7 @@ class Runner:
                 time.sleep(pause)
                 m2 = worker.run(model, st, self.cfg.registry_path, threads=self.threads, warmup=self.cfg.warmup,
                                 rounds=self.cfg.rounds, iters=self.cfg.iters, time_it=time_it, check_correct=check_correct,
-                                timeout_s=self.cfg.timeout_s, cache_dir=self.cfg.cache_dir, guards=guards)
+                                timeout_s=self.cfg.timeout_s, cache_dir=self.cfg.cache_dir, guards=guards, mode=mode)
                 self.new_measurements += 1
                 if not m2.error:
                     m2.protocol["retried_unsteady"] = {"first_median": m.median_ms, "first_trend": m.timing.get("trend_ratio")}
@@ -414,10 +417,47 @@ class Runner:
 
 
     # ---------------------------------------------------------------- end-to-end guard evaluation
+    ORACLE_SWITCHES = {"conv": ["lowering/layout_optimization"], "net": ["lowering/layout_optimization"],
+                       "mlp": ["optimus/decompose_mm_wide"], "attn": ["*_sfdp_pattern_*_inference"]}
+
+    def _oracle_switches(self, families: list[str], bundle) -> list[str]:
+        """The switches a guard set can touch: switch:<id> families name theirs; sweep families map to a rule."""
+        import fnmatch
+        out = []
+        for fam in families:
+            if fam.startswith("switch:"):
+                out.append(fam[len("switch:"):])
+            for pat in self.ORACLE_SWITCHES.get(fam, []):
+                out += [i for i in self.reg.ids() if fnmatch.fnmatch(i, pat)] if ("*" in pat) else [pat]
+        return [i for i in dict.fromkeys(out) if i in self.reg]
+
+    def _confirmed_delta(self, model, state, nm, m0_hash, **kw):
+        """Median change vs the noise centre, confirmed by a second time-separated run (AND rule); returns
+        (delta_ms, verdict, measurement)."""
+        m1 = self.measure(model, state, **kw)
+        if m1.error:
+            return None, "error", m1
+        d = m1.median_ms - nm.center
+        verdict = "same"
+        same_prog = bool(m0_hash) and m1.program_hash == m0_hash
+        if abs(d) > nm.tau and not same_prog:
+            m2 = self.measure(model, state, rep=2, **kw)
+            if not m2.error:
+                d2 = m2.median_ms - nm.center
+                if d > nm.tau and d2 > nm.tau:
+                    verdict = "slower"
+                elif d < -nm.tau and d2 < -nm.tau:
+                    verdict = "faster"
+                d = 0.5 * (d + d2)
+        return d, verdict, m1
+
     def guards_eval(self, models: Iterable[str], bundle_path: str, families: list[str], noise_runs: int = 7,
-                    base: State | None = None) -> dict:
+                    base: State | None = None, oracle: bool = True, max_autotune: bool = False) -> dict:
         """Stock Inductor vs Inductor with guards added one family at a time, on real models.
-        Each comparison is confirmed by the two-run rule against the model's noise threshold."""
+        Each comparison is confirmed by the two-run rule against the model's noise threshold. With ``oracle``,
+        every switch the guards can touch is also toggled by hand (best of on/off = what a perfect guard would
+        get) and the guard's gain is reported as a fraction of that; with ``max_autotune`` the stock compile in
+        mode="max-autotune" is measured as the baseline Inductor already offers."""
         import tempfile
         from .guard_models import GuardBundle
         full = GuardBundle.load(bundle_path)
@@ -432,35 +472,41 @@ class Runner:
             sub.save(f.name)
             steps.append(("+".join(families[:i]), f.name))
         base = self.reg.default_state() if base is None else frozenset(base)
+        oracle_ids = self._oracle_switches(families, full) if oracle else []
         rows = []
         for model in models:
             nm, _ = self.noise(model, base, runs=noise_runs)
             m0 = self.measure(model, base)
             row = {"model": model, "default_ms": nm.center, "tau_ms": nm.tau, "steps": []}
+            if oracle_ids:
+                # a perfect per-model guard: the best of toggling each touchable switch (confirmed), or stock
+                toggles = {}
+                for sid in oracle_ids:
+                    st = frozenset(base - {sid}) if sid in base else frozenset(base | {sid})
+                    d, verdict, _m = self._confirmed_delta(model, st, nm, m0.program_hash)
+                    if d is not None:
+                        toggles[sid] = {"delta_pct": 100 * d / nm.center, "verdict": verdict}
+                best = min((v["delta_pct"] for v in toggles.values() if v["verdict"] == "faster"), default=0.0)
+                row["oracle"] = {"toggles": toggles, "best_delta_pct": best}
+            if max_autotune:
+                d, verdict, _m = self._confirmed_delta(model, base, nm, m0.program_hash, mode="max-autotune")
+                row["max_autotune"] = {"delta_pct": 100 * d / nm.center, "verdict": verdict} if d is not None else {"error": True}
             for label, gpath in steps:
-                m1 = self.measure(model, base, guards=gpath)
-                if m1.error:
+                d, verdict, m1 = self._confirmed_delta(model, base, nm, m0.program_hash, guards=gpath)
+                if d is None:
                     row["steps"].append({"guards": label, "error": m1.error.splitlines()[0][:200]})
                     continue
-                d = m1.median_ms - nm.center
-                verdict = "same"
-                same_prog = bool(m0.program_hash) and m1.program_hash == m0.program_hash
-                if abs(d) > nm.tau and not same_prog:   # a byte-identical program cannot be faster or slower
-                    m2 = self.measure(model, base, guards=gpath, rep=2)
-                    if not m2.error:
-                        d2 = m2.median_ms - nm.center
-                        if d > nm.tau and d2 > nm.tau:
-                            verdict = "slower"
-                        elif d < -nm.tau and d2 < -nm.tau:
-                            verdict = "faster"
-                        d = 0.5 * (d + d2)
                 decisions = [x for x in m1.guard_decisions if x.get("blocked")]
-                row["steps"].append({"guards": label, "median_ms": m1.median_ms, "delta_pct": 100 * d / nm.center, "verdict": verdict,
-                                     "blocked": sum(m1.guarded.values()) + int(bool(m1.protocol.get("guard_disabled_layout"))),
-                                     "decisions": decisions[:10], "same_program": same_prog})
-                self.log(f"  {model} guards={label}: {m1.median_ms:.3f} vs {nm.center:.3f} ms ({100*d/nm.center:+.1f}%) {verdict}, blocked {row['steps'][-1]['blocked']}")
+                step = {"guards": label, "median_ms": m1.median_ms, "delta_pct": 100 * d / nm.center, "verdict": verdict,
+                        "blocked": sum(m1.guarded.values()) + int(bool(m1.protocol.get("guard_disabled_layout"))) + len(m1.protocol.get("guard_changed_switches", [])),
+                        "decisions": decisions[:10], "same_program": bool(m0.program_hash) and m1.program_hash == m0.program_hash}
+                if oracle_ids and row["oracle"]["best_delta_pct"] < 0:
+                    step["oracle_fraction"] = min(step["delta_pct"], 0.0) / row["oracle"]["best_delta_pct"]
+                row["steps"].append(step)
+                self.log(f"  {model} guards={label}: {m1.median_ms:.3f} vs {nm.center:.3f} ms ({100*d/nm.center:+.1f}%) {verdict}, blocked {step['blocked']}")
             rows.append(row)
-        return {"env": self.env, "families": families, "bundle": bundle_path, "base": sorted(base), "rows": rows}
+        return {"env": self.env, "families": families, "bundle": bundle_path, "base": sorted(base), "rows": rows,
+                "oracle_switches": oracle_ids, "max_autotune": max_autotune}
 
 
 def refresh_registry(path, log=print) -> Registry:

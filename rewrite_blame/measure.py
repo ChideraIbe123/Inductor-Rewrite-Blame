@@ -101,7 +101,7 @@ def _counters_snapshot() -> dict[str, int]:
 def measure(reg: Registry, model_name: str, state: Iterable[str], *, threads: int | None = None,
             warmup: int = 10, rounds: int = 5, iters: int = 10, time_it: bool = True,
             check_correct: bool = True, time_eager: bool = False, seed: int = 0,
-            dynamic: bool | None = False, guards=None) -> Measurement:
+            dynamic: bool | None = False, guards=None, mode: str | None = None) -> Measurement:
     """Run one configuration in *this* process. Prefer ``worker.run`` for isolation."""
     from torch._inductor import metrics
     from torch._inductor.utils import run_and_get_code
@@ -113,7 +113,7 @@ def measure(reg: Registry, model_name: str, state: Iterable[str], *, threads: in
     m = Measurement(model=model_name, state=sorted(st), state_hash=state_hash(st), env=env.fingerprint(threads),
                     threads=threads, torch_version=torch.__version__, timestamp=time.time(),
                     protocol={"warmup": warmup, "rounds": rounds, "iters": iters, "seed": seed, "dynamic": dynamic,
-                              "power": env.power_state()},
+                              "power": env.power_state(), "dtype": env.dtype_name(), "mode": mode},
                     diff=state_diff(reg, st))
     from . import live_guards
     live_guards.reset()
@@ -138,6 +138,30 @@ def measure(reg: Registry, model_name: str, state: Iterable[str], *, threads: in
             if verdict:
                 st = frozenset(st - {"lowering/layout_optimization"})
                 m.protocol["guard_disabled_layout"] = True
+        # switch-level guards ("switch:<id>" families): one whole-model decision per switch before compiling.
+        # mode "block": the switch is on and predicted harmful -> turn it off; mode "enable": the switch is off
+        # and predicted helpful -> turn it on (used for default-off settings such as freezing).
+        sw_fams = [f for f in gfams if f.startswith("switch:")]
+        if sw_fams:
+            prof = live_guards.model_profile(model, inputs) or {}
+            prof.update({"x86": int("x86" in m.env and not is_cuda), "cuda": int(is_cuda), "threads": threads})
+            changed = []
+            for fam in sw_fams:
+                sid = fam[len("switch:"):]
+                gmode = gfams[fam].get("mode", "block")
+                if sid not in reg:
+                    continue
+                verdict = guards.predict_harmful(fam, prof)          # P(target class) >= threshold
+                blocked = False
+                if gmode == "block" and sid in st and verdict:
+                    st = frozenset(st - {sid}); blocked = True
+                elif gmode == "enable" and sid not in st and verdict:
+                    st = frozenset(st | {sid}); blocked = True
+                live_guards.DECISIONS.append({"switch": sid, "family": fam, "mode": gmode, "blocked": blocked, "features": None})
+                if blocked:
+                    changed.append(sid)
+            if changed:
+                m.protocol["guard_changed_switches"] = changed
         with torch.no_grad():
             eager_out = _flatten(model(*inputs)) if check_correct else None
             if time_eager:
@@ -157,7 +181,7 @@ def measure(reg: Registry, model_name: str, state: Iterable[str], *, threads: in
         before = _counters_snapshot()
 
         with apply.active(reg, st), torch.no_grad():
-            compiled = torch.compile(model, dynamic=dynamic)
+            compiled = torch.compile(model, dynamic=dynamic, mode=mode)
             t0 = time.perf_counter()
             out, codes = run_and_get_code(compiled, *inputs)
             m.compile_s = time.perf_counter() - t0
@@ -196,7 +220,8 @@ def measure(reg: Registry, model_name: str, state: Iterable[str], *, threads: in
                         continue
                     if a.is_floating_point():
                         errs.append((a.float() - b.float()).abs().max().item())
-                        ok = ok and torch.allclose(a.float(), b.float(), rtol=1e-3, atol=1e-3)
+                        tol = 1e-3 if env.dtype_name() == "fp32" else 3e-2     # bf16/fp16: 8-bit mantissa, fused kernels reorder sums
+                        ok = ok and torch.allclose(a.float(), b.float(), rtol=tol, atol=tol)
                     else:
                         ok = ok and torch.equal(a, b)
                 m.correct = ok

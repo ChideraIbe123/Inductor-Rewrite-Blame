@@ -23,7 +23,7 @@ def test_network_features_counts_work_by_kind():
 
 def test_zoo_names_resolve_and_are_a_net_family():
     names = zoo.names("full")
-    assert len(names) == 20 * 3 and "zoo_resnet34_b8" in names and sweeps.grid("net") == names
+    assert len(names) == 38 * 3 and "zoo_resnet34_b8" in names and sweeps.grid("net") == names
     assert zoo.parse("zoo_resnet34_b8") == ("resnet34", 8, 224) and zoo.parse("sweep_conv_C16_R14_K1_L1_dw") is None
     assert zoo.parse("zoo_nope_b8") is None
     assert sweeps.sweep_family_of("zoo_resnet34_b8") == "net"
