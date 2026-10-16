@@ -58,6 +58,14 @@ def steady_state_start(samples: Sequence[float], window: int = 5) -> int:
     return n - window
 
 
+def run_statistic() -> str:
+    import os
+    st = os.environ.get("REWRITE_BLAME_STAT", "median").lower()
+    if st not in ("median", "min"):
+        raise ValueError(f"REWRITE_BLAME_STAT must be median|min, got {st!r}")
+    return st
+
+
 def summarize(samples_ms: Sequence[float]) -> dict:
     xs = list(samples_ms)
     k = steady_state_start(xs)
@@ -72,7 +80,11 @@ def summarize(samples_ms: Sequence[float]) -> dict:
         "steady_start": k,
         "trend_ratio": trend_ratio,
         "unsteady": trend_ratio > 1.10 or trend_ratio < 0.90,
-        "median": median(steady),          # the run's statistic: median over steady-state calls
+        # the run's statistic. Default: median over the steady-state calls. REWRITE_BLAME_STAT=min uses the
+        # fastest call instead (interference only ever adds time; fewer false alarms in the null calibration,
+        # see docs/noise_method.md); "median_raw" always keeps the plain median so either can be recomputed.
+        "median": min(steady) if run_statistic() == "min" else median(steady),
+        "statistic": run_statistic(),
         "median_raw": median(xs),
         "mad": mad(steady),
         "iqr_rel": (q3 - q1) / median(steady) if median(steady) else 0.0,

@@ -137,3 +137,14 @@ def test_summarize_flags_runs_that_get_slower_as_they_go():
     throttled = [10.0 + 0.2 * i for i in range(50)]      # 10 -> 20 ms over the run
     s2 = summarize(throttled)
     assert s2["unsteady"] and s2["trend_ratio"] > 1.5
+
+
+def test_run_statistic_min_is_opt_in(monkeypatch):
+    from rewrite_blame.stats import summarize
+    xs = [10.0, 12.0, 11.0, 10.5, 30.0, 10.2, 10.1, 10.3, 10.4, 10.6] * 5
+    monkeypatch.delenv("REWRITE_BLAME_STAT", raising=False)
+    s = summarize(xs)
+    assert s["statistic"] == "median" and s["median"] >= 10.0 and s["median_raw"] == s["median"] or s["steady_start"] > 0
+    monkeypatch.setenv("REWRITE_BLAME_STAT", "min")
+    s2 = summarize(xs)
+    assert s2["statistic"] == "min" and s2["median"] == 10.0 and s2["median_raw"] >= 10.0
