@@ -398,3 +398,36 @@ sweep found is removed by the guard. Compared with the synthetic-sweep guard (bl
 compiler hook, same decision point, different training distribution. Conclusion for the report: the guard
 mechanism works on all three machines; what it needs is training rows whose features look like the firings
 it will judge. Second pod cost about $3 (A40, 4 h).
+
+## Campaign 2 (bf16) on four pods, 2026-10-16/17: what ran, what broke, what it cost
+
+Four pods in parallel, all bf16: RTX 4090 (full chain), A40 (sweep), A40 (seven switch datasets over the
+zoos), L4 (full chain, top-3). Everything finished between 01:33 and 18:47 UTC on 2026-10-17.
+
+**Cost incident.** The controlling session ended and the pods idled 20-40 h at full price: about $138 spent
+against an estimate of $35 and the agreed $80 cap; $29 of credit remains. All pods were terminated on
+2026-10-18. Every pod chain now self-terminates at its end (`trap` in `scripts/gpu_*.sh`), and pulls keep one
+store per pod. The merged pull also overwrote same-named summary files between pods; the per-pod stores are
+complete (A40 sweep 1,355 measurements, A40 datasets 1,715, L4 2,650, 4090 3,010), and
+`scripts/rebuild_from_store.py` regenerates each machine's noise, sweep and dataset tables from its store.
+
+**Phase 3 did not run.** `guards-eval` crashed on every pod before measuring (temp-file name built from a
+family id containing `/`; fixed). The bf16 end-to-end guard evaluation is still to be done (one pod per GPU,
+about $3 each, with self-termination).
+
+**bf16 changes the attention story.** In bf16 BERT's attention fusion fires on the GPUs through
+`_sfdp_pattern_28_half_inference` (12 firings); in fp32 no attention rule ever fired on the GPU. The fp32
+"never fires" result was a precision artefact. On the L4 the rule is worth 7.5%: the attribution case
+BERT default vs {rule 28 off, fusion limit off, ...} found `-rule 28` (+7.5%, 5->7 kernels) and
+`-max_fusion_size` (+19.0%, 7->16 kernels), explaining the whole 0.85 ms gap in 13 judge evaluations.
+
+**bf16 attribution case studies (L4, auto-seeded from the sweep).** attention block: a genuine interaction
+`-master/pattern_matcher` x `-master/post_grad_passes` (+6.3%) plus `-max_fusion_size` (+14.2%); conv stack:
+`-layout_optimization` alone (+16.3%); DistilBERT: `-inplace_buffers` (+3.2%) and `-max_fusion_size` (+3.5%);
+ConvNeXt and decode MLP: slow state not slower (correctly no culprit). On the 4090 the automatic case builder
+mixed `+freezing` (a win) into the "slow" specs, so four of six cases were not slower and the tool said so;
+GPT-2 decode: `-max_fusion_size` alone (+13.8%, 11->24 kernels).
+
+**bf16 switch ranking (confirmed |delta| >= 3%, summed over models).** 4090: freezing on 19 of 22 models (all
+faster), max_fusion_size 12, constant_folding, inplace_buffers, layout_optimization 4. A40: freezing 14,
+max_fusion_size 13, layout 2, constant_folding 3, rule 28 (half) 1.
