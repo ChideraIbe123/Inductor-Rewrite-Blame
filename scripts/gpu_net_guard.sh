@@ -2,6 +2,15 @@
 # On the pod: the real-network layout dataset (torchvision zoo, batches 1/8/32), a guard trained on it, and the
 # end-to-end check on the seven held-out corpus image models. Resumable (rows append; store caches measurements).
 cd /workspace/rewrite-blame
+
+self_terminate() {   # called at the end: stop billing even if nobody is watching (key passed via env, never written)
+  if [ -n "${RUNPOD_API_KEY:-}" ] && [ -n "${RUNPOD_POD_ID:-}" ]; then
+    echo "=== $(date) self-terminating pod $RUNPOD_POD_ID"
+    sleep ${SELF_TERMINATE_DELAY:-600}      # leave 10 minutes for a final pull
+    curl -s -X DELETE -H "Authorization: Bearer $RUNPOD_API_KEY" "https://rest.runpod.io/v1/pods/$RUNPOD_POD_ID" >/dev/null
+  fi
+}
+trap self_terminate EXIT
 export REWRITE_BLAME_DEVICE=cuda REWRITE_BLAME_THREADS=4 TOKENIZERS_PARALLELISM=false
 F='^DEBUG\|^INFO\|Graph Metrics'; D=$(date +%F)
 # session fixed so the on/off measurements already in the store are reused; tau from one stable batch-32 network

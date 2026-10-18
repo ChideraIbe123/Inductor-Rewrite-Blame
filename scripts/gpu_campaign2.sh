@@ -7,6 +7,15 @@
 # Usage: scripts/gpu_campaign2.sh [phase...]   (default: 1 2 3). Resumable: the store caches every measurement.
 set -uo pipefail
 cd /workspace/rewrite-blame
+
+self_terminate() {   # called at the end: stop billing even if nobody is watching (key passed via env, never written)
+  if [ -n "${RUNPOD_API_KEY:-}" ] && [ -n "${RUNPOD_POD_ID:-}" ]; then
+    echo "=== $(date) self-terminating pod $RUNPOD_POD_ID"
+    sleep ${SELF_TERMINATE_DELAY:-600}      # leave 10 minutes for a final pull
+    curl -s -X DELETE -H "Authorization: Bearer $RUNPOD_API_KEY" "https://rest.runpod.io/v1/pods/$RUNPOD_POD_ID" >/dev/null
+  fi
+}
+trap self_terminate EXIT
 export REWRITE_BLAME_DEVICE=cuda REWRITE_BLAME_DTYPE=${REWRITE_BLAME_DTYPE:-bf16} REWRITE_BLAME_THREADS=4 TOKENIZERS_PARALLELISM=false
 PY=.venv/bin/python; F='^DEBUG\|^INFO\|Graph Metrics'
 D=${CAMPAIGN_DATE:-$(date +%F)}; S="$D-gpu-$REWRITE_BLAME_DTYPE"

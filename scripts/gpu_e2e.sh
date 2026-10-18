@@ -2,6 +2,15 @@
 # On the pod: end-to-end effect of the conv (channels-last) guard on the GPU image models, stock base.
 # Usage: scripts/gpu_e2e.sh [bundle.pkl] [out.json]
 cd /workspace/rewrite-blame
+
+self_terminate() {   # called at the end: stop billing even if nobody is watching (key passed via env, never written)
+  if [ -n "${RUNPOD_API_KEY:-}" ] && [ -n "${RUNPOD_POD_ID:-}" ]; then
+    echo "=== $(date) self-terminating pod $RUNPOD_POD_ID"
+    sleep ${SELF_TERMINATE_DELAY:-600}      # leave 10 minutes for a final pull
+    curl -s -X DELETE -H "Authorization: Bearer $RUNPOD_API_KEY" "https://rest.runpod.io/v1/pods/$RUNPOD_POD_ID" >/dev/null
+  fi
+}
+trap self_terminate EXIT
 BUNDLE=${1:-results/guards_3machines.pkl}
 OUT=${2:-results/guards_eval_e2e.json}
 export REWRITE_BLAME_DEVICE=cuda REWRITE_BLAME_THREADS=4 TOKENIZERS_PARALLELISM=false

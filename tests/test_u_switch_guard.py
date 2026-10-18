@@ -91,3 +91,11 @@ def test_bf16_build_casts_floats_only(monkeypatch):
     assert next(m.parameters()).dtype == torch.bfloat16 and inputs[0].dtype == torch.long
     m2, inputs2 = models.build("attention_block")
     assert all(t.dtype == torch.bfloat16 for t in inputs2 if t.is_floating_point())
+
+
+def test_guard_step_tempfile_prefix_is_filesystem_safe(tmp_path):
+    import tempfile
+    families = ["switch:joint/constant_folding", "switch:lowering/freezing"]
+    safe = "_".join(families).replace("/", "_").replace(":", "_")[:80]
+    f = tempfile.NamedTemporaryFile(suffix=".pkl", delete=False, prefix=f"guards_{safe}_", dir=tmp_path)
+    assert "/" not in safe and f.name.endswith(".pkl")

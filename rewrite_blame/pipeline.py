@@ -468,7 +468,8 @@ class Runner:
                 if fam in full.guards:
                     g = full.guards[fam]
                     sub.add(fam, g["kind"], g["clf"], g["names"], g["threshold"])
-            f = tempfile.NamedTemporaryFile(suffix=".pkl", delete=False, prefix=f"guards_{'_'.join(families[:i])}_")
+            safe = "_".join(families[:i]).replace("/", "_").replace(":", "_")[:80]      # family ids contain '/' and ':'
+            f = tempfile.NamedTemporaryFile(suffix=".pkl", delete=False, prefix=f"guards_{safe}_")
             sub.save(f.name)
             steps.append(("+".join(families[:i]), f.name))
         base = self.reg.default_state() if base is None else frozenset(base)
