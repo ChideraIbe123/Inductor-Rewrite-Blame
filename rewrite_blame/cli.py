@@ -218,7 +218,8 @@ def cmd_dataset(a):
             names = names[: a.limit]
         slug = a.switch.replace("/", "_")
         out = Path(a.out) if a.out else Path("results") / f"dataset_switch_{slug}.jsonl"
-        rows = collect_switch(r, a.switch, names, out, tau_pct=a.tau_pct, noise_config=a.noise_config, log=log)
+        base = parse_state_spec(r.reg, a.base_state) if getattr(a, "base_state", None) else None
+        rows = collect_switch(r, a.switch, names, out, tau_pct=a.tau_pct, noise_config=a.noise_config, log=log, base=base)
         print(json.dumps({"switch": a.switch, "models": a.models or "zoo:all", "new_rows": len(rows), "labels": Counter(x["label"] for x in rows), "file": str(out)}, default=str))
         return
     if not a.family:
@@ -427,6 +428,7 @@ def main(argv=None) -> int:
     p.add_argument("--family", choices=["attn", "conv", "mlp", "net"]); p.add_argument("--level", default="full", choices=["full", "small"])
     p.add_argument("--switch", help="one switch id: real-model rows (switch on vs off) over --models")
     p.add_argument("--models", help="model set for --switch: zoo:conv | zoo:hf | zoo:all | corpus:images | names,globs (default zoo:all)")
+    p.add_argument("--base-state", help="for --switch: toggle from this state instead of default (e.g. default+lowering/freezing)")
     p.add_argument("--shuffle", action="store_true"); p.add_argument("--seed", type=int, default=0); p.add_argument("--limit", type=int, default=0)
     p.add_argument("--tau-pct", type=float, default=None); p.add_argument("--noise-config"); p.add_argument("--out")
 

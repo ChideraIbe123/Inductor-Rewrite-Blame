@@ -78,7 +78,7 @@ def family_tau(runner: Runner, label: str, names: list[str], on_state, tau_pct: 
 
 
 def collect_switch(runner: Runner, switch_id: str, names: list[str], out_path: Path, tau_pct: float | None = None,
-                   noise_config: str | None = None, log=print) -> list[dict]:
+                   noise_config: str | None = None, log=print, base=None) -> list[dict]:
     """Real-model rows for ONE switch: each model measured with the switch on and off (twice when beyond tau),
     features = the whole-model profile (``models.profile_of``). ``label`` keeps the family convention:
     harmful = the switch ON is slower than OFF. ``default_on`` records the switch's default so training can
@@ -87,7 +87,7 @@ def collect_switch(runner: Runner, switch_id: str, names: list[str], out_path: P
     reg = runner.reg
     if switch_id not in reg:
         raise KeyError(f"unknown switch {switch_id!r}")
-    default = reg.default_state()
+    default = reg.default_state() if base is None else frozenset(base)     # base: the state the switch is toggled from
     default_on = switch_id in default
     on_state = frozenset(default | {switch_id})
     off_state = frozenset(default - {switch_id})

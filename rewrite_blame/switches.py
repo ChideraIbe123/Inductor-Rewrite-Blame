@@ -221,6 +221,8 @@ CONFIG_SWITCHES: list[Switch] = [
     _cfg("lowering/freezing", "freezing", "freezing",
          "Constant-fold parameters and enable mkldnn conv/linear fusion + weight prepacking",
          default_on=False),
+    _cfg("lowering/freezing_discard_parameters", "freezing_discard_parameters", "freezing",
+         "With freezing: drop the original parameters after folding (saves the duplicate memory)", default_on=False),
     _cfg("freezing/weight_prepack", "cpp.weight_prepack", "freezing",
          "Pre-pack conv/linear weights into mkldnn layout (only under freezing)"),
     # scheduler-level fusion knobs (step two of the pipeline)
