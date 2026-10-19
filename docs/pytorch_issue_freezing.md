@@ -1,7 +1,6 @@
 # Draft: PyTorch issue on `torch._inductor.config.freezing` for inference (to be filed by Chidera)
 
-Status: numbers below are measured; items marked TODO are being collected (pretrained weights, peak memory,
-real end-to-end workloads). File once those are in.
+Status: all numbers measured (GPU part on an RTX A5000 in bf16 on 2026-10-19; Xeon and Mac parts pending).
 
 ---
 
@@ -33,8 +32,36 @@ Transformers benefit most on GPU (42 of 49 faster, median 16%: decode 17%, prefi
 With freezing, parameters become graph constants, so Inductor constant-folds weight transforms (dtype casts,
 transposes, BatchNorm folding) and emits fewer calls to external kernels: on the 4090, transformer models go
 from a median of 85 to 61 extern (cuBLAS/library) calls and the same kernel count; conv nets from 26.5 to
-25.5 kernels. Compile time rises by a median of 22% (10.5 s → 14.2 s on the 4090). Peak memory: TODO (being
-measured; freezing can duplicate folded weights).
+25.5 kernels. Compile time rises by a median of 22% (10.5 s → 14.2 s on the 4090; +10–30% per model on the A5000).
+
+### Costs: memory and compile time (RTX A5000, bf16, peak `max_memory_allocated` after compile and one call)
+
+| model | speed-up with freezing | peak memory off → on | compile s off → on |
+|---|---|---|---|
+| SmolLM-135M decode | 27% | 265 → 401 MB (+51%) | 19 → 22 |
+| SmolLM-135M prefill | 28% | 301 → 437 MB (+45%) | 17 → 22 |
+| Qwen2.5-0.5B decode | 28% | 959 → 1406 MB (+47%) | 15 → 19 |
+| ResNet-18 / ResNet-50 | 12% / 12% | 48 → 72 / 73 → 121 MB | 3 → 3 / 6 → 8 |
+| EfficientNet-B0 / MobileNet-V3 | 18% / 8% | unchanged | 13 → 17 / 12 → 14 |
+| BERT-base, DistilBERT, GPT-2 | within noise | +0–16% | +1–3 s |
+
+The extra memory is the frozen constants living beside the module's original parameters. Inductor has
+`config.freezing_discard_parameters` (default False) for exactly this; the numbers above are without it.
+
+### Trained weights give the same answer
+
+The 12 corpus models were measured twice on the same GPU: random-init and with the published weights
+(torchvision `DEFAULT`, `bert-base-uncased`, `gpt2`, `HuggingFaceTB/SmolLM-135M`, `Qwen/Qwen2.5-0.5B`).
+Freezing labels agree on 10 of 12 (the two differences sit on the 2% threshold: BERT 1.036 vs 1.001,
+GPT-2 decode 0.986 vs 0.975), and the speed-ups match to within a few points (SmolLM decode 0.726 vs 0.756,
+Qwen decode 0.721 vs 0.716). Layout labels agree on 11 of 12.
+
+### Two real end-to-end workloads (RTX A5000, bf16, two fresh processes per setting, identical outputs)
+
+| workload | freezing off | freezing on | peak memory | compile |
+|---|---|---|---|---|
+| SmolLM-135M `generate`, 32 new tokens, KV cache, pretrained | 216 ms | 168–199 ms (8–22% faster) | 271 → 676 MB | 125 → 153 s |
+| ResNet-50 pretrained, batch 32 classification | 8.3 ms | 8.0 ms (3.6% faster) | 179 → 240 MB | 8.8 → 9.4 s |
 
 ### Why it is off, and the proposal
 
@@ -63,8 +90,9 @@ def bench(freezing):
     return sorted(ts)[25] * 1e3
 print("freezing off: %.3f ms" % bench(False)); print("freezing on:  %.3f ms" % bench(True))
 ```
-Run each setting in a fresh process for a clean comparison. On an RTX 4090 (torch 2.14.1+cu126) this prints
-roughly 1.9 ms vs 0.7 ms (TODO: paste exact numbers from the reproducer run).
+Run each setting in a fresh process for a clean comparison. On an RTX A5000 (torch 2.14.1+cu126, bf16) this
+prints `freezing=False: median 2.626 ms` and `freezing=True: median 2.272 ms` (13% faster); on an RTX 4090 the
+same network measured 63% faster with freezing in the 163-network run.
 
 ### Environment
 
@@ -72,8 +100,13 @@ torch 2.14.1 (+cu126 on the GPUs, +cpu on the Xeon, default wheel on the Mac), t
 Ubuntu 24.04 (pods), Ubuntu 26.04 (Xeon VM), macOS 15. Full measurement code, per-machine stores and
 per-model tables: https://github.com/ChideraIbe123/Inductor-Rewrite-Blame
 
-### TODO before filing
-- [ ] pretrained-weight twins of 12 corpus models on Mac/VM/GPU (same shapes): do gains persist?
-- [ ] peak memory with/without freezing per model (CPU RSS, CUDA max_memory_allocated)
-- [ ] two end-to-end workloads: SmolLM-135M generate (32 tokens, KV cache) and ResNet-50 batch-32 classification
-- [ ] exact numbers from the 20-line reproducer on one GPU
+### Proposal, refined by the memory numbers
+
+Because freezing can raise peak memory by about half for LLM-style models (frozen constants beside the original
+parameters), "on by default" is too strong. Proposal: (1) document freezing as the recommended setting for
+eval-mode, no-grad inference with these numbers; (2) when enabling it automatically under those conditions, pair it
+with `freezing_discard_parameters=True` or a warning about memory; (3) treat the 20–30% speed-ups on decode
+models as the headline case, since that is where production inference time goes.
+
+### Still to add (CPU numbers)
+- [ ] Xeon and Apple M4 runs of the same pretrained/random pairs and real workloads (queued)
