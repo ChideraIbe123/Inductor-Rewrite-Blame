@@ -476,3 +476,30 @@ reorder_for_locality and split_reductions. Freezing helps on every machine (Xeon
 
 Guard bundles per GPU: results/gpu/<gpu>/guards_switches.pkl (block mode for default-on switches, enable mode for
 freezing / conv_1x1_as_mm); their bf16 end-to-end run is still pending a pod.
+
+## Why rules flip: same code change, different hardware (2026-10-19, `scripts/mechanism.py`, docs/mechanism.md)
+
+Joining every confirmed sweep verdict with the code-level change the same switch makes (kernel count, external
+library calls, static allocation) shows that **the compiler makes the same structural change on every
+machine; only the runtime consequence differs**:
+
+- `decompose_mm_pass` ON removes 96-106 external BLAS calls and 3-4 kernels on *both* CPUs; that is 39% slower
+  on the Mac (Accelerate's small-matmul path is fast, the generated loops are not) and 53% faster on the Xeon.
+- `layout_optimization` ON adds about 2 kernels and 4-22 MB of static allocation on both CPUs (the batch-norm/
+  ReLU epilogues stop fusing into the convolution and become `cpp_fused__native_batch_norm_*` kernels); that costs
+  28% on the Mac and saves 14% on the Xeon, whose oneDNN convolutions prefer channels-last.
+- `max_fusion_size` ON (the default limit) removes 8-12 kernels on the GPUs (fewer, larger Triton kernels): 7-12%
+  faster on 11-13 models per GPU, while on the Xeon the one confirmed effect goes the other way.
+- `freezing` ON on the A40 removes 18 external calls per model (constant-folded weight transforms), on the 4090
+  about 1, and on the Xeon it removes 18 MB of allocation; it helps everywhere the generated code is
+  cheaper than the library call it replaces, and the one Mac loss (ResNet-50, 7%) is a case where it is not.
+
+Hence the thesis in one sentence: a graph rewrite fixes the *shape* of the generated program, and whether that
+shape is faster depends on the relative cost of library calls, generated kernels and memory traffic on the
+target, which no rule written once can know.
+
+Freezing package, GPU part (A5000, bf16, 2026-10-19): trained weights agree with random init (labels 10/12 for
+freezing, 11/12 for layout, equal magnitudes); peak memory +45-51% for LLM decode/prefill with freezing (frozen
+constants beside the original parameters; `freezing_discard_parameters` exists for this), 0 for attention
+encoders; compile +10-30%; real workloads SmolLM `generate` 8-22% faster (271 -> 676 MB), ResNet-50 batch-32
+3.6% faster (179 -> 240 MB), identical outputs. Issue draft: docs/pytorch_issue_freezing.md.
