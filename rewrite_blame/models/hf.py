@@ -88,3 +88,27 @@ _hf("smollm_135m_prefill_eagerattn", _smollm, "LlamaForCausalLM", "logits", 1, 1
 _hf("smollm_135m_decode", _smollm, "LlamaForCausalLM", "logits", 1, 1, "small", "SmolLM-135M single-token step (no KV cache)")
 _hf("qwen2_0_5b_prefill", _qwen05b, "Qwen2ForCausalLM", "logits", 1, 128, "large", "Qwen2.5-0.5B prefill")
 _hf("qwen2_0_5b_decode", _qwen05b, "Qwen2ForCausalLM", "logits", 1, 1, "medium", "Qwen2.5-0.5B single-token step (no KV cache)")
+
+
+def _hf_pretrained(name, repo, model_cls_name, attr, batch, seq, size, desc, attn=None):
+    """Same architectures as above but with the published weights (downloaded once into the HF cache)."""
+    def build():
+        import transformers
+        cls = getattr(transformers, model_cls_name)
+        kw = {"attn_implementation": attn} if attn else {}
+        m = cls.from_pretrained(repo, torch_dtype=torch.float32, **kw)
+        V = m.config.vocab_size
+        ids = torch.randint(0, V, (batch, seq))
+        return _Logits(m, attr), (ids,)
+    return register(ModelSpec(name=name, build=build, family="hf", size=size, tags=("pretrained",),
+                              description=f"{desc} (pretrained {repo}), batch {batch}, seq {seq}, attn={attn or 'default'}",
+                              exercises=(("joint:sfdp",) if attn == "eager" else ()) + ("scheduler", "post_grad")))
+
+
+_hf_pretrained("bert_base_eagerattn_pretrained", "bert-base-uncased", "BertModel", "last_hidden_state", 8, 128, "medium", "BERT-base encoder", attn="eager")
+_hf_pretrained("distilbert_pretrained", "distilbert-base-uncased", "DistilBertModel", "last_hidden_state", 8, 128, "small", "DistilBERT encoder")
+_hf_pretrained("gpt2_prefill_pretrained", "gpt2", "GPT2LMHeadModel", "logits", 4, 128, "medium", "GPT-2 small prefill")
+_hf_pretrained("gpt2_decode_pretrained", "gpt2", "GPT2LMHeadModel", "logits", 4, 1, "small", "GPT-2 small single-token step")
+_hf_pretrained("smollm_135m_decode_pretrained", "HuggingFaceTB/SmolLM-135M", "LlamaForCausalLM", "logits", 1, 1, "small", "SmolLM-135M single-token step")
+_hf_pretrained("smollm_135m_prefill_pretrained", "HuggingFaceTB/SmolLM-135M", "LlamaForCausalLM", "logits", 1, 128, "medium", "SmolLM-135M prefill")
+_hf_pretrained("qwen2_0_5b_decode_pretrained", "Qwen/Qwen2.5-0.5B", "Qwen2ForCausalLM", "logits", 1, 1, "medium", "Qwen2.5-0.5B single-token step")

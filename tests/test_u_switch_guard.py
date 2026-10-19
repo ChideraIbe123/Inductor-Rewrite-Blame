@@ -48,7 +48,7 @@ def test_switch_dataset_states_follow_the_default_direction(tmp_path, monkeypatc
             return NM(), None
         def measure(self, name, state, rep=0):
             seen.setdefault(name, []).append(frozenset(state))
-            class M: error = None; program_hash = "h" + str(len(state)); fired = {}; median_ms = 10.0 + len(state); firings = []; kernel_count = 1; code = {}
+            class M: error = None; program_hash = "h" + str(len(state)); fired = {}; median_ms = 10.0 + len(state); firings = []; kernel_count = 1; code = {}; compile_s = 1.0; peak_mem_mb = 100.0
             return M()
     monkeypatch.setattr(ds, "profile_of", lambda name: {"cfg_B": 1, "cfg_arch": "x"}, raising=False)
     import rewrite_blame.models as models

@@ -56,6 +56,8 @@ def measure_pair(runner: Runner, name: str, on_state, off_state, tau: float, rul
             "fired": fired, "kernels_on": m_on.kernel_count, "kernels_off": m_off.kernel_count,
             "alloc_on": m_on.code.get("alloc_bytes"), "alloc_off": m_off.code.get("alloc_bytes"),
             "extern_on": m_on.code.get("extern_call_count"), "extern_off": m_off.code.get("extern_call_count"),
+            "compile_s_on": m_on.compile_s, "compile_s_off": m_off.compile_s,
+            "peak_mem_mb_on": m_on.peak_mem_mb, "peak_mem_mb_off": m_off.peak_mem_mb,
             "firing_features": feats}
 
 

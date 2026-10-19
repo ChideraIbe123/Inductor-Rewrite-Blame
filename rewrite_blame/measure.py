@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import sys
 import time
 from dataclasses import dataclass, field, asdict
 from typing import Any, Iterable
@@ -24,6 +25,7 @@ class Measurement:
     torch_version: str
     timestamp: float
     compile_s: float = 0.0
+    peak_mem_mb: float | None = None      # CUDA: max_memory_allocated after compile+timing; CPU: peak RSS of this process
     code: dict = field(default_factory=dict)          # CodeStats.to_dict()
     metrics: dict = field(default_factory=dict)       # torch._inductor.metrics snapshot
     counters: dict = field(default_factory=dict)      # counters["inductor"] delta
@@ -185,6 +187,14 @@ def measure(reg: Registry, model_name: str, state: Iterable[str], *, threads: in
             t0 = time.perf_counter()
             out, codes = run_and_get_code(compiled, *inputs)
             m.compile_s = time.perf_counter() - t0
+            if env.is_cuda():
+                torch.cuda.reset_peak_memory_stats(env.device())
+                _ = compiled(*inputs); _sync()
+                m.peak_mem_mb = torch.cuda.max_memory_allocated(env.device()) / 2**20
+            else:
+                import resource
+                ru = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+                m.peak_mem_mb = ru / 2**20 if sys.platform == "darwin" else ru / 2**10     # bytes on macOS, KiB on Linux
             m.code = codegen_stats.analyze_sources(list(codes)).to_dict()
             m.program_hash = codegen_stats.program_hash(list(codes))
             m.metrics = {
