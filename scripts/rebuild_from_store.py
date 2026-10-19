@@ -40,7 +40,7 @@ for model, env, proto, payload in con.execute("SELECT model, env, protocol, payl
                  "extra": m.group("rest"), "on": tuple(diff.get("on_extra", [])), "off": tuple(diff.get("off_defaults", [])),
                  "median": d["timing"]["median"], "hash": d.get("program_hash"), "kernels": (d.get("code") or {}).get("kernel_count"),
                  "alloc": (d.get("code") or {}).get("alloc_bytes"), "extern": (d.get("code") or {}).get("extern_call_count"),
-                 "fired": d.get("fired") or {}, "correct": d.get("correct")})
+                 "fired": d.get("fired") or {}, "correct": d.get("correct"), "compile_s": d.get("compile_s"), "peak_mem_mb": d.get("peak_mem_mb")})
 print(f"{a.label}: {len(rows)} timed measurements, env {rows[0]['env'] if rows else '?'}")
 env = rows[0]["env"] if rows else ""
 by = defaultdict(list)
@@ -133,6 +133,8 @@ for sess in sw_sessions:
                    "label": label, "confirmed": confirmed, "program_changed": changed,
                    "fired": {k: v for k, v in on0["fired"].items() if k == sid}, "kernels_on": on0["kernels"], "kernels_off": off0["kernels"],
                    "alloc_on": on0["alloc"], "alloc_off": off0["alloc"], "extern_on": on0["extern"], "extern_off": off0["extern"],
+                   "compile_s_on": on0.get("compile_s"), "compile_s_off": off0.get("compile_s"),
+                   "peak_mem_mb_on": on0.get("peak_mem_mb"), "peak_mem_mb_off": off0.get("peak_mem_mb"),
                    "rebuilt_from_store": True}
             per_switch[sid].append(row)
     for sid, rws in per_switch.items():
