@@ -503,3 +503,14 @@ freezing, 11/12 for layout, equal magnitudes); peak memory +45-51% for LLM decod
 constants beside the original parameters; `freezing_discard_parameters` exists for this), 0 for attention
 encoders; compile +10-30%; real workloads SmolLM `generate` 8-22% faster (271 -> 676 MB), ResNet-50 batch-32
 3.6% faster (179 -> 240 MB), identical outputs. Issue draft: docs/pytorch_issue_freezing.md.
+
+## Freezing package, Xeon part (2026-10-19, overnight, pinned 1-3, min statistic)
+
+Freezing on the 12 corpus models, random and trained weights: 10/12 faster with both weight sets (labels agree
+12/12): MobileNet-V3 -28% random / -36% pretrained, GPT-2 decode -37% / -39%, SmolLM prefill -18% / -16%,
+EfficientNet -17%, ResNet-50 -13%, encoders -4 to -7%; SmolLM and Qwen decode neutral. Real workloads on the Xeon:
+ResNet-50 batch-32 classify +10-11% faster, SmolLM generate -1% (no gain) with peak RSS 1.3 -> 3.3 GB.
+Real-network zoo (batch 8) on the Xeon: layout ON helpful on 35/52 conv nets, harmful 0 (median 13.5%);
+`decompose_mm_wide` ON harmful on 13/22 transformers (median 133%!), helpful 0: the CPU matmul guard case stands.
+CPU peak RSS numbers for random-init rows are not usable (constant 3.7 GB, dominated by the build); the GPU
+`max_memory_allocated` numbers are the memory evidence.

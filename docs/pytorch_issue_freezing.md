@@ -108,5 +108,13 @@ eval-mode, no-grad inference with these numbers; (2) when enabling it automatica
 with `freezing_discard_parameters=True` or a warning about memory; (3) treat the 20–30% speed-ups on decode
 models as the headline case, since that is where production inference time goes.
 
-### Still to add (CPU numbers)
-- [ ] Xeon and Apple M4 runs of the same pretrained/random pairs and real workloads (queued)
+### x86 CPU (Intel Xeon Silver 4216, oneDNN, fp32, 3 threads pinned)
+
+Same 12 corpus models, random and trained weights: freezing is faster on 10 of 12 (both weight sets, labels
+agree 12/12): MobileNet-V3 36% (pretrained), GPT-2 decode 39%, SmolLM prefill 16–18%, ResNet-50 13%,
+EfficientNet-B0 17%, BERT/DistilBERT/GPT-2 prefill 4–7%; the two decode LLMs are neutral. Real workloads:
+ResNet-50 batch-32 classification 10–11% faster (identical output); SmolLM `generate` unchanged (−1%) while peak
+RSS grows from 1.3 to 3.3 GB. On the Apple M4 Pro freezing is a wash (5 faster, 3 slower, all within 7%).
+
+So the recommendation is machine- and workload-specific in size but consistent in sign on x86 and CUDA: it is
+the decoder-model `generate` path on CPU where the gain disappears and the memory cost is largest.
