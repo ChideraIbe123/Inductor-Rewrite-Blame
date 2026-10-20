@@ -514,3 +514,8 @@ Real-network zoo (batch 8) on the Xeon: layout ON helpful on 35/52 conv nets, ha
 `decompose_mm_wide` ON harmful on 13/22 transformers (median 133%!), helpful 0: the CPU matmul guard case stands.
 CPU peak RSS numbers for random-init rows are not usable (constant 3.7 GB, dominated by the build); the GPU
 `max_memory_allocated` numbers are the memory evidence.
+
+## Freezing package, Mac part (2026-10-19, battery 56%, 8 threads)
+Freezing on the Apple M4 Pro: 11/12 corpus models neutral (SmolLM decode 2-4% faster), random and trained weights
+agree 12/12; real workloads within 1% (generate 245 -> 243 ms, classify 1.61 s both). Layout: harmful on 4 of the 10
+conv rows as before. Evidence extracts for the issue are now tracked in `evidence/`.

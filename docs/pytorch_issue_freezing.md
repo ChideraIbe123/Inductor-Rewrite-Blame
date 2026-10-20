@@ -97,8 +97,8 @@ same network measured 63% faster with freezing in the 163-network run.
 ### Environment
 
 torch 2.14.1 (+cu126 on the GPUs, +cpu on the Xeon, default wheel on the Mac), triton 3.8.0, CUDA driver 570,
-Ubuntu 24.04 (pods), Ubuntu 26.04 (Xeon VM), macOS 15. Full measurement code, per-machine stores and
-per-model tables: https://github.com/ChideraIbe123/Inductor-Rewrite-Blame
+Ubuntu 24.04 (pods), Ubuntu 26.04 (Xeon VM), macOS 15. Measurement code and the per-network evidence files behind every number above (`evidence/freezing/`):
+https://github.com/ChideraIbe123/Inductor-Rewrite-Blame
 
 ### Proposal, refined by the memory numbers
 
@@ -114,7 +114,9 @@ Same 12 corpus models, random and trained weights: freezing is faster on 10 of 1
 agree 12/12): MobileNet-V3 36% (pretrained), GPT-2 decode 39%, SmolLM prefill 16–18%, ResNet-50 13%,
 EfficientNet-B0 17%, BERT/DistilBERT/GPT-2 prefill 4–7%; the two decode LLMs are neutral. Real workloads:
 ResNet-50 batch-32 classification 10–11% faster (identical output); SmolLM `generate` unchanged (−1%) while peak
-RSS grows from 1.3 to 3.3 GB. On the Apple M4 Pro freezing is a wash (5 faster, 3 slower, all within 7%).
+RSS grows from 1.3 to 3.3 GB. On the Apple M4 Pro (no oneDNN) freezing is a wash: 11 of 12 corpus models neutral with both weight sets (SmolLM
+decode 2–4% faster), both real workloads within 1%, so the gain is specific to backends where frozen constants
+replace library calls (cuBLAS/oneDNN paths).
 
 So the recommendation is machine- and workload-specific in size but consistent in sign on x86 and CUDA: it is
 the decoder-model `generate` path on CPU where the gain disappears and the memory cost is largest.
