@@ -24,7 +24,7 @@ case "${1:-}" in
 import json, sys
 name, image, pub = sys.argv[1:4]
 print(json.dumps({
-  "name": name, "imageName": image, "cloudType": "SECURE", "computeType": "GPU", "gpuCount": 1,
+  "name": name, "imageName": image, "cloudType": __import__("os").environ.get("RUNPOD_CLOUD", "SECURE"), "computeType": "GPU", "gpuCount": 1,
   "gpuTypeIds": [g for g in __import__("os").environ.get("RUNPOD_GPUS", "NVIDIA RTX A5000,NVIDIA A40,NVIDIA L4,NVIDIA GeForce RTX 3090,NVIDIA GeForce RTX 4090").split(",") if g],
   "gpuTypePriority": "custom", "allowedCudaVersions": ["12.8", "12.9", "13.0"],
   "containerDiskInGb": 40, "volumeInGb": 0, "ports": ["22/tcp"], "minVCPUPerGPU": 4, "minRAMPerGPU": 16,
