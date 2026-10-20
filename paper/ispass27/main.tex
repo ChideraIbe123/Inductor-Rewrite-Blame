@@ -1,0 +1,61 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{booktabs,graphicx,amsmath,url,xcolor,array,enumitem,caption,balance}
+\usepackage[hidelinks]{hyperref}
+\setlist{nosep}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\tool}{\textsc{RuleScope}}   % anonymized tool name for review (not the repository name)
+% ISPASS 2027: 9 pages including figures/appendices, unlimited references, double-blind.
+\title{Same Rewrite, Different Sign: Attributing and Guarding\\Hardware-Dependent Graph Rewrites in a Production ML Compiler}
+\author{\IEEEauthorblockN{Anonymous Authors}\IEEEauthorblockA{Paper \#\_\_\_}}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+TorchInductor applies a few hundred graph-rewrite rules whenever they match, with no check that the rewrite is
+faster on the target. We make every rule, flag and opt-in pass of TorchInductor individually switchable from
+outside the compiler, calibrate a timing oracle on 480 null runs (false alarms 9\% for one comparison, 1.5\% with
+two time-separated confirmations), and attribute a measured slowdown to the responsible rule or pair by delta
+debugging over the switch set. On 24 models and six machine/precision targets (Apple M4 Pro, Intel Xeon, NVIDIA A40
+in fp32 and bf16, L4, RTX 4090) eight of the sixteen most impactful switches have the opposite dominant sign on
+different machines, while the structural change the compiler makes is identical; attribution recovers planted
+culprits in 5--16 oracle calls and finds genuine pair interactions, and an uncalibrated oracle fabricates them.
+Acting on the blame, learned per-rule guards remove the harm where it is frequent and shape-predictable (CPU matmul
+decomposition from 261\% to 1\% lost per firing; MobileNet 29\% and EfficientNet 41\% faster) and, where a rule is
+right most of the time, the measurements fix a default: \code{freezing}, off by default, is faster on 105--113 of 163
+real networks on each GPU (median 7--10\%), a finding we filed upstream together with a Dynamo bug in the setting
+that would remove its memory cost.
+\end{abstract}
+
+\section{Introduction}
+% from report Sec 1, compressed to ~0.8 page: problem, thesis, contributions (4 bullets), results summary
+\input{sections/intro}
+
+\section{Per-Rule Switches}
+\input{sections/switches}
+
+\section{A Calibrated Oracle and Delta-Debugging Attribution}
+\input{sections/attribution}
+
+\section{The Same Rewrite on Six Targets}
+\input{sections/signs}
+
+\section{Acting on the Blame}
+\input{sections/guards}
+
+\section{Repeatability, Controls and Threats}
+\input{sections/threats}
+
+\section{Related Work}
+\input{sections/related}
+
+\section{Conclusion}
+A rewrite rule in a production ML compiler is a bet about hardware its author did not have. With per-rule switches, a
+calibrated oracle and delta debugging the bet can be checked, the losing rule named, and the loss removed: by a guard
+where it is predictable, by a default where it is not.
+
+\balance
+\nocite{*}
+\bibliographystyle{IEEEtran}
+\bibliography{refs}
+\end{document}
