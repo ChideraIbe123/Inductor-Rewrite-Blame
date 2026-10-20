@@ -5,7 +5,7 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 POD=""; GPU=""
 # GPU candidates with the bundle trained on that GPU (the end-to-end must run on the GPU its guards were trained on)
-declare -A BUNDLE=( ["NVIDIA A40"]="results/gpu/a40/guards_switches.pkl" ["NVIDIA L4"]="results/gpu/l4/guards_switches.pkl" )
+bundle_for() { case "$1" in "NVIDIA A40") echo results/gpu/a40/guards_switches.pkl ;; "NVIDIA L4") echo results/gpu/l4/guards_switches.pkl ;; esac; }   # macOS bash 3 has no associative arrays
 for i in $(seq 1 ${RETRIES:-15}); do
   for G in "NVIDIA A40" "NVIDIA L4"; do
     for CLOUD in SECURE COMMUNITY; do
@@ -21,7 +21,7 @@ read -r ip port < <(scripts/runpod.sh wait "$POD") || exit 1
 scripts/runpod.sh sync "$POD" >/dev/null
 scripts/runpod.sh ssh "$POD" 'bash /workspace/rewrite-blame/scripts/pod_setup.sh' 2>&1 | grep "NVIDIA\|torch 2" | tail -2
 ssh -o BatchMode=yes -o StrictHostKeyChecking=no -p "$port" root@"$ip" 'mkdir -p /workspace/rewrite-blame/results /workspace/rewrite-blame/logs' </dev/null
-scp -q -o StrictHostKeyChecking=no -P "$port" "${BUNDLE[$GPU]}" root@"$ip":/workspace/rewrite-blame/results/guards_switches.pkl
+scp -q -o StrictHostKeyChecking=no -P "$port" "$(bundle_for "$GPU")" root@"$ip":/workspace/rewrite-blame/results/guards_switches.pkl
 K=$(cat ~/.runpod_key)
 ssh -o BatchMode=yes -o StrictHostKeyChecking=no -p "$port" root@"$ip" "cat > /workspace/run_e3.sh <<EOS
 #!/usr/bin/env bash
