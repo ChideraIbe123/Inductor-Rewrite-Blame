@@ -99,3 +99,17 @@ def test_guard_step_tempfile_prefix_is_filesystem_safe(tmp_path):
     safe = "_".join(families).replace("/", "_").replace(":", "_")[:80]
     f = tempfile.NamedTemporaryFile(suffix=".pkl", delete=False, prefix=f"guards_{safe}_", dir=tmp_path)
     assert "/" not in safe and f.name.endswith(".pkl")
+
+
+def test_guards_eval_subbundles_keep_the_mode(tmp_path):
+    """The end-to-end evaluation rebuilds one bundle per step; an 'enable' guard must stay an enable guard."""
+    from rewrite_blame.guard_models import GuardBundle, fit_all
+    rows = [{"cfg_B": 8, "cfg_n_conv": 10 + i, "cfg_arch": f"a{i}", "cuda": 1, "x86": 0, "threads": 4,
+             "label": "helpful" if i % 2 else "neutral", "env": "x", "default_on": False, "family": "switch:f"} for i in range(8)]
+    clf, names = fit_all(rows, "switch:f", "tree")
+    b = GuardBundle(); b.add("switch:f", "tree", clf, names, mode="enable"); b.save(tmp_path / "b.pkl")
+    full = GuardBundle.load(tmp_path / "b.pkl")
+    sub = GuardBundle()
+    g = full.guards["switch:f"]
+    sub.add("switch:f", g["kind"], g["clf"], g["names"], g["threshold"], mode=g.get("mode", "block"))
+    assert sub.guards["switch:f"]["mode"] == "enable"

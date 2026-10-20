@@ -471,7 +471,7 @@ class Runner:
             for fam in families[:i]:
                 if fam in full.guards:
                     g = full.guards[fam]
-                    sub.add(fam, g["kind"], g["clf"], g["names"], g["threshold"])
+                    sub.add(fam, g["kind"], g["clf"], g["names"], g["threshold"], mode=g.get("mode", "block"))   # keep enable/block
             safe = "_".join(families[:i]).replace("/", "_").replace(":", "_")[:80]      # family ids contain '/' and ':'
             f = tempfile.NamedTemporaryFile(suffix=".pkl", delete=False, prefix=f"guards_{safe}_")
             sub.save(f.name)

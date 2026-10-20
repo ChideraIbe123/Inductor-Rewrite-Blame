@@ -25,6 +25,7 @@ echo "=== $(date) guards-eval families: $FAMS"
 $PY -m rewrite_blame --quiet --session "$D-gpu-e3" guards-eval --bundle "$BUNDLE" --families $FAMS --models $HELD_OUT --max-autotune --out results/guards_eval_e2e_switches.json 2>&1 | grep -v "$F" | tail -30
 PRE="resnet18_pretrained resnet50_pretrained mobilenet_v3_small_pretrained efficientnet_b0_pretrained convnext_tiny_pretrained bert_base_eagerattn_pretrained distilbert_pretrained gpt2_prefill_pretrained gpt2_decode_pretrained smollm_135m_decode_pretrained smollm_135m_prefill_pretrained qwen2_0_5b_decode_pretrained"
 RND="resnet18 resnet50 mobilenet_v3_small efficientnet_b0 convnext_tiny bert_base_eagerattn distilbert gpt2_prefill gpt2_decode smollm_135m_decode smollm_135m_prefill qwen2_0_5b_decode"
+if [ -n "${SKIP_DISCARD:-}" ]; then echo "=== $(date) gpu e3 done"; exit 0; fi
 echo "=== $(date) dataset --switch lowering/freezing_discard_parameters (base: freezing ON)"
 $PY -m rewrite_blame --quiet --session "$D-gpu-e3" dataset --switch lowering/freezing_discard_parameters --base-state "default+lowering/freezing" \
   --models "$(echo $PRE $RND | tr ' ' ',')" --noise-config resnet18 --out results/dataset_switch_freezing_discard_parameters.jsonl 2>&1 | grep -v "$F" | grep -E "^\[dataset\]|^\{" | tail -30
