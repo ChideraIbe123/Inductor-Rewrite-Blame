@@ -4,12 +4,12 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 POD=""
-for i in $(seq 1 15); do
+for i in $(seq 1 ${RETRIES:-15}); do
   for CLOUD in SECURE COMMUNITY; do
     OUT=$(RUNPOD_GPUS="NVIDIA A40" RUNPOD_CLOUD=$CLOUD scripts/runpod.sh create rewrite-blame-e3b 2>&1 | tail -1)
     if ! echo "$OUT" | grep -q "error"; then POD=$OUT; echo "created $POD on $CLOUD"; break 2; fi
   done
-  echo "$(date +%H:%M) no A40 available; retrying in 2 min"; sleep 120
+  echo "$(date +%H:%M) no A40 available; retrying in ${RETRY_SLEEP:-120}s"; sleep ${RETRY_SLEEP:-120}
 done
 [ -n "$POD" ] || { echo "gave up: no A40"; exit 1; }
 sleep 20
