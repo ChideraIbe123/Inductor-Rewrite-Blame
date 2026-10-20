@@ -1,14 +1,24 @@
-# PyTorch issue on `freezing` (ready to post; copy from "### What I measured" down)
+# PyTorch issue on `freezing` — final
+
+**Title (paste into the title box):**
+
+config.freezing makes compiled inference 7–10% faster (median) on most real networks across three GPUs and x86, but it's off by default — should it be on for eval-mode/no_grad compiles?
+
+**Body (paste everything below this line into the body box):**
+
+---
+
+For a course project I built a tool that turns Inductor's rewrite rules on and off and measures the effect. The freezing flag stood out on every GPU I tested, so I measured it carefully and the write up is below.
+
+The summary below was drafted with AI assistance from my own measurements. I ran the experiments and checked the numbers.
+
+### What I measured" down)
 
 **Title:** `config.freezing` makes compiled inference 7–10% faster (median) on most real networks across three GPUs and x86, but it's off by default — should it be on for eval-mode/no_grad compiles?
 
 ---
 
 ### What I measured
-
-Hi — I've been running a course project that toggles Inductor's graph rewrites and config flags one at a time
-and measures what each one does to real models on different hardware. One flag stood out enough that I think it
-deserves its own issue: `torch._inductor.config.freezing`.
 
 I measured compiled inference with freezing on and off for 163 real architectures (38 torchvision conv nets at
 batch 8/32/64, 14 HF transformer architectures at prefill and decode shapes, random init) on three GPUs in bf16,
