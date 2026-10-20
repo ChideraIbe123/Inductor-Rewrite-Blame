@@ -4,7 +4,9 @@
 set -uo pipefail
 cd "$(dirname "$0")/../.."
 export REWRITE_BLAME_THREADS=${1:-8} REWRITE_BLAME_STAT=min TOKENIZERS_PARALLELISM=false
-PY=".venv-pt213/bin/python"; F='^DEBUG\|^INFO\|Graph Metrics'; S="$(date +%F)-pt213"
+# torch 2.13's C++ builder does not quote paths, so the venv must live at a path without spaces (Mac: ~/venvs/rb-pt213)
+PY="${PT213_PY:-$HOME/venvs/rb-pt213/bin/python}"; [ -x "$PY" ] || PY=".venv-pt213/bin/python"
+F='^DEBUG\|^INFO\|Graph Metrics'; S="$(date +%F)-pt213"
 R="results/pt213"; mkdir -p "$R" logs
 PIN=""; command -v taskset >/dev/null && PIN="taskset -c 1-3"
 COMMON="--registry $R/switches.json --store $R/measurements.sqlite --session $S"
