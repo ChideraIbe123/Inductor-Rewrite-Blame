@@ -548,3 +548,21 @@ its venv must live at a path without spaces (~/venvs/rb-pt213 on the Mac).
   freezing *enable* guard should have fired and did not: under investigation (suspect: the live profile carries
   `cfg_bf16=1` while the dataset rows were profiled in fp32 on the CPU, an out-of-distribution feature). Two decode
   models had unusable noise bands in this session (GPT-2 decode 48%, SmolLM decode 28%).
+
+## Control experiment (E2): what delta debugging concludes without the calibrated oracle (Mac, 2026-10-20, 02:00-02:22)
+
+Three cases, one fresh session, both judges sharing the same first measurements (the single-measurement judge reuses
+them from the store), so the only difference is the policy: calibrated = AND of two time-separated runs with an
+interleaved baseline and the identical-program guard; single = one run per verdict, no guard.
+
+| case | candidates | calibrated | single-measurement |
+|---|---|---|---|
+| attention block, default vs all inference attention rules off | 63 | pair {11, 12} (interaction), 16 evals | same pair, 16 evals |
+| ResNet-18, default vs six flags off | 6 | `-layout_optimization` alone, 5 evals | same, 5 evals |
+| decode MLP, default vs all 16 opt-in passes on | 17 | **no culprit**: slow state not slower this session (within tau), 2 evals | **spurious interaction** `+batch_tanh` x `+decompose_mm_pass`, 11 evals |
+
+Large, stable effects survive either oracle. The difference appears exactly where it should: when the "slow" state is
+not actually slower, the uncalibrated oracle turns run-to-run noise into a two-rule "interaction" that does not exist,
+and spends five times the measurements doing it. (The decode-MLP decomposition effect on the Mac was +15% at the midterm
+and 135% on SmolLM decode; in this 02:00 session on the 0.2 ms toy it was within the 2% band, which is itself a reminder
+that sub-millisecond models are weak evidence.)
