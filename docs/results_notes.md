@@ -523,3 +523,10 @@ conv rows as before. Evidence extracts for the issue are now tracked in `evidenc
 ## Upstream (2026-10-20)
 Freezing issue filed by Chidera: https://github.com/pytorch/pytorch/issues/201502 (no labels yet; the triage bot
 usually adds `module: inductor` within a day). Replies to maintainers are written by Chidera (PyTorch AI policy).
+
+## Second PyTorch version (E1), first result: the rule set drifts between releases (2026-10-20)
+PyTorch 2.13.0 on the Mac registers 267 switches vs 269 under 2.14.1. The four rules that exist only in 2.14 are
+`reciprocal_sqrt_to_rsqrt`, `_fuse_addcdiv_to_fma`, `unfuse_bias_baddbmm_to_pointwise` and one more sfdp replacement
+variant; nothing was removed. The 10-model subset sweeps under 2.13 (Mac and VM, `scripts/runs/pt213_subset.sh`)
+give the second-version columns of the sign matrix. Practical note: torch 2.13's C++ builder does not quote paths, so
+its venv must live at a path without spaces (~/venvs/rb-pt213 on the Mac).
