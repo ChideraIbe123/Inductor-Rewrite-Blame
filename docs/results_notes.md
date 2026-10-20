@@ -519,3 +519,7 @@ CPU peak RSS numbers for random-init rows are not usable (constant 3.7 GB, domin
 Freezing on the Apple M4 Pro: 11/12 corpus models neutral (SmolLM decode 2-4% faster), random and trained weights
 agree 12/12; real workloads within 1% (generate 245 -> 243 ms, classify 1.61 s both). Layout: harmful on 4 of the 10
 conv rows as before. Evidence extracts for the issue are now tracked in `evidence/`.
+
+## Upstream (2026-10-20)
+Freezing issue filed by Chidera: https://github.com/pytorch/pytorch/issues/201502 (no labels yet; the triage bot
+usually adds `module: inductor` within a day). Replies to maintainers are written by Chidera (PyTorch AI policy).
