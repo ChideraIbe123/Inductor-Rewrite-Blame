@@ -1,1 +1,37 @@
-% TODO: cut from report/final/final.tex Section
+\label{sec:attr}
+\textbf{Measurement.} One measurement compiles a model under a state in a fresh subprocess, checks the output against
+eager mode, records the generated code (kernel count, external calls, allocation, a program hash) and times 10
+warm-up and 50 timed calls with the stream synchronised on CUDA; results are stored keyed by model, machine, state
+and session, so every number here is regenerable from the stores.
+
+\textbf{Calibrating the oracle.} Within a run the call times are right-skewed; between runs the spread is fat-tailed.
+We measured 480 runs of unchanged configurations and asked ten decision rules how often they call one of them
+``slower'': standard deviations, interquartile range, Wasserstein distance, hierarchical bootstrap, Mann--Whitney on
+pooled calls, and MAD bands. Every single-comparison rule was wrong 6--16\% of the time
+(Fig.~\ref{fig:cost}, right). The adopted oracle takes the median of each run, seven runs in separate processes for
+a noise model with centre $c$ and $\tau=\max(3\,\mathrm{MAD},1\%\,c)$, and calls a state slower only if two
+time-separated runs both exceed $c+\tau$ with a fresh baseline run in between (8.9\% false alarms for one run, 1.5\% for
+two, 0.9\% for three). Byte-identical generated programs are never blamed. The min statistic has fewer single-run
+false alarms on every machine and agrees with the median on 85--91\% of sweep verdicts, the rest sitting at the
+threshold; core pinning helps only sub-50\,ms models~\cite{hoefler15,mytkowicz09,stabilizer}.
+
+\textbf{Attribution.} Given fast state $F$ and slow state $S$, the difference is a set of signed changes. Delta
+debugging~\cite{zeller} over that set with the oracle above returns a 1-minimal set; when it has two or more elements
+each is tested alone and the result is labelled an interaction if none reproduces the slowdown. Iterative attribution
+moves the found cause into $F$ and repeats until the residual is within $\tau$; a $\tau$-scan at $k\in\{2,3,4,6\}$
+reports stability. The output is the culprit set, its delta, and the kernel-level diff between $F$ and $F\cup C$.
+
+\begin{figure}[t]\centering\includegraphics[width=\linewidth]{figures/attribution_cost.pdf}
+\caption{Left: oracle evaluations per attribution vs.\ candidate changes (red: pairs); dashed $2\log_2 n+2$.
+Right: false alarms of single-comparison rules on 480 null runs vs.\ the adopted AND rule.}\label{fig:cost}\end{figure}
+
+\textbf{Cases.} On the Mac, attention rules 11 and 12 match the same graph: disabling either changes nothing, both
+costs 34\%, and \tool\ reports the pair. On the A40, \code{conv\_1x1\_as\_mm} is recovered alone from a 25\% slowdown
+hidden among seventeen opt-in passes in nine evaluations (24$\to$27 kernels, 18$\to$63\,MB). On the L4 in bf16 a
+genuine interaction between two whole pass groups (+6.3\%) and the fusion limit (+14.2\%) explain an attention block;
+on BERT the half-precision attention rule (+7.5\%) and the fusion limit (+19.0\%) explain the whole 0.85\,ms gap in 13
+evaluations. When the CPU cases were replayed on the GPU the ``slow'' states were not slower there, and the tool said so.
+\textbf{Control.} Three cases re-run in one session with the calibrated oracle and an uncalibrated one (one
+measurement per verdict, no program guard, same first measurements): identical culprits on the two large effects, but
+where the slow state was within noise the uncalibrated oracle fabricated a two-rule ``interaction'' and spent five times
+the evaluations (\S\ref{sec:threats}).

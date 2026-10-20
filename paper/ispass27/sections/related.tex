@@ -1,1 +1,12 @@
-% TODO: cut from report/final/final.tex Section
+Delta debugging is Zeller's~\cite{zeller}; applied over compiler passes it localises miscompiles with a Boolean oracle
+(\code{opt-bisect}, BugLens, MultiConf), and performance bisection over commits is unreliable under noise~\cite{emse22},
+which is why ours is calibrated. Pe\v{c}im\'uth et al.\ localise Graal performance problems by diffing recorded
+optimisation decisions~\cite{mplr23}; we intervene and obtain a counterfactual culprit, closer in spirit to causal
+profiling~\cite{coz}. Learned compiler heuristics span Milepost, MLGO~\cite{mlgo} and DeepTune~\cite{deeptune};
+ML compilers learn cost models to drive schedule or rewrite search (Ansor~\cite{ansor}, TASO~\cite{taso},
+Tensat~\cite{tensat}), and such models are known to be hardware-bound~\cite{tlp}; Inductor's own
+\code{autoheuristic}~\cite{autoheuristic} learns one or two decisions per GPU. That optimisation benefit depends on the
+target is old news at the flag level~\cite{pallister13,magni14}; none of these report per-rule sign flips in a production
+ML compiler, and the only prior per-optimisation ablation of Inductor is Table~4 of the PyTorch~2 paper~\cite{pt2}: eight
+knobs, one A100, geometric mean, no noise model, measured with freezing on. Benchmarking methodology follows
+\cite{hoefler15,mytkowicz09,stabilizer,vmwarmup}.

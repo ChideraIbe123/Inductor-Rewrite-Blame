@@ -1,1 +1,38 @@
-% TODO: cut from report/final/final.tex Section
+\label{sec:guards}
+\textbf{Learned guards.} A guard is a small model in the same \code{extra\_check} hook that decides whether to let a
+rule fire. Rows are (features at the firing, measured effect of blocking it), from synthetic sweeps (attention B/T/H/D,
+conv C/R/K/L/depthwise, decode-MLP M/I/Hd; 1,516 rows on the CPUs) and from real networks (38 torchvision conv nets,
+14 transformer architectures; 163 rows per switch per GPU, Table~\ref{tab:datasetsgpu}). Features are the shapes at
+the match for pattern rules and a whole-model profile (conv work and its depthwise/1$\times$1 fractions, linear work
+and how decode-shaped it is, attention shapes, parameters, batch, tokens) for model-level decisions. Trees,
+gradient-boosted trees, logistic regression, a fine-tuned encoder and a commercial decision API are compared on grouped
+splits that hold out whole shape slices or architectures; the score is run time lost per firing against
+``always fire''. On the CPUs the guards lose 1.0--1.4\% per firing where always-fire loses 262\% (decode MLP) and
+176\% (layout); end to end the layout guard makes MobileNet 29\% and EfficientNet 41\% faster on the Mac with no
+regression, and the matmul guard with the decomposition pass enabled makes SmolLM decode 58\% (Mac) and GPT-2 decode
+73\% (Xeon) faster (Table~\ref{tab:e2e-mac_mlp}). On the A40 in fp32 a layout guard trained on 60 real networks made
+held-out ResNet-18 8\% and ResNet-50 4\% faster, recovering 97\% of the per-model oracle on the conv stack.
+\input{tables/guard_cv_combined}
+\input{tables/e2e_mac_mlp}
+\input{tables/datasets_gpu}
+
+\textbf{Where guards do not beat the default.} A guard trained on 1--3-layer synthetic stacks did not transfer to real
+GPU networks until trained on real networks: the mechanism was fine, the distribution was not. On the bf16 GPUs the
+layout rule hurts a minority of real networks (18--21 of 111 with an effect) and helps the majority (62--83), so no
+learned guard beats ``always on'' in cross-validation there. Guards pay where harm is frequent and shape-predictable;
+otherwise the measured answer is a per-machine default.
+
+\textbf{A default: \code{freezing}.} It folds parameters into constants and is off by default. Across 163 real networks
+on each of three GPUs it is confirmed faster on 105--113 and slower on at most one, median 7--10\%, p90 18--24\%, up
+to 65\% (Table~\ref{tab:freezing}, Fig.~\ref{fig:freeze}); it helps 22 of 26 corpus models on the Xeon, up to 95\%, and
+is a wash on the Mac, which has no oneDNN path. Verdicts and magnitudes are the same with published weights as with
+random initialisation (Table~\ref{tab:pretrained}, 10--12 of 12 agree per machine). SmolLM-135M \code{generate} with a
+KV cache is 8--22\% faster on an A5000 with identical output; ResNet-50 classification 4\% (GPU) and 11\% (Xeon). The
+costs are compile time (+10--30\%) and peak memory (+45--51\% on decoder models). \code{freezing\_discard\_parameters}
+removes the duplicate (ResNet-50 121$\to$75\,MB, BERT 280$\to$235) at no speed cost but crashes Dynamo on every
+tied-embedding language model, which we reduced to ten lines on the CPU. Both were filed upstream (link withheld for
+review).
+\input{tables/freezing_zoo}
+\begin{figure}[t]\centering\includegraphics[width=\linewidth]{figures/freezing_cdf.pdf}
+\caption{Speed-up from \code{freezing} over 163 real networks per GPU (bf16).}\label{fig:freeze}\end{figure}
+\input{tables/pretrained}

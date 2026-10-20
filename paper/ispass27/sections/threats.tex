@@ -1,1 +1,10 @@
-% TODO: cut from report/final/final.tex Section
+\label{sec:threats}
+Same-machine verdicts repeat: 213 of 220 single-switch verdicts agree across sessions on the CPUs and 188 of 221 on
+the A40; the disagreements are 2--3\% effects at the threshold and sub-millisecond toys. Across machines 42 of 47
+disagree, which is the finding of \S\ref{sec:signs}. The control experiment of \S\ref{sec:attr} shows what an
+uncalibrated oracle does: on the case whose slow state was within noise it reported a \code{batch\_tanh}$\times$
+\code{decompose\_mm} interaction that does not exist, in eleven evaluations, where the calibrated oracle said
+``not slower'' in two. PyTorch 2.13 registers 267 switches on the Mac against 269 for 2.14 (four rules added); the
+subset sweep under 2.13 appears as additional columns of Fig.~\ref{fig:signs} in the final version. Threats: inference
+only; one compiler version for the full study; random weights for most of the corpus with 12 pretrained twins
+agreeing; 163-row GPU datasets; a shared VM and rented pods, which is why every verdict needs two confirmations.

@@ -1,1 +1,26 @@
-% TODO: cut from report/final/final.tex Section
+\label{sec:signs}
+Fig.~\ref{fig:signs} and Table~\ref{tab:signmatrix} give, for the sixteen most impactful switches, on how many corpus
+models having the switch ON is confirmed to hurt or help on each target. \textbf{Eight of sixteen have the opposite
+dominant sign on different machines.} Layout optimisation hurts on the Mac (MobileNet 41\%, EfficientNet 68\%) and the
+A40 in fp32 (ResNet-18 9\%) and helps on the Xeon (up to 90\%) and every bf16 GPU; the fusion-size limit helps
+everywhere but the Xeon; matmul decomposition costs 135\% on the Mac and saves 95\% on the Xeon; freezing helps
+wherever it does anything.
+
+\begin{figure}[t]\centering\includegraphics[width=\linewidth]{figures/sign_matrix.pdf}
+\caption{Rule$\times$machine sign matrix: colour is the balance of models helped vs.\ hurt by the switch being ON;
+cells give helped/hurt counts (confirmed, $\geq3\%$).}\label{fig:signs}\end{figure}
+\input{tables/sign_matrix}
+
+\textbf{Mechanism.} Joining each confirmed verdict with the code-level change the same switch makes
+(Table~\ref{tab:mechanism}) shows the compiler making the same structural change on every machine.
+\code{decompose\_mm} removes 96--106 external BLAS calls on both CPUs: 39\% slower on the Mac, whose BLAS handles
+small matmuls well and whose generated loops do not, 53\% faster on the Xeon. Layout optimisation adds two kernels and
+4--22\,MB of allocation on both CPUs because the batch-norm/ReLU epilogues stop fusing into the convolution: $-28\%$
+on the Mac, $+14\%$ on the Xeon whose oneDNN convolutions prefer channels-last. The fusion limit removes 8--12 kernels
+on the GPUs and is worth 7--12\% on 11--13 models per GPU. Relay noted in a sentence that pass effectiveness is
+``model- and device-dependent''~\cite{relay}; this is the per-rule, six-target version of that sentence.
+\input{tables/mechanism}
+
+\textbf{Precision changes the rule set.} In fp32 no attention-fusion rule fired on any GPU: a GPU-only softmax
+rewrite fires first and the fusion pattern no longer matches. In bf16 the half-precision variant of rule 28 fires on
+BERT and is worth 7.5\% on the L4. A GPU study in fp32 would have concluded that attention fusion never fires.

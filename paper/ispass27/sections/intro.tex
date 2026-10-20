@@ -1,1 +1,33 @@
-% TODO: cut from report/final/final.tex Section
+\code{torch.compile} lowers a PyTorch model through TorchInductor, and a large part of what Inductor does is graph
+rewriting: a few hundred rules each look for a pattern (a manual attention computation, a convolution followed by
+batch normalisation, a matrix multiplication of a particular shape) and replace it with something the rule's author
+expected to be faster. Rules fire whenever they match. Nothing measures whether the result is faster on the target,
+and when a compiled model is slower than expected there is no way, for users or for the compiler's developers, to
+find out which rule did it~\cite{rfc}. The only published per-optimization view of Inductor is an eight-knob
+ablation on one GPU reported as a geometric mean~\cite{pt2}.
+
+This paper makes the question answerable and reports what the answer looks like on six machine/precision targets.
+Our thesis is that a graph rewrite fixes the \emph{shape} of the generated program, and whether that shape is faster
+depends on the relative cost of library calls, generated kernels and memory traffic on the target, which no rule
+written once can know. Three measured facts support it: half of the most impactful rules are confirmed to help on
+one machine and hurt on another (\S\ref{sec:signs}); when they flip, the compiler has made the identical structural
+change on both machines (Table~\ref{tab:mechanism}); and acting on the measurement pays, either through a learned
+guard per rule where harm is frequent and predictable or through a per-machine default where it is not
+(\S\ref{sec:guards}).
+
+\noindent\textbf{Contributions.}
+\begin{enumerate}[leftmargin=*]
+\item \tool: per-rule switches for every pattern rule, configuration flag and opt-in pass of TorchInductor 2.14
+  (269/396/398 switches on the Apple, x86 and CUDA builds), installed from outside the compiler by wrapping the hook it
+  already calls before applying a rule, with fire and suppression counts (\S\ref{sec:switches}).
+\item A timing oracle whose false-alarm rate was measured on 480 runs of unchanged configurations and reduced from
+  9\% to 1.5\% by two time-separated confirmations, and delta-debugging attribution over switch sets that recovers
+  planted culprits in 5--16 oracle calls, detects pairs, and declines to blame when nothing is slower
+  (\S\ref{sec:attr}).
+\item A study of 24 models on an Apple M4 Pro, an Intel Xeon, and NVIDIA A40, L4 and RTX~4090 GPUs in fp32 and bf16:
+  the rule$\times$machine sign matrix, its mechanism, and the effect of precision on which rules fire at all
+  (\S\ref{sec:signs}).
+\item Two ways to act on blame, both evaluated on held-out models against a per-model oracle: learned per-rule guards,
+  and per-machine defaults; the latter yields a concrete upstream finding about \code{freezing} backed by 163 real
+  networks per GPU, and a Dynamo bug (\S\ref{sec:guards}).
+\end{enumerate}

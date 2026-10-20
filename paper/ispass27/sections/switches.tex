@@ -1,1 +1,19 @@
-% TODO: cut from report/final/final.tex Section
+\label{sec:switches}
+Inductor applies rewrites in pre-grad, joint-graph and post-grad passes; most are \code{PatternMatcherPass} instances
+holding \code{PatternEntry} rules keyed by the operator they match, and a pass applies a rule only if
+\code{entry.extra\_check(match)} returns true. \tool\ replaces every entry's \code{extra\_check} with a gate that refuses
+the match when the rule's switch is off, counts a \emph{fire} when the original check accepts and the switch is on, and
+counts a \emph{suppression} when the rule would have fired but was disabled. No PyTorch source is modified; Inductor's
+own in-tree learned heuristics use the same hook from the inside~\cite{autoheuristic}. Rules register lazily, so
+discovery compiles a tiny warm-up graph (attention, conv/batch-norm, split/cat, matmul, a dtype round trip) and then
+walks the \code{fx\_passes} modules; direct calls to the initialisers register patterns twice. Configuration flags
+(\code{freezing}, \code{layout\_optimization}, \code{max\_fusion\_size}, \ldots), opt-in passes enabled through the
+fusion-option dictionaries, and master switches for whole pass groups complete the universe. A \emph{state} is the set
+of switches that are on; because universes differ per platform (oneDNN rules exist only on x86, half-precision
+attention variants only with CUDA) states are compared by their difference from the default. The FX-graph cache would
+otherwise return a program compiled under another state, so a custom pass whose \code{uuid()} hashes the active state
+keeps the cache key honest, and the cache is disabled while timing.
+
+Most rules never match a given model: a \emph{verify} step flips each switch alone from the default, compiles, and
+hashes the normalised generated code; for BERT about ten of 398 switches change the program. Everything downstream
+works on that short list.
