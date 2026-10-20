@@ -148,3 +148,15 @@ def test_run_statistic_min_is_opt_in(monkeypatch):
     monkeypatch.setenv("REWRITE_BLAME_STAT", "min")
     s2 = summarize(xs)
     assert s2["statistic"] == "min" and s2["median"] == 10.0 and s2["median_raw"] >= 10.0
+
+
+def test_single_mode_judge_trusts_one_measurement():
+    from rewrite_blame.judge import TimingJudge, Verdict
+    calls = []
+    def measure(c, rep=0):
+        calls.append((tuple(sorted(c)), rep)); return (11.0, True)     # 10% slower but identical program
+    j = TimingJudge(measure, reference_ms=10.0, tau=0.3, confirmations=1, baseline_ms=None, program_guard=False)
+    assert j.evaluate(frozenset({"x"})).verdict == Verdict.SLOW and len(calls) == 1
+    calls.clear()
+    j2 = TimingJudge(measure, reference_ms=10.0, tau=0.3, confirmations=2, baseline_ms=lambda rep: 10.0, program_guard=True)
+    assert j2.evaluate(frozenset({"x"})).verdict == Verdict.FAST      # identical program: never blamed

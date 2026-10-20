@@ -11,7 +11,7 @@ from .pipeline import Runner, RunnerConfig, parse_state_spec
 
 
 def _runner(a) -> Runner:
-    cfg = RunnerConfig(registry_path=Path(a.registry), store_path=Path(a.store), threads=a.threads,
+    cfg = RunnerConfig(judge_mode=getattr(a, 'judge_mode', 'calibrated'), registry_path=Path(a.registry), store_path=Path(a.store), threads=a.threads,
                        warmup=a.warmup, rounds=a.rounds, iters=a.iters, timeout_s=a.timeout, verbose=not a.quiet,
                        session=a.session, cooldown_factor=a.cooldown, retry_unsteady=not a.no_retry_unsteady)
     return Runner(cfg)
@@ -369,6 +369,7 @@ def main(argv=None) -> int:
     ap.add_argument("--quiet", action="store_true")
     ap.add_argument("--cooldown", type=float, default=0.5, help="pause between timed measurements as a fraction of the previous one's wall time (0 on servers)")
     ap.add_argument("--no-retry-unsteady", action="store_true")
+    ap.add_argument("--judge-mode", choices=["calibrated", "single"], default="calibrated", help="timing judge: calibrated (default) or the single-measurement control")
     ap.add_argument("--session", default=None, help="tag for timed measurements (default: today's date); "
                     "timings are only reused within the same session")
     sub = ap.add_subparsers(dest="cmd", required=True)

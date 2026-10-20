@@ -124,7 +124,7 @@ class TimingJudge(Judge):
     """
 
     def __init__(self, measure_ms: Callable[..., float], reference_ms: float, tau: float,
-                 confirmations: int = 2, baseline_ms: Callable[[int], float] | None = None,
+                 confirmations: int = 2, baseline_ms: Callable[[int], float] | None = None, program_guard: bool = True,
                  max_retries: int = 2, **_ignored) -> None:
         super().__init__()
         self.measure_ms = measure_ms
@@ -132,6 +132,7 @@ class TimingJudge(Judge):
         self.tau = tau
         self.confirmations = max(1, int(confirmations))
         self.baseline_ms = baseline_ms
+        self.program_guard = program_guard       # False = the uncalibrated control: trust timing alone
         self.max_retries = max_retries
         self.remeasured = 0
         self.baseline_runs = 0
@@ -167,7 +168,7 @@ class TimingJudge(Judge):
             values = []
             v = self._measure(candidate, rep)
             values.append(v)
-            if getattr(self, "_last_same_program", False):
+            if self.program_guard and getattr(self, "_last_same_program", False):
                 # byte-identical generated program: the rewrites in question did nothing here, so a
                 # timing difference cannot be theirs
                 return JudgeRecord(tuple(sorted(candidate)), Verdict.FAST, v, self.reference_ms, self.tau,

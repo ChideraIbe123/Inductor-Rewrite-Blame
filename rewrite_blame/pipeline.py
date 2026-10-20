@@ -75,6 +75,7 @@ class RunnerConfig:
     # slower as it went (trend_ratio > 1.10) once after a longer pause
     cooldown_factor: float = 0.5
     retry_unsteady: bool = True
+    judge_mode: str = "calibrated"   # calibrated (AND rule, interleaved baseline, program guard) | single (control)
 
     @property
     def protocol(self) -> str:
@@ -283,6 +284,9 @@ class Runner:
             if m.error:
                 raise RuntimeError(m.error)
             return m.median_ms
+        if self.cfg.judge_mode == "single":
+            # control experiment: one measurement per verdict, no interleaved baseline, no identical-program guard
+            return TimingJudge(measure_ms, reference_ms=noise.center, tau=noise.tau, confirmations=1, baseline_ms=None, program_guard=False)
         return TimingJudge(measure_ms, reference_ms=noise.center, tau=noise.tau, baseline_ms=baseline_ms)
 
     def metric_judge(self, model: str, fast_state: State, metric: str = "kernel_count", delta: float = 0.0,
