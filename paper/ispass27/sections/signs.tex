@@ -6,9 +6,9 @@ A40 in fp32 (ResNet-18 9\%) and helps on the Xeon (up to 90\%) and every bf16 GP
 everywhere but the Xeon; matmul decomposition costs 135\% on the Mac and saves 95\% on the Xeon; freezing helps
 wherever it does anything.
 
-\begin{figure}[t]\centering\includegraphics[width=\linewidth]{figures/sign_matrix.pdf}
+\begin{figure*}[t]\centering\includegraphics[width=0.62\textwidth]{figures/sign_matrix.pdf}
 \caption{Rule$\times$machine sign matrix: colour is the balance of models helped vs.\ hurt by the switch being ON;
-cells give helped/hurt counts (confirmed, $\geq3\%$).}\label{fig:signs}\end{figure}
+cells give helped/hurt counts (confirmed, $\geq3\%$).}\label{fig:signs}\end{figure*}
 \input{tables/sign_matrix}
 
 \textbf{Mechanism.} Joining each confirmed verdict with the code-level change the same switch makes
