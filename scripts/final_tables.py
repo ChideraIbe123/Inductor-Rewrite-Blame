@@ -12,7 +12,10 @@ def md_table_to_tex(md_path, caption, label, size="footnotesize", colspec=None, 
     rows = [l.strip() for l in open(md_path) if l.strip().startswith("|")]
     cells = [[c.strip() for c in r.strip("|").split("|")] for r in rows if not set(r.replace("|", "").strip()) <= set("-: ")]
     if max_cols: cells = [c[:max_cols] for c in cells]
-    n = len(cells[0]); colspec = colspec or ("l" + "l" * (n - 1))
+    n = len(cells[0])
+    if colspec is None:
+        width = {6: "2.1cm", 7: "1.85cm", 8: "1.6cm"}.get(n - 1, "1.4cm")
+        colspec = "l" + f"p{{{width}}}" * (n - 1)
     body = [" & ".join(tex(c) for c in cells[0]) + r" \\\midrule"] + [" & ".join(tex(c) for c in r) + r" \\" for r in cells[1:]]
     return (f"\\begin{{table*}}[t]\\centering\\{size}\n\\begin{{tabular}}{{{colspec}}}\\toprule\n" + "\n".join(body) +
             f"\n\\bottomrule\\end{{tabular}}\n\\caption{{{caption}}}\\label{{{label}}}\n\\end{{table*}}\n")
@@ -23,7 +26,7 @@ def write(name, body):
 if os.path.exists("report/final/tables/sign_matrix.md"):
     write("sign_matrix.tex", md_table_to_tex("report/final/tables/sign_matrix.md",
           "Rule $\\times$ machine sign matrix. For each switch, the number of corpus models on which having the switch ON is confirmed to hurt or help (two time-separated runs beyond the machine's noise band, effect $\\geq 3\\%$), with the largest confirmed effect. Eight of the sixteen most impactful switches have the opposite dominant sign on different machines.",
-          "tab:signmatrix", size="scriptsize", colspec="l" + "p{2.1cm}" * 6))
+          "tab:signmatrix", size="scriptsize", colspec=None))   # colspec derived from the column count
 if os.path.exists("docs/mechanism.md"):
     write("mechanism.tex", md_table_to_tex("docs/mechanism.md",
           "Mechanism: confirmed verdicts joined with the code-level change the same switch makes (ON minus OFF: kernels, external library calls, static allocation in MB; medians over the affected models). The structural change is the same on every machine; its runtime sign is not.",
