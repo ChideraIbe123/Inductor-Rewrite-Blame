@@ -566,3 +566,11 @@ not actually slower, the uncalibrated oracle turns run-to-run noise into a two-r
 and spends five times the measurements doing it. (The decode-MLP decomposition effect on the Mac was +15% at the midterm
 and 135% on SmolLM decode; in this 02:00 session on the 0.2 ms toy it was within the 2% band, which is itself a reminder
 that sub-millisecond models are weak evidence.)
+
+## Second PyTorch version, complete (Mac, 2.13.0, 10-model subset, 2026-10-20 02:22-11:26)
+The 2.13 column of the sign matrix agrees with 2.14 on every row with data except the opt-in normalization pass (a
+12-16% effect on one model in each version): layout optimisation hurts (2 of 10 vs 4 of 24), decompose_mm hurts
+(145% vs 135%), attention rule 28 helps (6% vs 5%), the pattern matcher helps, decompose_tanh helps. The rule set grew
+by four rules between the releases while the signs stayed put. Across the seven columns (Mac 2.14, Mac 2.13, Xeon, A40
+fp32, A40/L4/4090 bf16) 7 of the 16 most impactful switches flip dominant sign between machines, none between the
+two compiler versions on the same machine.
