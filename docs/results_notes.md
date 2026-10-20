@@ -530,3 +530,21 @@ PyTorch 2.13.0 on the Mac registers 267 switches vs 269 under 2.14.1. The four r
 variant; nothing was removed. The 10-model subset sweeps under 2.13 (Mac and VM, `scripts/runs/pt213_subset.sh`)
 give the second-version columns of the sign matrix. Practical note: torch 2.13's C++ builder does not quote paths, so
 its venv must live at a path without spaces (~/venvs/rb-pt213 on the Mac).
+
+## E3 on an A40 (bf16, 2026-10-20 night, $2.50): switch guards end-to-end, freezing_discard_parameters, max-autotune
+
+- **`freezing_discard_parameters=True` removes the duplicate memory** (base = freezing ON, A40): ResNet-18 72 -> 51 MB
+  (unfrozen baseline 48), ResNet-50 121 -> 75 (73), BERT 280 -> 235 (241), DistilBERT 172 -> 149 (155), MobileNet 24 -> 21,
+  EfficientNet 38 -> 31; speed unchanged within noise. So the memory cost of freezing reported in #201502 is avoidable.
+- **It crashes on every tied-embedding LLM** (GPT-2 prefill/decode, SmolLM decode/prefill, Qwen2.5-0.5B decode, random and
+  pretrained): `AssertionError: Guard failed on the same frame it was created. This is a bug - please create an issue.`
+  That is a second, independent PyTorch issue (Dynamo guard bug under freezing + discard_parameters); reproducer below.
+- **max-autotune could not be measured**: our harness kept the first output tensor and compared it after the timing loop,
+  which under CUDA graphs (enabled by max-autotune) reads a buffer the next call overwrote (`accessing tensor output of
+  CUDAGraphs that has been overwritten`). Fixed in measure.py (outputs cloned when a compile mode is set); needs a rerun.
+- **Switch guards on the A40 held-out models**: all "same" (unconfirmed), geometric mean -0.3% to +2% across the five
+  steps; the guards blocked or enabled almost nothing (0-1 per model). The per-model oracle says freezing is the best
+  toggle on 5 of 11 models (Qwen decode -23.8%, ResNet-18 -13.7%, BERT -11.7%, DistilBERT -7.7%, ConvNeXt -4.3%), so the
+  freezing *enable* guard should have fired and did not: under investigation (suspect: the live profile carries
+  `cfg_bf16=1` while the dataset rows were profiled in fp32 on the CPU, an out-of-distribution feature). Two decode
+  models had unusable noise bands in this session (GPT-2 decode 48%, SmolLM decode 28%).

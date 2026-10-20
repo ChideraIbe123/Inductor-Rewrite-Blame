@@ -186,6 +186,8 @@ def measure(reg: Registry, model_name: str, state: Iterable[str], *, threads: in
             compiled = torch.compile(model, dynamic=dynamic, mode=mode)
             t0 = time.perf_counter()
             out, codes = run_and_get_code(compiled, *inputs)
+            # under mode=max-autotune (CUDA graphs) the output buffers are reused by the next call: keep a copy
+            out = [t.clone() for t in _flatten(out)] if mode else out
             m.compile_s = time.perf_counter() - t0
             if env.is_cuda():
                 torch.cuda.reset_peak_memory_stats(env.device())
