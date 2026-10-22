@@ -6,7 +6,7 @@
 #            and max-autotune columns; attribution case studies seeded from the bf16 sweep
 # Usage: scripts/gpu_campaign2.sh [phase...]   (default: 1 2 3). Resumable: the store caches every measurement.
 set -uo pipefail
-cd /workspace/rewrite-blame
+cd "${ROOT:-/workspace/rewrite-blame}"
 
 self_terminate() {   # called at the end: stop billing even if nobody is watching (key passed via env, never written)
   if [ -n "${RUNPOD_API_KEY:-}" ] && [ -n "${RUNPOD_POD_ID:-}" ]; then

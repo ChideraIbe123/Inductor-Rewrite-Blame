@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # On a pod: end-to-end evaluation of switch-level guards on held-out models, with the oracle; self-terminates.
 # Usage (on the pod): RUNPOD_API_KEY=... RUNPOD_POD_ID=... scripts/gpu_e2e_switches.sh <bundle.pkl> <out.json> [--max-autotune] [models...]
-cd /workspace/rewrite-blame
+cd "${ROOT:-/workspace/rewrite-blame}"
 self_terminate() {
   if [ -n "${RUNPOD_API_KEY:-}" ] && [ -n "${RUNPOD_POD_ID:-}" ]; then
     echo "=== $(date) self-terminating pod $RUNPOD_POD_ID in ${SELF_TERMINATE_DELAY:-600}s"

@@ -3,7 +3,7 @@
 # with the per-model oracle and max-autotune; (2) freezing_discard_parameters on/off (base = freezing ON) over the 12
 # pretrained twins and their random-init versions, rows carry peak CUDA memory and compile time.
 # Usage: RUNPOD_API_KEY=.. RUNPOD_POD_ID=.. scripts/gpu_e3.sh <bundle.pkl>
-cd /workspace/rewrite-blame
+cd "${ROOT:-/workspace/rewrite-blame}"
 self_terminate() {
   if [ -n "${RUNPOD_API_KEY:-}" ] && [ -n "${RUNPOD_POD_ID:-}" ]; then
     echo "=== $(date) self-terminating pod $RUNPOD_POD_ID in ${SELF_TERMINATE_DELAY:-900}s"; sleep ${SELF_TERMINATE_DELAY:-900}

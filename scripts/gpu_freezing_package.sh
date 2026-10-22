@@ -2,7 +2,7 @@
 # On a pod (bf16): the freezing package = freezing and layout on/off over the pretrained corpus models and their
 # random-init twins (rows carry compile time and peak CUDA memory), the two real end-to-end workloads, and the
 # 20-line reproducer numbers. Self-terminates when done (RUNPOD_API_KEY + RUNPOD_POD_ID in env).
-cd /workspace/rewrite-blame
+cd "${ROOT:-/workspace/rewrite-blame}"
 self_terminate() {
   if [ -n "${RUNPOD_API_KEY:-}" ] && [ -n "${RUNPOD_POD_ID:-}" ]; then
     echo "=== $(date) self-terminating pod $RUNPOD_POD_ID in ${SELF_TERMINATE_DELAY:-900}s"; sleep ${SELF_TERMINATE_DELAY:-900}
