@@ -574,3 +574,10 @@ The 2.13 column of the sign matrix agrees with 2.14 on every row with data excep
 by four rules between the releases while the signs stayed put. Across the seven columns (Mac 2.14, Mac 2.13, Xeon, A40
 fp32, A40/L4/4090 bf16) 7 of the 16 most impactful switches flip dominant sign between machines, none between the
 two compiler versions on the same machine.
+
+## 2026-10-22: the A40 guard rerun (mode fix + max-autotune) was lost
+The rerun ran to completion on pod 52fc86zczrtuxu on 2026-10-20 (about 4.5 h, $2.66) and self-terminated as designed,
+but the local pull loop died with the controlling session before the final pull, and the first-run files (00:48) are
+what remains on disk. Lesson recorded: results must leave the pod by the pod's own action (push to durable storage or
+to a persistent host), not by a loop on the laptop. The guard end-to-end with the mode fix and the max-autotune column
+will be run on the A100 the author is arranging, with an A100-trained bundle, which supersedes the A40 rerun.
