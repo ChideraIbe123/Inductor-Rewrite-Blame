@@ -21,17 +21,16 @@ for i, s in enumerate(switches):
         c = cells.get((s, m))
         if c and (c["hurts"] or c["helps"]):
             M[i, j] = (c["helps"] - c["hurts"]) / (c["helps"] + c["hurts"])   # +1 = ON helps on every model, -1 = hurts
-fig, ax = plt.subplots(figsize=(3.6, 3.4))
+fig, ax = plt.subplots(figsize=(7.0, 3.3))
 im = ax.imshow(M, cmap="RdBu", vmin=-1, vmax=1, aspect="auto")
-ax.set_xticks(range(len(machines))); ax.set_xticklabels(machines, rotation=35, ha="right")
+ax.set_xticks(range(len(machines))); ax.set_xticklabels([m.replace(" (", "\n(") for m in machines], rotation=0, ha="center", fontsize=7)
 ax.set_yticks(range(len(switches))); ax.set_yticklabels([s.split("/")[-1][:28] for s in switches])
 for i, s in enumerate(switches):
     for j, m in enumerate(machines):
         c = cells.get((s, m))
         if c and (c["hurts"] or c["helps"]):
-            ax.text(j, i, f"{c['helps']}/{c['hurts']}", ha="center", va="center", fontsize=6, color="black")
-cb = fig.colorbar(im, ax=ax, fraction=0.04, pad=0.02); cb.set_label("ON helps  ←  →  ON hurts", fontsize=7); cb.set_ticks([-1, 0, 1]); cb.set_ticklabels(["hurts all", "split", "helps all"])
-ax.set_title("Confirmed effect of each switch being ON (helps/hurts model counts)")
+            ax.text(j, i, f"{c['helps']}/{c['hurts']}", ha="center", va="center", fontsize=7, color="white" if abs(M[i, j]) > 0.6 else "black")
+cb = fig.colorbar(im, ax=ax, fraction=0.04, pad=0.02); cb.set_ticks([-1, 0, 1]); cb.set_ticklabels(["hurts all", "split", "helps all"])
 fig.tight_layout(); fig.savefig(os.path.join(OUT, "sign_matrix.pdf")); plt.close(fig); print("sign_matrix.pdf")
 
 # ---------- F2: attribution cost + null calibration ----------
