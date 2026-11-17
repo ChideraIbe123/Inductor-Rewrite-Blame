@@ -502,7 +502,7 @@ Freezing package, GPU part (A5000, bf16, 2026-10-19): trained weights agree with
 freezing, 11/12 for layout, equal magnitudes); peak memory +45-51% for LLM decode/prefill with freezing (frozen
 constants beside the original parameters; `freezing_discard_parameters` exists for this), 0 for attention
 encoders; compile +10-30%; real workloads SmolLM `generate` 8-22% faster (271 -> 676 MB), ResNet-50 batch-32
-3.6% faster (179 -> 240 MB), identical outputs. Issue draft: docs/pytorch_issue_freezing.md.
+3.6% faster (179 -> 240 MB), identical outputs. Filed as pytorch/pytorch#201502.
 
 ## Freezing package, Xeon part (2026-10-19, overnight, pinned 1-3, min statistic)
 
