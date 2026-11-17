@@ -3,7 +3,7 @@ name = "rewrite-blame"
 version = "0.1.0"
 description = "Finding and blaming bad graph rewrites in TorchInductor"
 requires-python = ">=3.12"
-dependencies = ["torch", "numpy"]
+dependencies = ["torch==2.14.1", "torchvision", "transformers", "scikit-learn", "numpy", "matplotlib", "tabulate", "pytest"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

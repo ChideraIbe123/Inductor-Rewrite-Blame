@@ -1,4 +1,10 @@
 PY := .venv/bin/python
+DEPS := torch==2.14.1 torchvision transformers scikit-learn numpy matplotlib tabulate pytest
+
+setup:
+	uv venv -p 3.12 .venv
+	uv pip install -p $(PY) $(DEPS)
+	$(PY) -m rewrite_blame discover
 
 test-fast:
 	$(PY) -m pytest -m "unit or inductor" -q
@@ -12,7 +18,4 @@ test-all:
 discover:
 	$(PY) -m rewrite_blame discover
 
-report:
-	cd report/midterm && tectonic midterm.tex
-
-.PHONY: test-fast test-unit test-all discover report
+.PHONY: setup test-fast test-unit test-all discover
