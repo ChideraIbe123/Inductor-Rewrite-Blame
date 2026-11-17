@@ -18,3 +18,10 @@ results/
 docs/meeting_script_*.md
 docs/progress_check_*.md
 paper/
+docs/venues.md
+docs/related_work_notes.md
+docs/final_report_outline.md
+docs/pytorch_issue_body.md
+docs/pytorch_issue_freezing.md
+docs/pytorch_issue_discard_parameters.md
+scripts/a100_campaign.sh
